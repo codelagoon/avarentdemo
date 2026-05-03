@@ -125,7 +125,7 @@ function LoginScreen({ onLogin, onTryNewCompany }: { onLogin: () => void; onTryN
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6" data-testid="login-screen">
       <div className="w-full max-w-md space-y-4">
         <Card className="shadow-xl">
           <CardHeader className="text-center pb-2">
@@ -147,6 +147,7 @@ function LoginScreen({ onLogin, onTryNewCompany }: { onLogin: () => void; onTryN
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter access code"
+                  data-testid="password-input"
                   className={cn(error && "border-destructive focus-visible:ring-destructive")}
                   autoFocus
                 />
@@ -154,7 +155,7 @@ function LoginScreen({ onLogin, onTryNewCompany }: { onLogin: () => void; onTryN
                   <p className="text-xs text-destructive">Incorrect password. Please try again.</p>
                 )}
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" data-testid="login-submit">
                 Access Dashboard
               </Button>
             </form>
@@ -176,7 +177,7 @@ function LoginScreen({ onLogin, onTryNewCompany }: { onLogin: () => void; onTryN
                 <p className="font-medium text-sm">New to AVARENT?</p>
                 <p className="text-xs text-muted-foreground">Try it out as a new company</p>
               </div>
-              <Button variant="outline" size="sm" onClick={onTryNewCompany} className="gap-1">
+              <Button variant="outline" size="sm" onClick={onTryNewCompany} className="gap-1" data-testid="onboarding-button">
                 Get Started
                 <ArrowRight className="h-4 w-4" />
               </Button>
