@@ -189,7 +189,7 @@ Proxies Severed: ${packet.sections.biasLogs.severedProxies}
 
 ${packet.sections.bifsgMethodology.description}
 
-Data Isolation: ${packet.sections.bifsgMethodology.dataIsolation ? "YES ✓" : "NO ✗"}
+Data Isolation: ${packet.sections.bifsgMethodology.dataIsolation ? "YES [OK]" : "NO [FAIL]"}
 
 Proxy Detections: ${packet.sections.bifsgMethodology.proxyDetections}
 
@@ -286,9 +286,9 @@ SEARCH PARAMETERS:
 - Search Algorithm: Combinatorial grid search
 
 FINDINGS:
-✓ No LDA exists within 0.5% performance slack
-✓ Current model is Pareto-optimal
-✓ All fairness constraints satisfied
+[PASS] No LDA exists within 0.5% performance slack
+[PASS] Current model is Pareto-optimal
+[PASS] All fairness constraints satisfied
 
 CERTIFICATION:
 The current model is certified as the least discriminatory alternative

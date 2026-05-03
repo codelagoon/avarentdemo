@@ -77,7 +77,7 @@ function ReviewQueueItem({
         <Scale className="h-3 w-3" />
         <span>Plain Language: {review.narrative.plainLanguageScore}/100</span>
         {review.narrative.cfpbCompliant && (
-          <Badge variant="outline" className="text-xs ml-auto">CFPB ✓</Badge>
+          <Badge variant="outline" className="text-xs ml-auto">CFPB OK</Badge>
         )}
       </div>
     </div>

@@ -775,7 +775,7 @@ export function DashboardPage() {
                 className="mt-1.5 h-1.5"
               />
               <div className="mt-1.5 flex items-center justify-between text-[0.6rem] text-muted-foreground">
-                <span>CFPB 4/5ths rule: {activeScenario.fairnessScore >= 0.8 ? "✓ Pass" : "✗ Fail"}</span>
+                <span>CFPB 4/5ths rule: {activeScenario.fairnessScore >= 0.8 ? "Pass" : "Fail"}</span>
                 <span>Scenario: {activeScenario.label}</span>
               </div>
             </div>

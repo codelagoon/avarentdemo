@@ -93,7 +93,7 @@ export function AnalyticsPage() {
             CFPB 4/5ths Rule
           </Badge>
           <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-xs text-emerald-700">
-            DI Ratio: {overallDI.toFixed(2)} ✓
+            DI Ratio: {overallDI.toFixed(2)}
           </Badge>
         </div>
       </div>
@@ -198,7 +198,7 @@ export function AnalyticsPage() {
             <ChartContainer config={volumeConfig} className="h-[200px] w-full">
               <LineChart data={DATA_VOLUME_CHART} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="oklch(0.91 0.008 247)" />
-                <XAxis dataKey="features" tick={{ fontSize: 10, fontFamily: "IBM Plex Mono" }} tickFormatter={(v) => v === 82 ? "82★" : v.toString()} />
+                <XAxis dataKey="features" tick={{ fontSize: 10, fontFamily: "IBM Plex Mono" }} tickFormatter={(v) => v === 82 ? "82" : v.toString()} />
                 <YAxis tickFormatter={v => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fontFamily: "IBM Plex Mono" }} domain={[0.6, 1]} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ReferenceLine x={82} stroke="var(--primary)" strokeDasharray="3 3" />

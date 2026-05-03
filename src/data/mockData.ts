@@ -787,7 +787,7 @@ export interface ScenarioConfig {
 export const DEMO_SCENARIOS: Record<DemoScenario, ScenarioConfig> = {
   good_faith: {
     id: "good_faith",
-    label: "✅ Clean Application",
+    label: "Clean Application",
     description: "DEMO: Normal loan application with no bias risks. Shows how the system approves qualified applicants while maintaining fairness monitoring.",
     purpose: "Demonstrates baseline fair lending decision with full SHAP explainability and audit trail.",
     loanTypesApplicable: ["mortgage", "auto", "personal", "business", "credit_card"],
@@ -810,7 +810,7 @@ export const DEMO_SCENARIOS: Record<DemoScenario, ScenarioConfig> = {
   },
   mild_proxy: {
     id: "mild_proxy",
-    label: "⚠️ Proxy Variable Detected",
+    label: "Proxy Variable Detected",
     description: "DEMO: Single proxy variable (ZIP code) detected and automatically severed. Shows BIFSG proxy detection in action.",
     purpose: "Demonstrates automatic proxy variable detection and causal intervention using do-calculus.",
     loanTypesApplicable: ["mortgage", "auto", "personal", "business", "credit_card"],
@@ -833,7 +833,7 @@ export const DEMO_SCENARIOS: Record<DemoScenario, ScenarioConfig> = {
   },
   bad_faith: {
     id: "bad_faith",
-    label: "🚨 Multi-Proxy Attack",
+    label: "Multi-Proxy Attack",
     description: "DEMO: Coordinated proxy attack using 3 sequential variables. System escalates to compliance review.",
     purpose: "Demonstrates advanced threat detection, automatic escalation, and circuit breaker activation.",
     loanTypesApplicable: ["mortgage", "auto", "personal", "business", "credit_card"],

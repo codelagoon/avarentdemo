@@ -379,7 +379,7 @@ class RashomonService {
 
     lines.push(
       "CERTIFICATION:",
-      `  ${result.slackWithin ? "✓ Model is certified as non-discriminatory within performance slack" : "✗ Performance slack exceeded"}`,
+      `  ${result.slackWithin ? "[PASS] Model is certified as non-discriminatory within performance slack" : "[FAIL] Performance slack exceeded"}`,
       "",
       "RECOMMENDATION:",
       `  ${result.recommendation}`,

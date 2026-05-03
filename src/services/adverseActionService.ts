@@ -269,9 +269,9 @@ APPLICANT:
 - Decision Date: ${review.decisionDate}
 
 TRANSLATOR-ONLY POLICY COMPLIANCE:
-✓ Raw SHAP rankings displayed alongside narrative
-✓ No guesswork - strict mapping from attributions to explanations
-✓ CFPB Circular 2023-03 compliant: ${review.narrative.cfpbCompliant ? "YES" : "NO"}
+[OK] Raw SHAP rankings displayed alongside narrative
+[OK] No guesswork - strict mapping from attributions to explanations
+[OK] CFPB Circular 2023-03 compliant: ${review.narrative.cfpbCompliant ? "YES" : "NO"}
 
 SHAP RANKINGS (Raw):
 ${review.shapRankings.slice(0, 5).map(s =>
