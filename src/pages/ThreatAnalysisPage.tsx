@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { ShieldAlert, TrendingUp, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Search, Download, Info } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import { THREAT_EVENTS, type ThreatSeverity } from "@/data/mockData"
+import { type ThreatSeverity, type ThreatEvent } from "@/data/mockData"
+import { threatService } from "@/services/threatService"
 
 function SeverityBadge({ severity }: { severity: ThreatSeverity }) {
   const map: Record<ThreatSeverity, string> = {
@@ -55,9 +56,15 @@ export function ThreatAnalysisPage() {
   const [search, setSearch] = useState("")
   const [severityFilter, setSeverityFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [threats, setThreats] = useState<ThreatEvent[]>([])
+
+  // Load threats on mount
+  useEffect(() => {
+    setThreats(threatService.getAll())
+  }, [])
 
   const filtered = useMemo(() => {
-    return THREAT_EVENTS.filter(t => {
+    return threats.filter(t => {
       const matchSearch =
         !search ||
         t.applicantName.toLowerCase().includes(search.toLowerCase()) ||
@@ -67,16 +74,16 @@ export function ThreatAnalysisPage() {
       const matchStatus = statusFilter === "all" || (statusFilter === "blocked" ? t.blocked : !t.blocked)
       return matchSearch && matchSev && matchStatus
     })
-  }, [search, severityFilter, statusFilter])
+  }, [threats, search, severityFilter, statusFilter])
 
   const counts = useMemo(() => ({
-    critical: THREAT_EVENTS.filter(t => t.severity === "critical").length,
-    high: THREAT_EVENTS.filter(t => t.severity === "high").length,
-    medium: THREAT_EVENTS.filter(t => t.severity === "medium").length,
-    low: THREAT_EVENTS.filter(t => t.severity === "low").length,
-    blocked: THREAT_EVENTS.filter(t => t.blocked).length,
-    total: THREAT_EVENTS.length,
-  }), [])
+    critical: threats.filter(t => t.severity === "critical").length,
+    high: threats.filter(t => t.severity === "high").length,
+    medium: threats.filter(t => t.severity === "medium").length,
+    low: threats.filter(t => t.severity === "low").length,
+    blocked: threats.filter(t => t.blocked).length,
+    total: threats.length,
+  }), [threats])
 
   const maxHeat = Math.max(...HEATMAP_DATA.flatMap(r => DAY_KEYS.map(d => r[d])))
 
@@ -90,7 +97,7 @@ export function ThreatAnalysisPage() {
             Threat Analysis
           </h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Real-time adversarial proxy detection — {THREAT_EVENTS.length} events detected today
+            Real-time adversarial proxy detection — {threats.length} events detected today
           </p>
         </div>
         <Button variant="outline" size="sm" className="gap-1.5 text-xs">
@@ -315,7 +322,7 @@ export function ThreatAnalysisPage() {
                   <TrendingUp className="h-3.5 w-3.5 text-primary" />
                   <span className="text-xs font-semibold">Model Score Distribution</span>
                 </div>
-                {THREAT_EVENTS.map(t => (
+                {threats.map(t => (
                   <div key={t.id} className="mb-1.5 flex items-center gap-2">
                     <span className="w-14 truncate text-[0.6rem] text-muted-foreground">{t.applicantName.split(" ")[0]}</span>
                     <Progress value={t.modelScore * 100} className="h-1.5 flex-1" />

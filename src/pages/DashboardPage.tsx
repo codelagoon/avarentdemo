@@ -12,9 +12,11 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import {
-  DEMO_SCENARIOS, LEDGER_ENTRIES, DAILY_STATS, DATA_VOLUME,
+  DEMO_SCENARIOS, DAILY_STATS, DATA_VOLUME,
   type DemoScenario, type ScenarioConfig, type LedgerEntry, type LedgerEventType
 } from "@/data/mockData"
+import { ledgerService } from "@/services/ledgerService"
+import { scenarioService } from "@/services/scenarioService"
 
 // ─── Status pill helpers ─────────────────────────────────────────────────────
 function SeverityBadge({ severity }: { severity: string }) {
@@ -516,8 +518,13 @@ export function DashboardPage() {
   const [activeScenario, setActiveScenario] = useState<ScenarioConfig | null>(null)
   const [running, setRunning] = useState(false)
   const [severedEdges, setSeveredEdges] = useState<string[]>([])
-  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>(LEDGER_ENTRIES.slice(0, 6))
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([])
   const [testResult, setTestResult] = useState<{ outcome: string; fairness: number } | null>(null)
+
+  // Load ledger entries on mount
+  useEffect(() => {
+    setLedgerEntries(ledgerService.getRecent(6))
+  }, [])
 
   const runScenario = useCallback(async () => {
     if (!activeScenario) return
@@ -542,38 +549,28 @@ export function DashboardPage() {
       toast.success("No proxy variables detected — clean application", { duration: 2000 })
     }
 
-    // Step 3: decision
+    // Step 3: execute scenario and persist results
     await new Promise(r => setTimeout(r, 700))
-    const newEntry: LedgerEntry = {
-      id: `EVT-LIVE-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      eventType: activeScenario.proxiesDetected > 0 ? "intervention" : "proof_signed",
-      applicantId: activeScenario.applicantId,
-      applicantName: activeScenario.applicantName,
-      hash: Array.from({ length: 64 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join(""),
-      prevHash: ledgerEntries[0]?.hash ?? "0".repeat(64),
-      decision: activeScenario.expectedOutcome,
-      interventionType: activeScenario.interventions[0],
-      severity: activeScenario.alertSeverity ?? undefined,
-      modelVersion: "FNB-FAIR-v4.2.1",
-      fairnessScore: activeScenario.fairnessScore,
-      message: `${activeScenario.label}: ${activeScenario.description}`,
-      nodeCount: 12,
-    }
-    setLedgerEntries(prev => [newEntry, ...prev.slice(0, 5)])
-    setTestResult({ outcome: activeScenario.expectedOutcome, fairness: activeScenario.fairnessScore })
+    try {
+      const result = await scenarioService.runScenario(activeScenario.id)
+      setLedgerEntries(ledgerService.getRecent(6))
+      setTestResult({ outcome: result.outcome, fairness: result.fairnessScore })
 
-    // Step 4: result toast
-    if (activeScenario.expectedOutcome === "approved") {
-      toast.success(`Application APPROVED — Fairness score: ${(activeScenario.fairnessScore * 100).toFixed(0)}%`, { duration: 4000 })
-    } else if (activeScenario.expectedOutcome === "escalated") {
-      toast.error(`Application ESCALATED — ${activeScenario.proxiesDetected} proxy attack blocked`, { duration: 4000 })
-    } else {
-      toast.info(`Application result: ${activeScenario.expectedOutcome.toUpperCase()}`, { duration: 3000 })
+      // Step 4: result toast
+      if (result.outcome === "approved") {
+        toast.success(`Application APPROVED — Fairness score: ${(result.fairnessScore * 100).toFixed(0)}%`, { duration: 4000 })
+      } else if (result.outcome === "escalated") {
+        toast.error(`Application ESCALATED — ${result.proxiesDetected} proxy attack blocked`, { duration: 4000 })
+      } else {
+        toast.info(`Application result: ${result.outcome.toUpperCase()}`, { duration: 3000 })
+      }
+    } catch (error) {
+      toast.error("Failed to process scenario")
+      console.error(error)
     }
 
     setRunning(false)
-  }, [activeScenario, ledgerEntries])
+  }, [activeScenario])
 
   const handleScenarioSelect = (id: DemoScenario) => {
     setActiveScenario(DEMO_SCENARIOS[id])

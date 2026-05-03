@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { BookOpen, Search, Download, Hash, ChevronDown, ChevronUp, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, FileText, Lock, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -9,10 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { LEDGER_ENTRIES, DATA_VOLUME, type LedgerEntry, type LedgerEventType } from "@/data/mockData"
-
-// Use LEDGER_ENTRIES directly — now contains 28 production entries
-const ALL_ENTRIES: LedgerEntry[] = LEDGER_ENTRIES
+import { DATA_VOLUME, type LedgerEntry, type LedgerEventType } from "@/data/mockData"
+import { ledgerService } from "@/services/ledgerService"
 
 function EventTypeIcon({ type }: { type: LedgerEventType }) {
   const map: Record<LedgerEventType, React.ComponentType<{ className?: string }>> = {
@@ -65,9 +63,23 @@ export function EvidenceLedgerPage() {
   const [typeFilter, setTypeFilter] = useState("all")
   const [sortField, setSortField] = useState<"timestamp" | "fairnessScore">("timestamp")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
+  const [entries, setEntries] = useState<LedgerEntry[]>([])
+  const [stats, setStats] = useState({ total: 0, proofs: 0, interventions: 0, avgFairness: 0 })
+
+  // Load entries and stats
+  useEffect(() => {
+    const all = ledgerService.getAll()
+    setEntries(all)
+    setStats({
+      total: all.length,
+      proofs: all.filter(e => e.eventType === "proof_signed").length,
+      interventions: all.filter(e => e.eventType === "intervention").length,
+      avgFairness: all.length > 0 ? all.reduce((s, e) => s + e.fairnessScore, 0) / all.length : 0,
+    })
+  }, [])
 
   const filtered = useMemo(() => {
-    const arr = ALL_ENTRIES.filter(e => {
+    const arr = entries.filter(e => {
       const matchSearch = !search ||
         e.applicantName.toLowerCase().includes(search.toLowerCase()) ||
         e.applicantId.toLowerCase().includes(search.toLowerCase()) ||
@@ -82,7 +94,7 @@ export function EvidenceLedgerPage() {
       return sortDir === "desc" ? vb - va : va - vb
     })
     return arr
-  }, [search, typeFilter, sortField, sortDir])
+  }, [entries, search, typeFilter, sortField, sortDir])
 
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) setSortDir(d => d === "desc" ? "asc" : "desc")
@@ -90,7 +102,30 @@ export function EvidenceLedgerPage() {
   }
 
   const handleExport = () => {
-    toast.success("Evidence ledger exported as CSV (10 entries)")
+    // Generate CSV content
+    const csv = [
+      ["ID", "Timestamp", "Type", "Applicant", "Decision", "Fairness", "Message"].join(","),
+      ...filtered.map(e => [
+        e.id,
+        e.timestamp,
+        e.eventType,
+        `"${e.applicantName}"`,
+        e.decision || "-",
+        e.fairnessScore,
+        `"${e.message}"`,
+      ].join(","))
+    ].join("\n")
+
+    // Download
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `evidence-ledger-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    toast.success(`Exported ${filtered.length} entries to CSV`)
   }
 
   const SortIcon = ({ field }: { field: typeof sortField }) =>
@@ -132,10 +167,10 @@ export function EvidenceLedgerPage() {
         {/* Summary cards */}
         <div className="mb-5 grid grid-cols-4 gap-3">
           {[
-            { label: "Total Entries", value: ALL_ENTRIES.length, icon: Hash, sub: "since 00:00 UTC", accent: false },
-            { label: "Proofs Signed", value: ALL_ENTRIES.filter(e => e.eventType === "proof_signed").length, icon: CheckCircle, sub: "cryptographic bundles", accent: true },
-            { label: "Interventions", value: ALL_ENTRIES.filter(e => e.eventType === "intervention").length, icon: AlertTriangle, sub: "proxy severings", accent: false },
-            { label: "Avg Fairness", value: `${(ALL_ENTRIES.reduce((s, e) => s + e.fairnessScore, 0) / ALL_ENTRIES.length * 100).toFixed(1)}%`, icon: FileText, sub: "across all decisions", accent: true },
+            { label: "Total Entries", value: stats.total, icon: Hash, sub: "all time", accent: false },
+            { label: "Proofs Signed", value: stats.proofs, icon: CheckCircle, sub: "cryptographic bundles", accent: true },
+            { label: "Interventions", value: stats.interventions, icon: AlertTriangle, sub: "proxy severings", accent: false },
+            { label: "Avg Fairness", value: `${(stats.avgFairness * 100).toFixed(1)}%`, icon: FileText, sub: "across all decisions", accent: true },
           ].map(s => {
             const Icon = s.icon
             return (

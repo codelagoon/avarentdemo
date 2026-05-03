@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { LayoutDashboard, ShieldAlert, BookOpen, ChartBar as BarChart3, Users, Settings, Bell, ChevronRight, PanelLeft, Lock, Shield } from "lucide-react"
+import { LayoutDashboard, ShieldAlert, BookOpen, ChartBar as BarChart3, Users, Settings, Bell, ChevronRight, PanelLeft, Lock, Shield, Building2, ArrowRight } from "lucide-react"
 import { Toaster } from "@/components/ui/sonner"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { DAILY_STATS } from "@/data/mockData"
+import { companyService } from "@/services/companyService"
 
 const PASSWORD = "197704"
 
@@ -17,6 +18,7 @@ import { EvidenceLedgerPage } from "@/pages/EvidenceLedgerPage"
 import { AnalyticsPage } from "@/pages/AnalyticsPage"
 import { AccessControlPage } from "@/pages/AccessControlPage"
 import { SettingsPage } from "@/pages/SettingsPage"
+import { OnboardingPage } from "@/pages/OnboardingPage"
 
 export type Page = "dashboard" | "threats" | "ledger" | "analytics" | "access" | "settings"
 
@@ -108,7 +110,7 @@ function TopBar({ activePage }: { activePage: Page }) {
   )
 }
 
-function LoginScreen({ onLogin }: { onLogin: () => void }) {
+function LoginScreen({ onLogin, onTryNewCompany }: { onLogin: () => void; onTryNewCompany: () => void }) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
 
@@ -123,44 +125,65 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Shield className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-xl font-bold">AVARENT Sentinel</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Compliance & Risk Management Platform</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Lock className="h-4 w-4 text-muted-foreground" />
-                Enter Password
-              </label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter access code"
-                className={cn(error && "border-destructive focus-visible:ring-destructive")}
-                autoFocus
-              />
-              {error && (
-                <p className="text-xs text-destructive">Incorrect password. Please try again.</p>
-              )}
+    <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="w-full max-w-md space-y-4">
+        <Card className="shadow-xl">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Shield className="h-6 w-6 text-primary" />
             </div>
-            <Button type="submit" className="w-full">
-              Access Dashboard
-            </Button>
-          </form>
-          <div className="mt-6 rounded-md bg-secondary/50 p-3 text-center">
-            <p className="text-[0.65rem] text-muted-foreground uppercase tracking-wider">Authorized Access Only</p>
-            <p className="text-[0.6rem] text-muted-foreground/70 mt-0.5">CFPB Compliant • OCC Regulated</p>
-          </div>
-        </CardContent>
-      </Card>
+            <CardTitle className="text-xl font-bold">AVARENT Sentinel</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Compliance & Risk Management Platform</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  Enter Password
+                </label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter access code"
+                  className={cn(error && "border-destructive focus-visible:ring-destructive")}
+                  autoFocus
+                />
+                {error && (
+                  <p className="text-xs text-destructive">Incorrect password. Please try again.</p>
+                )}
+              </div>
+              <Button type="submit" className="w-full">
+                Access Dashboard
+              </Button>
+            </form>
+            <div className="mt-6 rounded-md bg-secondary/50 p-3 text-center">
+              <p className="text-[0.65rem] text-muted-foreground uppercase tracking-wider">Authorized Access Only</p>
+              <p className="text-[0.6rem] text-muted-foreground/70 mt-0.5">CFPB Compliant • OCC Regulated</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Try as New Company Option */}
+        <Card className="shadow-lg border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">New to AVARENT?</p>
+                <p className="text-xs text-muted-foreground">Try it out as a new company</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={onTryNewCompany} className="gap-1">
+                Get Started
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
@@ -169,6 +192,7 @@ export default function App() {
   const [activePage, setActivePage] = useState<Page>("dashboard")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
@@ -182,8 +206,36 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [handleKeyDown])
 
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={() => setIsAuthenticated(true)} />
+  // Handle onboarding completion
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false)
+    setIsAuthenticated(true)
+  }
+
+  // Show onboarding flow
+  if (showOnboarding) {
+    return <OnboardingPage onComplete={handleOnboardingComplete} />
+  }
+
+  // Check if company exists and onboarding is complete
+  const onboardingComplete = companyService.isOnboardingComplete()
+
+  if (!isAuthenticated && !onboardingComplete) {
+    return (
+      <LoginScreen
+        onLogin={() => setIsAuthenticated(true)}
+        onTryNewCompany={() => setShowOnboarding(true)}
+      />
+    )
+  }
+
+  if (!isAuthenticated && onboardingComplete) {
+    return (
+      <LoginScreen
+        onLogin={() => setIsAuthenticated(true)}
+        onTryNewCompany={() => setShowOnboarding(true)}
+      />
+    )
   }
 
   return (
