@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { Settings, Shield, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Save, RefreshCw } from "lucide-react"
+import { Settings, Shield, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Save, RefreshCw, FileText, Download } from "lucide-react"
 import { toast } from "sonner"
+import { auditPacketService } from "@/services/auditPacketService"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -301,6 +302,31 @@ export function SettingsPage() {
                 <p className="text-[0.6rem] text-muted-foreground/60">
                   Next scheduled OCC examination: 2026-07-15
                 </p>
+              </CardContent>
+            </Card>
+
+            {/* Audit Packet Generation */}
+            <Card className="shadow-sm bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Regulatory Audit
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Generate a comprehensive audit package for regulators including bias logs, BIFSG methodology, and validation reports.
+                </p>
+                <Button 
+                  onClick={() => {
+                    const packet = auditPacketService.generatePacket("Sarah Chen - CCO")
+                    auditPacketService.downloadPacket(packet)
+                  }}
+                  className="w-full gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Generate Exam Package
+                </Button>
               </CardContent>
             </Card>
 
