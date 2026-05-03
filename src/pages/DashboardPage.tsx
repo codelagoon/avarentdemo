@@ -17,6 +17,7 @@ import {
 } from "@/data/mockData"
 import { ledgerService } from "@/services/ledgerService"
 import { scenarioService } from "@/services/scenarioService"
+import { DataImportDialog } from "@/components/DataImportDialog"
 
 // ─── Status pill helpers ─────────────────────────────────────────────────────
 function SeverityBadge({ severity }: { severity: string }) {
@@ -605,10 +606,20 @@ export function DashboardPage() {
             <TooltipTrigger asChild>
               <Info className="h-3 w-3 text-muted-foreground cursor-help" />
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              Select a scenario to auto-populate the Red Team Console and run a full simulation
+            <TooltipContent className="max-w-sm">
+              <p className="font-semibold mb-1">Interactive Compliance Testing</p>
+              <p className="text-xs">Each scenario demonstrates a different aspect of fair lending compliance:</p>
+              <ul className="text-xs mt-1 space-y-0.5">
+                <li>• Clean Application: Baseline fair lending workflow</li>
+                <li>• Proxy Variable: BIFSG detection & intervention</li>
+                <li>• Multi-Proxy: Advanced threat detection & escalation</li>
+              </ul>
             </TooltipContent>
           </Tooltip>
+        </div>
+        <Separator orientation="vertical" className="h-6" />
+        <div className="flex items-center gap-2">
+          <DataImportDialog />
         </div>
         <Separator orientation="vertical" className="h-6" />
         <div className="flex items-center gap-2 flex-wrap">

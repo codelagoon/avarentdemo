@@ -764,6 +764,8 @@ export interface ScenarioConfig {
   id: DemoScenario
   label: string
   description: string
+  purpose?: string
+  loanTypesApplicable?: string[]
   applicantName: string
   applicantId: string
   age: number
@@ -785,15 +787,17 @@ export interface ScenarioConfig {
 export const DEMO_SCENARIOS: Record<DemoScenario, ScenarioConfig> = {
   good_faith: {
     id: "good_faith",
-    label: "Good-Faith Application",
-    description: "Standard mortgage application — no proxy variables detected",
+    label: "✅ Clean Application",
+    description: "DEMO: Normal loan application with no bias risks. Shows how the system approves qualified applicants while maintaining fairness monitoring.",
+    purpose: "Demonstrates baseline fair lending decision with full SHAP explainability and audit trail.",
+    loanTypesApplicable: ["mortgage", "auto", "personal", "business", "credit_card"],
     applicantName: "Marcus T. Williams",
     applicantId: "APP-2026-084721",
     age: 38,
     income: 92000,
     creditScore: 741,
     loanAmount: 285000,
-    loanType: "30-Year Fixed Mortgage",
+    loanType: "Mortgage Loan",
     zipCode: "94102",
     employmentYears: 9,
     proxiesDetected: 0,
@@ -806,15 +810,17 @@ export const DEMO_SCENARIOS: Record<DemoScenario, ScenarioConfig> = {
   },
   mild_proxy: {
     id: "mild_proxy",
-    label: "Mild Proxy Attempt",
-    description: "Auto-loan — ZIP code proxy detected and severed by do-calculus",
+    label: "⚠️ Proxy Variable Detected",
+    description: "DEMO: Single proxy variable (ZIP code) detected and automatically severed. Shows BIFSG proxy detection in action.",
+    purpose: "Demonstrates automatic proxy variable detection and causal intervention using do-calculus.",
+    loanTypesApplicable: ["mortgage", "auto", "personal", "business", "credit_card"],
     applicantName: "Darnell R. Johnson",
     applicantId: "APP-2026-084722",
     age: 31,
     income: 68000,
     creditScore: 698,
     loanAmount: 22500,
-    loanType: "Auto Loan (60 months)",
+    loanType: "Auto Loan",
     zipCode: "48201",
     employmentYears: 5,
     proxiesDetected: 1,
@@ -827,15 +833,17 @@ export const DEMO_SCENARIOS: Record<DemoScenario, ScenarioConfig> = {
   },
   bad_faith: {
     id: "bad_faith",
-    label: "Bad-Faith 3-Strike Attack",
-    description: "Mortgage — 3 sequential proxy variables detected; application escalated",
+    label: "🚨 Multi-Proxy Attack",
+    description: "DEMO: Coordinated proxy attack using 3 sequential variables. System escalates to compliance review.",
+    purpose: "Demonstrates advanced threat detection, automatic escalation, and circuit breaker activation.",
+    loanTypesApplicable: ["mortgage", "auto", "personal", "business", "credit_card"],
     applicantName: "Priya K. Sharma",
     applicantId: "APP-2026-084723",
     age: 44,
     income: 115000,
     creditScore: 722,
     loanAmount: 480000,
-    loanType: "Jumbo Mortgage",
+    loanType: "Jumbo Loan",
     zipCode: "95123",
     employmentYears: 14,
     proxiesDetected: 3,
