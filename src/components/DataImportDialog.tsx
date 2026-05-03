@@ -57,7 +57,7 @@ export function DataImportDialog() {
   const [selectedLoanType, setSelectedLoanType] = useState<LoanType>("personal")
   const [parsedApps, setParsedApps] = useState<ImportedApplication[] | null>(null)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
-  const [isParsing, setIsParsing] = useState(false)
+  const [, setIsParsing] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
