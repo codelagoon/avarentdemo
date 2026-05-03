@@ -18,6 +18,7 @@ import {
 import { ledgerService } from "@/services/ledgerService"
 import { scenarioService } from "@/services/scenarioService"
 import { DataImportDialog } from "@/components/DataImportDialog"
+import { ApiKeyDialog } from "@/components/ApiKeyDialog"
 
 // ─── Status pill helpers ─────────────────────────────────────────────────────
 function SeverityBadge({ severity }: { severity: string }) {
@@ -619,6 +620,7 @@ export function DashboardPage() {
         </div>
         <Separator orientation="vertical" className="h-6" />
         <div className="flex items-center gap-2">
+          <ApiKeyDialog />
           <DataImportDialog />
         </div>
         <Separator orientation="vertical" className="h-6" />

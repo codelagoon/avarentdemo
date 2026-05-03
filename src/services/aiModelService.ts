@@ -1,23 +1,23 @@
 // AI Model Service using OpenRouter (primary) and NVIDIA NIM (fallback)
-// OpenRouter: Uses free models only
-// NVIDIA NIM: Fallback for when OpenRouter is unavailable
+// BYOK (Bring Your Own Key) - Users input their own API keys via UI
+// Keys are stored in localStorage and never committed to git
 
 import { toast } from "sonner"
 
-// API Configuration - Set these in your .env file or environment variables
-// VITE_OPENROUTER_API_KEY=your_key_here
-// VITE_NVIDIA_API_KEY=your_key_here
-
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || ""
+// Base URLs for APIs
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-
-const NVIDIA_API_KEY = import.meta.env.VITE_NVIDIA_API_KEY || ""
 const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 
-// For demo purposes, you can paste your keys here temporarily
-// (Remove before committing to git)
-const DEMO_OPENROUTER_KEY = "" // Paste key here for testing only
-const DEMO_NVIDIA_KEY = "" // Paste key here for testing only
+// Get API keys from localStorage (BYOK mode)
+function getOpenRouterKey(): string {
+  if (typeof window === "undefined") return ""
+  return localStorage.getItem("avarent_openrouter_key") || ""
+}
+
+function getNVIDIAKey(): string {
+  if (typeof window === "undefined") return ""
+  return localStorage.getItem("avarent_nvidia_key") || ""
+}
 
 // Free models on OpenRouter (as of 2024)
 const OPENROUTER_FREE_MODELS: Record<string, string> = {
@@ -73,7 +73,7 @@ async function callOpenRouter(app: ApplicationData, model: string = "google/gemm
     const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${DEMO_OPENROUTER_KEY || OPENROUTER_API_KEY}`,
+        "Authorization": `Bearer ${getOpenRouterKey()}`,
         "Content-Type": "application/json",
         "HTTP-Referer": window.location.origin,
         "X-Title": "AVARENT Sentinel",
@@ -154,7 +154,7 @@ async function callNVIDIA(app: ApplicationData, model: string = "meta/llama-3.1-
     const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${DEMO_NVIDIA_KEY || NVIDIA_API_KEY}`,
+        "Authorization": `Bearer ${getNVIDIAKey()}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -383,7 +383,7 @@ export async function checkAPIHealth(): Promise<{ openrouter: boolean; nvidia: b
   // Check OpenRouter (lightweight models endpoint)
   try {
     const response = await fetch(`${OPENROUTER_BASE_URL}/models`, {
-      headers: { "Authorization": `Bearer ${DEMO_OPENROUTER_KEY || OPENROUTER_API_KEY}` },
+      headers: { "Authorization": `Bearer ${getOpenRouterKey()}` },
       signal: AbortSignal.timeout(5000),
     })
     results.openrouter = response.ok
@@ -394,7 +394,7 @@ export async function checkAPIHealth(): Promise<{ openrouter: boolean; nvidia: b
   // Check NVIDIA
   try {
     const response = await fetch(`${NVIDIA_BASE_URL}/models`, {
-      headers: { "Authorization": `Bearer ${DEMO_NVIDIA_KEY || NVIDIA_API_KEY}` },
+      headers: { "Authorization": `Bearer ${getNVIDIAKey()}` },
       signal: AbortSignal.timeout(5000),
     })
     results.nvidia = response.ok
