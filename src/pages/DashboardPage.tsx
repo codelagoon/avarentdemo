@@ -65,23 +65,47 @@ function EventTypeBadge({ type }: { type: LedgerEventType }) {
   )
 }
 
-// ─── Stat Cards ──────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon: Icon, accent = false }: {
-  label: string; value: string | number; sub?: string; icon: React.ComponentType<{ className?: string }>; accent?: boolean
+// ─── Professional Stat Cards ──────────────────────────────────────────────────
+function StatCard({ label, value, sub, icon: Icon, accent = false, trend }: {
+  label: string; value: string | number; sub?: string; 
+  icon: React.ComponentType<{ className?: string }>; accent?: boolean;
+  trend?: "up" | "down" | "neutral"
 }) {
   return (
-    <Card className="shadow-sm border-border/60">
-      <CardContent className="px-4 py-4">
-        <div className="flex items-center justify-between gap-3">
+    <Card className={cn(
+      "border-0 shadow-sm transition-all duration-200 hover:shadow-md",
+      accent ? "bg-gradient-to-br from-primary/5 to-primary/10" : "bg-white"
+    )}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground truncate">{label}</p>
-            <p className={cn("mt-1 text-3xl font-bold tracking-tight tabular-nums", accent ? "text-primary" : "text-foreground")}>
-              {value}
+            <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500 truncate">
+              {label}
             </p>
-            {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
+            <div className="mt-2 flex items-baseline gap-2">
+              <p className={cn(
+                "text-2xl font-bold tracking-tight tabular-nums",
+                accent ? "text-primary" : "text-slate-900"
+              )}>
+                {value}
+              </p>
+              {trend && (
+                <span className={cn(
+                  "text-xs font-medium",
+                  trend === "up" ? "text-emerald-600" : 
+                  trend === "down" ? "text-red-600" : "text-slate-400"
+                )}>
+                  {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"}
+                </span>
+              )}
+            </div>
+            {sub && <p className="mt-1 text-[0.7rem] text-slate-400">{sub}</p>}
           </div>
-          <div className={cn("shrink-0 rounded-xl p-2.5", accent ? "bg-primary/10" : "bg-muted")}>
-            <Icon className={cn("h-5 w-5", accent ? "text-primary" : "text-muted-foreground")} />
+          <div className={cn(
+            "shrink-0 rounded-lg p-2",
+            accent ? "bg-primary/15" : "bg-slate-100"
+          )}>
+            <Icon className={cn("h-4 w-4", accent ? "text-primary" : "text-slate-500")} />
           </div>
         </div>
       </CardContent>
@@ -582,48 +606,63 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-0 overflow-hidden">
-      {/* Stats row - 5 KPIs with data volume emphasis */}
-      <div className="grid grid-cols-5 gap-3 border-b bg-card px-6 py-4">
-        <StatCard label="Models in Production" value={DAILY_STATS.modelsInProduction} icon={Boxes} />
-        <StatCard label="Audits Last 24h" value={DAILY_STATS.auditsLast24h} icon={Clock} />
-        <StatCard label="Data Points / Decision" value={DATA_VOLUME.featuresPerDecision} sub="+3 from last month" icon={Database} accent />
-        <StatCard label="Fairness Score" value={`${(DAILY_STATS.fairnessScore * 100).toFixed(1)}%`} icon={Scale} />
-        <StatCard label="Open Incidents" value={DAILY_STATS.openIncidents} icon={AlertTriangle} />
+    <div className="flex h-full flex-col gap-0 overflow-hidden bg-slate-50/50">
+      {/* Professional Header */}
+      <div className="border-b bg-white px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Shield className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold text-slate-900">AVARENT Sentinel</h1>
+              <p className="text-[0.7rem] text-slate-500">Fair Lending Compliance Platform</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[0.65rem] border-emerald-200 bg-emerald-50 text-emerald-700">
+              System Operational
+            </Badge>
+            <span className="text-[0.65rem] text-slate-400">v2.4.1</span>
+          </div>
+        </div>
       </div>
 
-      {/* Demo Scenarios Bar */}
-      <div
-        className="flex items-center gap-3 border-b px-6 py-3"
-        style={{ backgroundColor: "oklch(0.965 0.012 195 / 0.4)" }}
-        data-testid="demo-scenarios-bar"
-      >
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Activity className="h-3.5 w-3.5 text-primary" />
-          <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-            Demo Scenarios
-          </span>
+      {/* Stats row - Professional KPIs */}
+      <div className="grid grid-cols-5 gap-3 border-b border-slate-200 bg-white px-6 py-4">
+        <StatCard label="Active Models" value={DAILY_STATS.modelsInProduction} icon={Boxes} trend="neutral" />
+        <StatCard label="24h Audits" value={DAILY_STATS.auditsLast24h} icon={Clock} trend="up" />
+        <StatCard label="Features / Decision" value={DATA_VOLUME.featuresPerDecision} sub="Optimal range" icon={Database} accent trend="up" />
+        <StatCard label="Fairness Score" value={`${(DAILY_STATS.fairnessScore * 100).toFixed(1)}%`} icon={Scale} trend="up" />
+        <StatCard label="Active Alerts" value={DAILY_STATS.openIncidents} icon={AlertTriangle} trend={DAILY_STATS.openIncidents > 0 ? "down" : "neutral"} />
+      </div>
+
+      {/* Demo Scenarios Bar - Professional */}
+      <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-6 py-3 shadow-sm" data-testid="demo-scenarios-bar">
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10">
+            <Activity className="h-3 w-3 text-primary" />
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-slate-700">Test Scenarios</span>
+            <p className="text-[0.6rem] text-slate-400">Compliance validation suite</p>
+          </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+              <Info className="h-3 w-3 text-slate-400 cursor-help hover:text-slate-600" />
             </TooltipTrigger>
             <TooltipContent className="max-w-sm">
-              <p className="font-semibold mb-1">Interactive Compliance Testing</p>
-              <p className="text-xs">Each scenario demonstrates a different aspect of fair lending compliance:</p>
-              <ul className="text-xs mt-1 space-y-0.5">
-                <li>• Clean Application: Baseline fair lending workflow</li>
-                <li>• Proxy Variable: BIFSG detection & intervention</li>
-                <li>• Multi-Proxy: Advanced threat detection & escalation</li>
-              </ul>
+              <p className="font-medium text-sm mb-1">Interactive Testing</p>
+              <p className="text-xs text-slate-600">Validate fair lending compliance with predefined scenarios</p>
             </TooltipContent>
           </Tooltip>
         </div>
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-8 bg-slate-200" />
         <div className="flex items-center gap-2">
           <ApiKeyDialog />
           <DataImportDialog />
         </div>
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-8 bg-slate-200" />
         <div className="flex items-center gap-2 flex-wrap">
           {(Object.values(DEMO_SCENARIOS) as ScenarioConfig[]).map(s => {
             const isActive = activeScenario?.id === s.id
