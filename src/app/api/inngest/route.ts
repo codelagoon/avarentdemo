@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const output = "export";
+
 import { serve } from "inngest/next"
 import { inngest } from "@/lib/inngest"
 import { createClient } from "@supabase/supabase-js"
