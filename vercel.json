@@ -1,6 +1,1 @@
-{
-  "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/$1" }
-  ]
-}
+// file intentionally empty after removal
