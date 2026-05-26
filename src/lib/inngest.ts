@@ -1,6 +1,6 @@
-import { Inngest } from "inngest"
+import { Inngest, EventSchemas } from "inngest"
 
-// Define strong types for our async events matching compliance thresholds
+// Define strongly-typed Inngest events matching compliance thresholds
 export type Events = {
   "ledger/seal": {
     data: {
@@ -35,8 +35,8 @@ export type Events = {
   }
 }
 
-// Initialize the Inngest client
+// Initialize the Inngest client using standard EventSchemas constructor (Inngest v3)
 export const inngest = new Inngest({ 
   id: "avarent-meridian",
-  schemas: new Inngest.Schema<Events>()
+  schemas: new EventSchemas().fromRecord<Events>()
 })
