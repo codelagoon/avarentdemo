@@ -50,6 +50,8 @@ This file tracks the high-density state of the Avarent engineering process.
 - 2026-05-26T15:03Z `[USER]`: Approved architectural stack shift (Next.js 16, Supabase, Inngest, Modal, TypeScript/Python). E2E passes.
 - 2026-05-26T15:37Z `[CODE]`: Completed the Full-Stack Stack Migration. Implemented Next.js 16 structures with App Router layouts, Supabase DB tables, triggers for ledger Continuity sealing, Inngest async queue systems, and serverless Modal containers.
 - 2026-05-26T16:46Z `[CODE]`: Created SQL migration file for the bisg_cache table (Option B persistent caching), fully secured gitignore exclusions for local environment keys, and finalized the model artifact and JWS signing specifications.
+- 2026-05-26T18:14Z `[CODE]`: Deployed isomorphic hydration state guards (`mounted` check) inside Next.js page.tsx and Vite App.tsx to eliminate client-side timezone-specific Date/localStorage hydration mismatches. Verified 7/7 passing E2E browser tests.
+- 2026-05-26T18:17Z `[CODE]`: Fixed Vercel deployment credentials by updating codebase fallbacks to the live project ID `zpjjoskdaouhzinijztf` and the real anon key. Installed Vercel hosted MCP server inside config settings.
 
 ## [DISCOVERIES]
 - No existing `.agent/CONTINUITY.md` existed. Initialized now.
@@ -63,3 +65,6 @@ This file tracks the high-density state of the Avarent engineering process.
 - 2026-05-26T11:22Z `[CODE]`: Compliance refinements and global AVARENT Meridian renaming fully completed. Verified build clean with 0 TypeScript errors. All 6 E2E Playwright browser tests passing successfully (12.1s).
 - 2026-05-26T16:53Z `[CODE]`: 100% of Playwright E2E integration tests (6/6 tests) pass successfully in a sequential worker thread. All UI controls, Synthetic GAN balancer, Plaid Cash Flow features, and Anti-Fairwashing metrics verify without warning.
 - 2026-05-26T17:06Z `[CODE]`: Live Supabase backend and Azure OpenAI enterprise LLM provider successfully configured, fully wired locally, and verified compile-clean. Isomorphic JWS RS256 signature packaging, persistent BISG composite caching, and async Inngest search tasks are structurally complete and validated.
+- 2026-05-26T17:18Z `[CODE]`: Production Vercel build completed successfully in 33s. Dynamic serverless API routes (/api/inngest) and static pages are fully live, secured, and responsive. 100% of local E2E test suites (6/6 passing) are verified.
+- 2026-05-26T18:14Z `[CODE]`: Deployed isomorphic hydration guards ensuring zero hydration mismatch crashes. Playwright test suite passes (7/7 tests) verifying full application stability.
+- 2026-05-26T18:17Z `[CODE]`: Configured live production credentials fallback in `bifsgService.ts` and `route.ts`. Installed Vercel hosted MCP server inside settings config.

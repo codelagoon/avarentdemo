@@ -199,10 +199,15 @@ function LoginScreen({ onLogin, onTryNewCompany }: { onLogin: () => void; onTryN
 }
 
 export default function App() {
+  const [mounted, setMounted] = useState(false)
   const [activePage, setActivePage] = useState<Page>("dashboard")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
@@ -220,6 +225,14 @@ export default function App() {
   const handleOnboardingComplete = () => {
     setShowOnboarding(false)
     setIsAuthenticated(true)
+  }
+
+  if (!mounted) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
   }
 
   // Show onboarding flow
