@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { LayoutDashboard, ShieldAlert, BookOpen, ChartBar as BarChart3, Users, Settings, Bell, ChevronRight, PanelLeft, Lock, Shield, Building2, ArrowRight } from "lucide-react"
+import { LayoutDashboard, ShieldAlert, BookOpen, ChartBar as BarChart3, Users, Settings, Bell, ChevronRight, PanelLeft, Lock, Shield, Building2, ArrowRight, Scale, Database, Network } from "lucide-react"
 import { Toaster } from "@/components/ui/sonner"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { DAILY_STATS } from "@/data/mockData"
-import { companyService } from "@/services/companyService"
 
 const PASSWORD = "197704"
 
@@ -19,14 +18,21 @@ import { AnalyticsPage } from "@/pages/AnalyticsPage"
 import { AccessControlPage } from "@/pages/AccessControlPage"
 import { SettingsPage } from "@/pages/SettingsPage"
 import { OnboardingPage } from "@/pages/OnboardingPage"
+import AdverseActionReviewPage from "@/pages/AdverseActionReviewPage"
+import { SyntheticDataStudioPage } from "@/pages/SyntheticDataStudioPage"
+import { AltDataHubPage } from "@/pages/AltDataHubPage"
+import { ModeToggle } from "@/components/mode-toggle"
 
-export type Page = "dashboard" | "threats" | "ledger" | "analytics" | "access" | "settings"
+export type Page = "dashboard" | "threats" | "ledger" | "analytics" | "adverse-action" | "synthetic-studio" | "alt-data" | "access" | "settings"
 
 const NAV_ITEMS: { id: Page; label: string; icon: React.ComponentType<{ className?: string }>; badge?: number }[] = [
   { id: "dashboard", label: "Operational Dashboard", icon: LayoutDashboard },
   { id: "threats", label: "Threat Analysis", icon: ShieldAlert, badge: 3 },
   { id: "ledger", label: "Evidence Ledger", icon: BookOpen },
   { id: "analytics", label: "Analytics & Fairness", icon: BarChart3 },
+  { id: "adverse-action", label: "Adverse Action Review", icon: Scale },
+  { id: "synthetic-studio", label: "Synthetic Data Studio", icon: Database },
+  { id: "alt-data", label: "Alternative Data Hub", icon: Network },
   { id: "access", label: "Access Control", icon: Users },
   { id: "settings", label: "Settings", icon: Settings },
 ]
@@ -36,18 +42,21 @@ const PAGE_KEYS: Record<string, Page> = {
   "2": "threats",
   "3": "ledger",
   "4": "analytics",
-  "5": "access",
-  "6": "settings",
+  "5": "adverse-action",
+  "6": "synthetic-studio",
+  "7": "alt-data",
+  "8": "access",
+  "9": "settings",
 }
 
-function SentinelLogo() {
+function MeridianLogo() {
   return (
     <div className="flex flex-col leading-none">
       <span className="text-sm font-bold tracking-wide text-gray-900">
         AVARENT
       </span>
-      <span className="text-[0.625rem] font-medium tracking-widest uppercase text-gray-500">
-        Sentinel
+      <span className="text-[0.625rem] font-medium tracking-widest text-gray-500">
+        Meridian
       </span>
     </div>
   )
@@ -69,7 +78,7 @@ function TopBar({ activePage }: { activePage: Page }) {
           <Shield className="h-4 w-4 text-primary" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-900">AVARENT Sentinel</p>
+          <p className="text-sm font-semibold text-slate-900">AVARENT Meridian</p>
           <p className="text-[0.65rem] text-slate-500">Fair Lending Compliance Platform</p>
         </div>
       </div>
@@ -93,6 +102,8 @@ function TopBar({ activePage }: { activePage: Page }) {
           </TooltipTrigger>
           <TooltipContent>{DAILY_STATS.openIncidents} active alerts</TooltipContent>
         </Tooltip>
+
+        <ModeToggle />
 
         <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
           <Avatar className="h-7 w-7">
@@ -130,7 +141,7 @@ function LoginScreen({ onLogin, onTryNewCompany }: { onLogin: () => void; onTryN
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
               <Shield className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle className="text-xl font-bold">AVARENT Sentinel</CardTitle>
+            <CardTitle className="text-xl font-bold">AVARENT Meridian</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">Compliance & Risk Management Platform</p>
           </CardHeader>
           <CardContent>
@@ -158,7 +169,7 @@ function LoginScreen({ onLogin, onTryNewCompany }: { onLogin: () => void; onTryN
               </Button>
             </form>
             <div className="mt-6 rounded-md bg-secondary/50 p-3 text-center">
-              <p className="text-[0.65rem] text-muted-foreground uppercase tracking-wider">Authorized Access Only</p>
+              <p className="text-[0.65rem] text-muted-foreground tracking-wider">Authorized Access Only</p>
               <p className="text-[0.6rem] text-muted-foreground/70 mt-0.5">CFPB Compliant • OCC Regulated</p>
             </div>
           </CardContent>
@@ -216,19 +227,7 @@ export default function App() {
     return <OnboardingPage onComplete={handleOnboardingComplete} />
   }
 
-  // Check if company exists and onboarding is complete
-  const onboardingComplete = companyService.isOnboardingComplete()
-
-  if (!isAuthenticated && !onboardingComplete) {
-    return (
-      <LoginScreen
-        onLogin={() => setIsAuthenticated(true)}
-        onTryNewCompany={() => setShowOnboarding(true)}
-      />
-    )
-  }
-
-  if (!isAuthenticated && onboardingComplete) {
+  if (!isAuthenticated) {
     return (
       <LoginScreen
         onLogin={() => setIsAuthenticated(true)}
@@ -254,7 +253,7 @@ export default function App() {
               sidebarCollapsed ? "justify-center" : "justify-between"
             )}
           >
-            {!sidebarCollapsed && <SentinelLogo />}
+            {!sidebarCollapsed && <MeridianLogo />}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
@@ -266,7 +265,7 @@ export default function App() {
 
           <nav className="flex-1 overflow-y-auto px-2 py-3" data-testid="sidebar-nav">
             {!sidebarCollapsed && (
-              <p className="mb-2 px-2 text-[0.625rem] font-semibold uppercase tracking-widest text-gray-500">
+              <p className="mb-2 px-2 text-[0.625rem] font-semibold tracking-widest text-gray-500">
                 Navigation
               </p>
             )}
@@ -290,9 +289,14 @@ export default function App() {
                       </span>
                       {!sidebarCollapsed && <span className="flex-1 truncate">{item.label}</span>}
                       {item.badge && item.badge > 0 && !sidebarCollapsed && (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[0.6rem] font-bold text-destructive-foreground">
+                        <span className="mr-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[0.6rem] font-bold text-destructive-foreground">
                           {item.badge}
                         </span>
+                      )}
+                      {!sidebarCollapsed && (
+                        <kbd className="ml-auto rounded border bg-slate-50 px-1 font-sans text-[0.55rem] font-bold text-slate-400 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700">
+                          {idx + 1}
+                        </kbd>
                       )}
                       {item.badge && item.badge > 0 && sidebarCollapsed && (
                         <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive" />
@@ -362,6 +366,9 @@ export default function App() {
             {activePage === "threats" && <ThreatAnalysisPage />}
             {activePage === "ledger" && <EvidenceLedgerPage />}
             {activePage === "analytics" && <AnalyticsPage />}
+            {activePage === "adverse-action" && <AdverseActionReviewPage />}
+            {activePage === "synthetic-studio" && <SyntheticDataStudioPage />}
+            {activePage === "alt-data" && <AltDataHubPage />}
             {activePage === "access" && <AccessControlPage />}
             {activePage === "settings" && <SettingsPage />}
           </main>

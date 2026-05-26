@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-26T08:45:00Z",
+  "title": "Design System: AVARENT Meridian",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "OCC Cobalt Blue",
+        "canonical": "oklch(60% 0.20 250)",
+        "tonalRamp": [
+          "oklch(15% 0.05 250)",
+          "oklch(30% 0.10 250)",
+          "oklch(45% 0.15 250)",
+          "oklch(60% 0.20 250)",
+          "oklch(70% 0.15 250)",
+          "oklch(80% 0.10 250)",
+          "oklch(90% 0.05 250)",
+          "oklch(95% 0.02 250)"
+        ]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Midnight Black Background",
+        "canonical": "oklch(6% 0.01 222)",
+        "tonalRamp": [
+          "oklch(4% 0.005 222)",
+          "oklch(6% 0.01 222)",
+          "oklch(8% 0.01 222)",
+          "oklch(12% 0.01 222)",
+          "oklch(20% 0.01 222)",
+          "oklch(40% 0.01 222)",
+          "oklch(70% 0.01 222)",
+          "oklch(95% 0.005 222)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Primary page title headers."
+      },
+      "body": {
+        "displayName": "Body Text",
+        "purpose": "Prose, forms, lists, and standard logs."
+      },
+      "label": {
+        "displayName": "Data Label",
+        "purpose": "Regulatory ratios, hash signatures, and timestamps."
+      }
+    },
+    "shadows": [
+      {
+        "name": "elevation-hover",
+        "value": "0 0 15px 5px rgba(37, 99, 235, 0.15)",
+        "purpose": "Ambient glow around interactive inputs and parameter adjusters."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-slide",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Slide and fade transitions for layout updates."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "md",
+        "value": "768px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Standard action button for primary controls.",
+      "html": "<button class=\"ds-btn-primary\">Execute Audit</button>",
+      "css": ".ds-btn-primary { background-color: #3b82f6; color: #ffffff; padding: 8px 16px; border-radius: 8px; border: none; font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s; } .ds-btn-primary:hover { background-color: #2563eb; box-shadow: 0 0 15px 5px rgba(37, 99, 235, 0.15); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Immutable Command Center",
+    "overview": "AVARENT Meridian is a high-density, authoritative credit compliance control console. It is designed to offer model risk management engineers, regulatory compliance officers, and legal counsel immediate, absolute visibility into machine learning credit decisioning engines.",
+    "keyCharacteristics": [
+      "Scientific Density",
+      "Cryptographic Trust",
+      "Restrained Focal Points"
+    ],
+    "rules": [
+      {
+        "name": "The 90-10 Swatch Rule",
+        "body": "Cobalt accent elements must comprise <= 10% of any given interface surface. Swatches represent actionable triggers rather than decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Explicit Ratio Rule",
+        "body": "Numeric compliance ratios (AIR and SPD) must never be displayed in standard prose weight. They must be rendered using IBM Plex Mono in medium/bold weight.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Do display Adverse Impact Ratio (AIR) and Statistical Parity Difference (SPD) as distinct side-by-side decimals.",
+      "Do use cryptographically authentic labels like 'Audit Sealed' and 'Ledger Continuity'.",
+      "Do collapse complex interactive modules behind explicit, descriptive toggles to maintain clean spacing."
+    ],
+    "donts": [
+      "Don't use standard percentage-based 'Fairness Scores' which obfuscate regulatory definitions.",
+      "Don't utilize standard AI visual templates like colorful card side-stripes, neon blue-to-purple background gradients, or glassmorphic blur layers.",
+      "Don't include document or file illustrations in empty review tables."
+    ]
+  }
+}

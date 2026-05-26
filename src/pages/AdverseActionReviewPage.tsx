@@ -88,7 +88,7 @@ function ReviewQueueItem({
 function SHAPDisplay({ shapRankings }: { shapRankings: AdverseActionReview["shapRankings"] }) {
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+      <h4 className="text-sm font-semibold text-muted-foreground tracking-wider">
         Raw SHAP Rankings (Translator-Only Policy)
       </h4>
       <div className="space-y-1.5">
@@ -288,7 +288,7 @@ export default function AdverseActionReviewPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <SHAPDisplay shapRankings={selectedReview.shapRankings} />
                     <div className="space-y-2">
-                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      <h4 className="text-sm font-semibold text-muted-foreground tracking-wider">
                         LLM Narrative Translation
                       </h4>
                       <div className="p-3 rounded-lg border bg-card">
@@ -413,11 +413,9 @@ export default function AdverseActionReviewPage() {
             </div>
           </Card>
         ) : (
-          <Card className="h-full flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">Select a review from the queue</p>
-              <p className="text-sm mt-1">View SHAP data and narrative side-by-side</p>
+          <Card className="h-full flex items-center justify-center border-dashed">
+            <div className="text-center text-muted-foreground p-8">
+              <p className="text-sm font-medium text-slate-400">Select a review from the queue</p>
             </div>
           </Card>
         )}

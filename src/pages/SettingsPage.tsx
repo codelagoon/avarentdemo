@@ -3,6 +3,7 @@ import { Settings, Shield, CircleCheck as CheckCircle, CircleAlert as AlertCircl
 import { toast } from "sonner"
 import { auditPacketService } from "@/services/auditPacketService"
 import { Button } from "@/components/ui/button"
+import { ApiKeyDialog } from "@/components/ApiKeyDialog"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
@@ -74,9 +75,9 @@ function ComplianceStatusRow({ label, status, detail }: { label: string; status:
 export function SettingsPage() {
   const [detection, setDetection] = useState<ToggleSetting[]>([
     { id: "proxy-scan", label: "Real-Time Proxy Variable Scanning", description: "Continuously scan incoming features for protected-class proxy correlations", value: true, critical: true },
-    { id: "do-calculus", label: "Do-Calculus Causal Intervention", description: "Automatically sever identified proxy pathways using do-calculus P(Y|do(X))", value: true, critical: true },
+    { id: "do-calculus", label: "Do-Calculus Causal Intervention", description: "Automatically severs feature pathways that function as protected class proxies", value: true, critical: true },
     { id: "hash-chain", label: "SHA-256 Hash-Chain Ledger Signing", description: "Cryptographically sign each decision event into the immutable ledger", value: true, critical: true },
-    { id: "three-strike", label: "3-Strike Attack Detection", description: "Detect and block sequential multi-proxy adversarial attacks", value: true },
+    { id: "three-strike", label: "3-Strike Attack Detection", description: "Detects coordinated sequences of proxy variable manipulation attempts", value: true },
     { id: "realtime-alerts", label: "Real-Time Compliance Alerts", description: "Send immediate notifications when fairness thresholds are breached", value: true },
     { id: "auto-escalate", label: "Auto-Escalate High-Severity Threats", description: "Automatically escalate critical proxy attacks to compliance review queue", value: true },
   ])
@@ -118,10 +119,11 @@ export function SettingsPage() {
             Settings & Configuration
           </h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Sentinel system configuration — {DAILY_STATS.modelVersion} · {DAILY_STATS.cfpbCompliant ? "CFPB Compliant" : "Non-Compliant"}
+            Meridian system configuration — {DAILY_STATS.modelVersion} · {DAILY_STATS.cfpbCompliant ? "CFPB Compliant" : "Non-Compliant"}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ApiKeyDialog />
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleReset}>
             <RefreshCw className="h-3.5 w-3.5" />
             Reset Defaults
@@ -257,7 +259,6 @@ export function SettingsPage() {
                 <ComplianceStatusRow label="OCC Model Risk" status="pass" detail="MRM-2025-07" />
                 <ComplianceStatusRow label="SR 11-7 Guidance" status="pass" detail="Validated" />
                 <ComplianceStatusRow label="FRB Consumer Prot." status="pass" detail="Annual review" />
-                <ComplianceStatusRow label="BSA / AML Integration" status="warn" detail="Update due Q3" />
                 <ComplianceStatusRow label="State CRA (CA/NY)" status="pass" detail="Current" />
               </CardContent>
             </Card>
@@ -269,14 +270,14 @@ export function SettingsPage() {
               <CardContent>
                 <div className="space-y-2">
                   {[
-                    { label: "Sentinel Version", value: "2.4.1" },
+                    { label: "Meridian Version", value: "2.4.1" },
                     { label: "Model Engine", value: DAILY_STATS.modelVersion },
                     { label: "Database", value: "PostgreSQL 16.2" },
                     { label: "Last Audit", value: "2026-04-29 06:00 UTC" },
                     { label: "Uptime", value: "99.97% (30d)" },
                     { label: "API Latency", value: "42ms avg" },
                     { label: "Ledger Entries", value: "127,384" },
-                    { label: "Proofs Signed", value: "119,201" },
+                    { label: "Audits Sealed", value: "119,201" },
                   ].map(item => (
                     <div key={item.label} className="flex items-center justify-between">
                       <span className="text-[0.65rem] text-muted-foreground">{item.label}</span>

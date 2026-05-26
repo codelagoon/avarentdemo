@@ -107,7 +107,7 @@ export function ApiKeyDialog({ onKeysSet }: ApiKeyDialogProps) {
                 rel="noopener noreferrer"
                 className="mt-2 inline-block text-blue-700 underline hover:text-blue-800"
               >
-                Get OpenRouter API Key →
+                Get OpenRouter API Key
               </a>
             </div>
 
@@ -152,7 +152,7 @@ export function ApiKeyDialog({ onKeysSet }: ApiKeyDialogProps) {
                 rel="noopener noreferrer"
                 className="mt-2 inline-block text-green-700 underline hover:text-green-800"
               >
-                Get NVIDIA API Key →
+                Get NVIDIA API Key
               </a>
             </div>
 

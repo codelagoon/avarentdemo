@@ -28,7 +28,10 @@ import {
   CheckCircle,
   AlertCircle,
   Database,
+  Shuffle,
+  Wand2,
 } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
 import {
   parseApplicationsCSV,
   importApplications,
@@ -37,6 +40,7 @@ import {
   type ImportResult,
   type LoanType,
 } from "@/services/dataImportService"
+import { generateTestCSV, downloadGeneratedCSV } from "@/services/csvGeneratorService"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -52,7 +56,7 @@ const LOAN_TYPES: { value: LoanType; label: string }[] = [
 
 export function DataImportDialog() {
   const [open, setOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState("upload")
+  const [activeTab, setActiveTab] = useState("generate")
   const [csvContent, setCsvContent] = useState("")
   const [selectedLoanType, setSelectedLoanType] = useState<LoanType>("personal")
   const [parsedApps, setParsedApps] = useState<ImportedApplication[] | null>(null)
@@ -60,6 +64,12 @@ export function DataImportDialog() {
   const [, setIsParsing] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Generator state
+  const [genCount, setGenCount] = useState(25)
+  const [genLoanType, setGenLoanType] = useState<LoanType | "mixed">("mixed")
+  const [genProxyRate, setGenProxyRate] = useState(0)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -112,6 +122,32 @@ export function DataImportDialog() {
     downloadSampleTemplate()
   }
 
+  const handleGenerate = (mode: "load" | "download") => {
+    setIsGenerating(true)
+    try {
+      const csv = generateTestCSV({
+        count: genCount,
+        loanType: genLoanType,
+        seed: Math.floor(Math.random() * 0xffffffff),
+        proxyInjectionRate: genProxyRate / 100,
+      })
+      if (mode === "load") {
+        setCsvContent(csv)
+        setSelectedLoanType(genLoanType === "mixed" ? "personal" : genLoanType as LoanType)
+        parseContent(csv)
+        setActiveTab("upload")
+        toast.success(`Generated ${genCount} realistic applicants — ready to preview`)
+      } else {
+        const label = `${genCount}-${genLoanType}`
+        downloadGeneratedCSV(csv, label)
+        toast.success(`Downloaded ${genCount}-row CSV`)
+      }
+    } catch (e) {
+      toast.error(`Generation failed: ${e}`)
+    }
+    setIsGenerating(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -132,15 +168,132 @@ export function DataImportDialog() {
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="upload">1. Upload CSV</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="generate">Generate CSV</TabsTrigger>
+            <TabsTrigger value="upload">Upload / Paste</TabsTrigger>
             <TabsTrigger value="preview" disabled={!parsedApps}>
-              2. Preview Data
+              Preview
             </TabsTrigger>
             <TabsTrigger value="results" disabled={!importResult}>
-              3. Results
+              Results
             </TabsTrigger>
           </TabsList>
+
+          {/* ── Generate tab ──────────────────────────────────── */}
+          <TabsContent value="generate" className="space-y-4">
+            <Card>
+              <CardContent className="p-5 space-y-5">
+                <div className="flex items-center gap-2">
+                  <Wand2 className="h-4 w-4 text-indigo-500" />
+                  <p className="text-sm font-semibold">Realistic Test Data Generator</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Generates statistically realistic applicant profiles using log-normal income distributions
+                  (HMDA 2025) and Gaussian credit score sampling (mu=695, sigma=85).
+                  Names are drawn from demographically diverse pools matching US Census proportions.
+                </p>
+
+                <Separator />
+
+                {/* Row count */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Number of Applicants</label>
+                    <span className="font-mono text-sm font-bold text-indigo-600">{genCount}</span>
+                  </div>
+                  <Slider
+                    min={5} max={200} step={5}
+                    value={[genCount]}
+                    onValueChange={([v]) => setGenCount(v)}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-[0.65rem] text-muted-foreground">
+                    <span>5 (quick test)</span>
+                    <span>200 (stress test)</span>
+                  </div>
+                </div>
+
+                {/* Loan type */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Loan Type</label>
+                  <Select value={genLoanType} onValueChange={(v) => setGenLoanType(v as LoanType | "mixed")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mixed">Mixed (all types)</SelectItem>
+                      {LOAN_TYPES.map(t => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Proxy injection */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-medium">Proxy ZIP Injection Rate</label>
+                      <p className="text-[0.65rem] text-muted-foreground">Fraction of records with known redlined ZIP codes for adversarial testing</p>
+                    </div>
+                    <span className={cn(
+                      "font-mono text-sm font-bold",
+                      genProxyRate === 0 ? "text-emerald-600" : genProxyRate < 30 ? "text-amber-600" : "text-rose-600"
+                    )}>{genProxyRate}%</span>
+                  </div>
+                  <Slider
+                    min={0} max={80} step={5}
+                    value={[genProxyRate]}
+                    onValueChange={([v]) => setGenProxyRate(v)}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-[0.65rem] text-muted-foreground">
+                    <span>0% — clean dataset</span>
+                    <span>80% — heavy proxy injection</span>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Preview stats */}
+                <div className="rounded-lg border bg-slate-50 dark:bg-slate-900 p-3 grid grid-cols-3 gap-3 text-center">
+                  {[
+                    { label: "Rows", value: genCount },
+                    { label: "Columns", value: 13 },
+                    { label: "Proxy Rows", value: Math.round(genCount * genProxyRate / 100) },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <p className="text-xl font-black tabular-nums text-slate-800 dark:text-slate-100">{value}</p>
+                      <p className="text-[0.6rem] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+                    onClick={() => handleGenerate("load")}
+                    disabled={isGenerating}
+                  >
+                    {isGenerating
+                      ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      : <Shuffle className="h-4 w-4" />
+                    }
+                    Generate and Load
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => handleGenerate("download")}
+                    disabled={isGenerating}
+                  >
+                    <Download className="h-4 w-4" />
+                    Download CSV
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="upload" className="space-y-4">
             {/* Loan Type Selector */}

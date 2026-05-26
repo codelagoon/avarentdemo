@@ -35,7 +35,7 @@ function EventTypeBadge({ type }: { type: LedgerEventType }) {
   const map: Record<LedgerEventType, { label: string; cls: string }> = {
     decision: { label: "Decision", cls: "bg-blue-50 text-blue-700 border-blue-200" },
     intervention: { label: "Intervention", cls: "bg-orange-50 text-orange-700 border-orange-200" },
-    proof_signed: { label: "Proof Signed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    proof_signed: { label: "Audit Sealed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     alert: { label: "Alert", cls: "bg-destructive/10 text-destructive border-destructive/20" },
     audit: { label: "Audit", cls: "bg-secondary text-muted-foreground border-border" },
   }
@@ -168,9 +168,9 @@ export function EvidenceLedgerPage() {
         <div className="mb-5 grid grid-cols-4 gap-3">
           {[
             { label: "Total Entries", value: stats.total, icon: Hash, sub: "all time", accent: false },
-            { label: "Proofs Signed", value: stats.proofs, icon: CheckCircle, sub: "cryptographic bundles", accent: true },
+            { label: "Audits Sealed", value: stats.proofs, icon: CheckCircle, sub: "cryptographic bundles", accent: true },
             { label: "Interventions", value: stats.interventions, icon: AlertTriangle, sub: "proxy severings", accent: false },
-            { label: "Avg Fairness", value: `${(stats.avgFairness * 100).toFixed(1)}%`, icon: FileText, sub: "across all decisions", accent: true },
+            { label: "Avg AIR / SPD", value: `${stats.avgFairness.toFixed(2)} / ${Math.max(0, 1 - stats.avgFairness).toFixed(2)}`, icon: FileText, sub: "across all decisions", accent: true },
           ].map(s => {
             const Icon = s.icon
             return (
@@ -178,7 +178,7 @@ export function EvidenceLedgerPage() {
                 <CardContent className="px-4 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground truncate">{s.label}</p>
+                      <p className="text-[0.7rem] font-semibold tracking-wider text-muted-foreground truncate">{s.label}</p>
                       <p className={cn("mt-1 text-3xl font-bold tracking-tight tabular-nums", s.accent ? "text-primary" : "text-foreground")}>
                         {s.value}
                       </p>
@@ -205,7 +205,7 @@ export function EvidenceLedgerPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, ID, hash, message…"
+                  placeholder="Search by name, ID, hash, message..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   className="h-8 pl-8 text-xs"
@@ -220,7 +220,7 @@ export function EvidenceLedgerPage() {
                   <SelectItem value="all">All Event Types</SelectItem>
                   <SelectItem value="decision">Decision</SelectItem>
                   <SelectItem value="intervention">Intervention</SelectItem>
-                  <SelectItem value="proof_signed">Proof Signed</SelectItem>
+                  <SelectItem value="proof_signed">Audit Sealed</SelectItem>
                   <SelectItem value="alert">Alert</SelectItem>
                   <SelectItem value="audit">Audit</SelectItem>
                 </SelectContent>
@@ -240,7 +240,7 @@ export function EvidenceLedgerPage() {
                   <TableHead className="text-xs">Type</TableHead>
                   <TableHead className="text-xs">Decision</TableHead>
                   <TableHead className="cursor-pointer text-xs" onClick={() => toggleSort("fairnessScore")}>
-                    Fairness <SortIcon field="fairnessScore" />
+                    AIR / SPD <SortIcon field="fairnessScore" />
                   </TableHead>
                   <TableHead className="text-xs pr-4">Hash (short)</TableHead>
                 </TableRow>
@@ -279,17 +279,16 @@ export function EvidenceLedgerPage() {
                     <TableCell>
                       <span className={cn(
                         "font-mono text-xs font-bold",
-                        entry.fairnessScore >= 0.9 ? "text-emerald-600" :
-                        entry.fairnessScore >= 0.75 ? "text-amber-600" : "text-destructive"
+                        entry.fairnessScore >= 0.8 ? "text-emerald-600" : "text-destructive"
                       )}>
-                        {(entry.fairnessScore * 100).toFixed(0)}%
+                        {entry.fairnessScore.toFixed(2)} / {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
                       </span>
                     </TableCell>
                     <TableCell className="pr-4">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="cursor-help font-mono text-[0.6rem] text-muted-foreground">
-                            {entry.hash.slice(0, 12)}…
+                            {entry.hash.slice(0, 12)}...
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>

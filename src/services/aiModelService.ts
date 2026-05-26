@@ -76,7 +76,7 @@ async function callOpenRouter(app: ApplicationData, model: string = "google/gemm
         "Authorization": `Bearer ${getOpenRouterKey()}`,
         "Content-Type": "application/json",
         "HTTP-Referer": window.location.origin,
-        "X-Title": "AVARENT Sentinel",
+        "X-Title": "AVARENT Meridian",
       },
       body: JSON.stringify({
         model: model,
@@ -270,8 +270,95 @@ function localFallbackDecision(app: ApplicationData): ModelResponse {
   }
 }
 
+async function callAzureOpenAI(app: ApplicationData): Promise<ModelResponse | null> {
+  const startTime = Date.now()
+  const apiKey = process.env.AZURE_OPENAI_API_KEY || process.env.NEXT_PUBLIC_AZURE_OPENAI_API_KEY || ""
+  const endpoint = process.env.AZURE_OPENAI_ENDPOINT || process.env.NEXT_PUBLIC_AZURE_OPENAI_ENDPOINT || ""
+  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.NEXT_PUBLIC_AZURE_OPENAI_DEPLOYMENT_NAME || "meridian-llama3"
+
+  if (!apiKey || !endpoint) {
+    console.warn("Azure OpenAI API credentials missing.")
+    return null
+  }
+
+  const prompt = buildCreditDecisionPrompt(app)
+  const cleanEndpoint = endpoint.endsWith("/") ? endpoint.slice(0, -1) : endpoint
+
+  try {
+    const response = await fetch(`${cleanEndpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-02-15-preview`, {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: `You are a fair lending credit decision AI. Analyze the applicant data and provide a credit decision with fairness considerations. Respond in JSON format:
+{
+  "decision": "approved" | "denied" | "under_review",
+  "confidence": 0.0-1.0,
+  "reasoning": "explanation of decision with specific factors",
+  "fairnessScore": 0.0-1.0,
+  "riskFactors": ["factor1", "factor2"]
+}`,
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 500,
+        response_format: { type: "json_object" },
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      console.warn("Azure OpenAI API error:", error)
+      return null
+    }
+
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content
+
+    if (!content) return null
+
+    const result = JSON.parse(content)
+    const latency = Date.now() - startTime
+
+    return {
+      decision: normalizeDecision(result.decision),
+      confidence: clamp(result.confidence, 0, 1),
+      reasoning: result.reasoning || "Decision based on applicant profile analysis",
+      fairnessScore: clamp(result.fairnessScore, 0, 1),
+      riskFactors: result.riskFactors || [],
+      modelUsed: `Azure OpenAI (${deployment})`,
+      provider: "local",
+      latency,
+    }
+  } catch (error) {
+    console.warn("Azure OpenAI call failed:", error)
+    return null
+  }
+}
+
 // Main function: Try OpenRouter first, then NVIDIA, then local
 export async function getAIDecision(app: ApplicationData): Promise<ModelResponse> {
+  // Check if Azure OpenAI swap-out provider is activated in configuration
+  const provider = process.env.LLM_PROVIDER || process.env.NEXT_PUBLIC_LLM_PROVIDER || ""
+  if (provider === "azure") {
+    const result = await callAzureOpenAI(app)
+    if (result) {
+      toast.success(`AI Decision: ${result.modelUsed}`, {
+        description: `${result.decision.toUpperCase()} (${(result.confidence * 100).toFixed(0)}% confidence)`,
+      })
+      return result
+    }
+  }
+
   // Try OpenRouter free models first
   const openRouterModels = Object.keys(OPENROUTER_FREE_MODELS)
 

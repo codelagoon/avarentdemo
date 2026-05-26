@@ -28,12 +28,12 @@ const DATA_VOLUME_CHART = [
 
 const volumeConfig = {
   accuracy: { label: "Accuracy", color: "var(--chart-1)" },
-  fairness: { label: "Fairness Score", color: "var(--chart-4)" },
+  fairness: { label: "AIR (Adverse Impact Ratio)", color: "var(--chart-4)" },
 }
 
 const liftConfig = {
-  before: { label: "Before Sentinel", color: "var(--chart-3)" },
-  after: { label: "After Sentinel", color: "var(--chart-1)" },
+  before: { label: "Before Meridian", color: "var(--chart-3)" },
+  after: { label: "After Meridian", color: "var(--chart-1)" },
 }
 
 const proxyConfig = {
@@ -42,9 +42,9 @@ const proxyConfig = {
   cleared: { label: "Cleared", color: "var(--chart-1)" },
 }
 
-function MetricGauge({ value, label, threshold = 0.8 }: { value: number; label: string; threshold?: number }) {
-  const pct = value * 100
-  const pass = value >= threshold
+function MetricGauge({ value, label, threshold = 0.8, isDecimal = false, reverse = false }: { value: number; label: string; threshold?: number; isDecimal?: boolean; reverse?: boolean }) {
+  const pct = isDecimal ? (reverse ? (1 - value) * 100 : value * 100) : value * 100
+  const pass = reverse ? value <= threshold : value >= threshold
   return (
     <div className="text-center">
       <div className="relative mx-auto mb-1 flex h-16 w-16 items-center justify-center">
@@ -60,7 +60,7 @@ function MetricGauge({ value, label, threshold = 0.8 }: { value: number; label: 
           />
         </svg>
         <span className={cn("absolute text-[0.7rem] font-bold", pass ? "text-primary" : "text-destructive")}>
-          {pct.toFixed(0)}%
+          {isDecimal ? value.toFixed(2) : `${pct.toFixed(0)}%`}
         </span>
       </div>
       <p className="text-[0.65rem] font-medium text-foreground">{label}</p>
@@ -110,19 +110,19 @@ export function AnalyticsPage() {
                     <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    CFPB 4/5ths rule requires disparate impact ratio ≥ 0.80. All metrics computed post-Sentinel intervention.
+                    CFPB 4/5ths rule requires disparate impact ratio ≥ 0.80. All metrics computed post-Meridian intervention.
                   </TooltipContent>
                 </Tooltip>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-around">
-                <MetricGauge value={0.923} label="Avg Fairness Score" threshold={0.8} />
-                <MetricGauge value={overallDI} label="Min Disparate Impact" threshold={0.8} />
-                <MetricGauge value={avgApproval} label="Avg Approval Rate" threshold={0.6} />
-                <MetricGauge value={0.986} label="Chain Integrity" threshold={0.99} />
-                <MetricGauge value={0.97} label="Proxy Detection" threshold={0.9} />
-                <MetricGauge value={0.94} label="Model Stability" threshold={0.85} />
+                 <MetricGauge value={0.923} label="AIR" threshold={0.8} isDecimal={true} />
+                 <MetricGauge value={0.077} label="SPD" threshold={0.1} isDecimal={true} reverse={true} />
+                 <MetricGauge value={avgApproval} label="Avg Approval Rate" threshold={0.6} />
+                 <MetricGauge value={0.986} label="Ledger Continuity" threshold={0.99} />
+                 <MetricGauge value={0.97} label="Proxy Detection" threshold={0.9} />
+                 <MetricGauge value={0.94} label="Model Stability" threshold={0.85} />
               </div>
             </CardContent>
           </Card>
@@ -132,7 +132,7 @@ export function AnalyticsPage() {
           {/* Approval Lift Chart */}
           <Card className="shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Approval Rate Lift (Before vs. After Sentinel)</CardTitle>
+              <CardTitle className="text-sm font-semibold">Approval Rate Lift (Before vs. After Meridian)</CardTitle>
               <p className="text-[0.65rem] text-muted-foreground">Protected groups — last 7 months</p>
             </CardHeader>
             <CardContent>

@@ -1,12 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Play, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Shield, Zap, ChevronDown, Hash, Clock, Activity, RefreshCw, Download, Info, Boxes, Scale, Database } from "lucide-react"
+import {
+  Play, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle,
+  Shield, Zap, ChevronDown, ChevronRight, Hash, Clock, Activity,
+  RefreshCw, Download, Info, Boxes, Scale, Database, TrendingUp,
+  TrendingDown, Minus, Filter, BarChart2, Check, X, BookOpen
+} from "lucide-react"
+import {
+  AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip,
+  CartesianGrid
+} from "recharts"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
@@ -18,98 +25,116 @@ import {
 import { ledgerService } from "@/services/ledgerService"
 import { scenarioService } from "@/services/scenarioService"
 import { DataImportDialog } from "@/components/DataImportDialog"
-import { ApiKeyDialog } from "@/components/ApiKeyDialog"
 
-// ─── Status pill helpers ─────────────────────────────────────────────────────
+// ─── Fairness wave data ───────────────────────────────────────────────────────
+const WAVE_DATA = [
+  { month: "Nov", score: 81, interventions: 3, baseline: 72 },
+  { month: "Dec", score: 84, interventions: 2, baseline: 72 },
+  { month: "Jan", score: 87, interventions: 4, baseline: 72 },
+  { month: "Feb", score: 83, interventions: 1, baseline: 72 },
+  { month: "Mar", score: 89, interventions: 5, baseline: 72 },
+  { month: "Apr", score: 91, interventions: 2, baseline: 72 },
+  { month: "May", score: 94, interventions: 1, baseline: 72 },
+]
+
+// ─── Recent applicant decisions (for applicant table) ────────────────────────
+const RECENT_DECISIONS = [
+  { id: "APP-084721", name: "Marcus T. Williams",   initials: "MW", color: "bg-emerald-500", loan: "Mortgage",  amount: 285000, decision: "approved",    fairness: 0.97, time: "14:49", trend: [72, 80, 85, 91, 97] },
+  { id: "APP-084722", name: "Darnell R. Johnson",   initials: "DJ", color: "bg-violet-500",  loan: "Auto",      amount: 42000,  decision: "under_review", fairness: 0.89, time: "14:47", trend: [60, 70, 75, 80, 89] },
+  { id: "APP-084723", name: "Priya K. Sharma",      initials: "PS", color: "bg-rose-500",    loan: "Personal",  amount: 18500,  decision: "escalated",    fairness: 0.61, time: "14:43", trend: [45, 52, 58, 60, 61] },
+  { id: "APP-084724", name: "Robert A. Chen",       initials: "RC", color: "bg-sky-500",     loan: "Auto",      amount: 38000,  decision: "approved",    fairness: 0.94, time: "14:40", trend: [78, 83, 88, 91, 94] },
+  { id: "APP-084725", name: "Latoya M. Davis",      initials: "LD", color: "bg-amber-500",   loan: "Mortgage",  amount: 320000, decision: "approved",    fairness: 0.82, time: "14:37", trend: [65, 70, 74, 79, 82] },
+  { id: "APP-084726", name: "James W. Thompson",    initials: "JT", color: "bg-teal-500",    loan: "Business",  amount: 95000,  decision: "approved",    fairness: 0.96, time: "14:34", trend: [80, 86, 91, 94, 96] },
+]
+
+// ─── Badge helpers ────────────────────────────────────────────────────────────
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
-    critical: "bg-destructive/10 text-destructive border-destructive/20",
-    high: "bg-orange-50 text-orange-700 border-orange-200",
-    medium: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    low: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    critical: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900",
+    high:     "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900",
+    medium:   "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900",
+    low:      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900",
   }
   return (
-    <span className={cn("rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide", map[severity] ?? map.low)}>
+    <span className={cn("rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide", map[severity] ?? map.low)}>
       {severity}
     </span>
   )
 }
 
 function DecisionBadge({ decision }: { decision: string }) {
-  const map: Record<string, string> = {
-    approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    denied: "bg-destructive/10 text-destructive border-destructive/20",
-    under_review: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    escalated: "bg-orange-50 text-orange-700 border-orange-200",
+  const map: Record<string, { cls: string; label: string; icon: React.ReactNode }> = {
+    approved:     { cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900", label: "Approved",    icon: <Check className="h-2.5 w-2.5" /> },
+    denied:       { cls: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900",                   label: "Denied",      icon: <X className="h-2.5 w-2.5" /> },
+    under_review: { cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900",             label: "Review",      icon: <Minus className="h-2.5 w-2.5" /> },
+    escalated:    { cls: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900",       label: "Escalated",   icon: <AlertTriangle className="h-2.5 w-2.5" /> },
   }
+  const { cls, label, icon } = map[decision] ?? map.under_review
   return (
-    <span className={cn("rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide", map[decision] ?? "bg-muted text-muted-foreground border-border")}>
-      {decision.replace("_", " ")}
+    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold", cls)}>
+      {icon}{label}
     </span>
   )
 }
 
 function EventTypeBadge({ type }: { type: LedgerEventType }) {
   const map: Record<LedgerEventType, { label: string; cls: string }> = {
-    decision: { label: "Decision", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-    intervention: { label: "Intervention", cls: "bg-orange-50 text-orange-700 border-orange-200" },
-    proof_signed: { label: "Proof Signed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    alert: { label: "Alert", cls: "bg-destructive/10 text-destructive border-destructive/20" },
-    audit: { label: "Audit", cls: "bg-secondary text-muted-foreground border-border" },
+    decision:    { label: "Decision",    cls: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-900" },
+    intervention:{ label: "Intervention",cls: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900" },
+    proof_signed:{ label: "Proof Signed",cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900" },
+    alert:       { label: "Alert",       cls: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900" },
+    audit:       { label: "Audit",       cls: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700" },
   }
   const { label, cls } = map[type]
   return (
-    <span className={cn("rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold", cls)}>
+    <span className={cn("rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold", cls)}>
       {label}
     </span>
   )
 }
 
-// ─── Professional Stat Cards ──────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon: Icon, accent = false, trend }: {
-  label: string; value: string | number; sub?: string; 
-  icon: React.ComponentType<{ className?: string }>; accent?: boolean;
-  trend?: "up" | "down" | "neutral"
-}) {
+// ─── Mini sparkline SVG ───────────────────────────────────────────────────────
+function Sparkline({ data, color = "#6366f1" }: { data: number[]; color?: string }) {
+  const w = 52, h = 20
+  const min = Math.min(...data), max = Math.max(...data)
+  const range = max - min || 1
+  const pts = data.map((v, i) => [
+    (i / (data.length - 1)) * w,
+    h - ((v - min) / range) * (h - 2) - 1,
+  ])
+  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ")
   return (
-    <Card className={cn(
-      "border-0 shadow-sm transition-all duration-200 hover:shadow-md",
-      accent ? "bg-gradient-to-br from-primary/5 to-primary/10" : "bg-white"
-    )}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500 truncate">
-              {label}
-            </p>
-            <div className="mt-2 flex items-baseline gap-2">
-              <p className={cn(
-                "text-2xl font-bold tracking-tight tabular-nums",
-                accent ? "text-primary" : "text-slate-900"
-              )}>
-                {value}
-              </p>
-              {trend && (
-                <span className={cn(
-                  "text-xs font-medium",
-                  trend === "up" ? "text-emerald-600" : 
-                  trend === "down" ? "text-red-600" : "text-slate-400"
-                )}>
-                  {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"}
-                </span>
-              )}
-            </div>
-            {sub && <p className="mt-1 text-[0.7rem] text-slate-400">{sub}</p>}
-          </div>
-          <div className={cn(
-            "shrink-0 rounded-lg p-2",
-            accent ? "bg-primary/15" : "bg-slate-100"
-          )}>
-            <Icon className={cn("h-4 w-4", accent ? "text-primary" : "text-slate-500")} />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none">
+      <path d={d} stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// ─── Circular gauge SVG ───────────────────────────────────────────────────────
+function CircularGauge({ value, max = 100, label, sub, color = "#6366f1" }: {
+  value: number; max?: number; label: string; sub?: string; color?: string
+}) {
+  const r = 28, circ = 2 * Math.PI * r
+  const pct = Math.min(value / max, 1)
+  const dash = circ * pct
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative flex items-center justify-center">
+        <svg width={72} height={72} viewBox="0 0 72 72" className="-rotate-90">
+          <circle cx={36} cy={36} r={r} stroke="currentColor" strokeWidth="5" fill="none" className="text-slate-100 dark:text-slate-800" />
+          <circle
+            cx={36} cy={36} r={r}
+            stroke={color} strokeWidth="5" fill="none"
+            strokeDasharray={`${dash} ${circ}`}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dasharray 1s ease" }}
+          />
+        </svg>
+        <span className="absolute text-sm font-bold tabular-nums" style={{ color }}>{value}</span>
+      </div>
+      <p className="text-[0.6rem] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">{label}</p>
+      {sub && <p className="text-[0.55rem] text-slate-400 dark:text-slate-500 text-center">{sub}</p>}
+    </div>
   )
 }
 
@@ -118,11 +143,10 @@ interface GraphNode {
   id: string; label: string; x: number; y: number; type: "input" | "model" | "output" | "proxy" | "severed"
 }
 interface GraphEdge {
-  from: string; to: string; severed?: boolean; animating?: boolean
+  from: string; to: string; severed?: boolean
 }
 
 function CausalGraph({ severedEdges, running }: { severedEdges: string[]; running: boolean }) {
-  const canvasRef = useRef<SVGSVGElement>(null)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
@@ -132,78 +156,88 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
   }, [running])
 
   const nodes: GraphNode[] = [
-    { id: "income", label: "Income", x: 60, y: 80, type: "input" },
-    { id: "credit_score", label: "Credit Score", x: 60, y: 140, type: "input" },
-    { id: "employment", label: "Employment", x: 60, y: 200, type: "input" },
-    { id: "loan_amount", label: "Loan Amount", x: 60, y: 260, type: "input" },
-    { id: "zip_code", label: "ZIP Code", x: 60, y: 320, type: severedEdges.includes("zip_code -> risk_score") || severedEdges.includes("zip_code -> credit_decision") ? "severed" : "proxy" },
-    { id: "neighborhood", label: "Neighborhood", x: 60, y: 370, type: severedEdges.includes("neighborhood_score -> approval_gate") ? "severed" : "proxy" },
-    { id: "school_dist", label: "School Dist.", x: 60, y: 420, type: severedEdges.includes("school_district -> creditworthiness") ? "severed" : "proxy" },
-    { id: "risk_model", label: "Risk Model", x: 210, y: 160, type: "model" },
-    { id: "fairness_layer", label: "Fairness Layer", x: 210, y: 260, type: "model" },
-    { id: "causal_engine", label: "Causal Engine", x: 210, y: 340, type: "model" },
-    { id: "credit_decision", label: "Credit Decision", x: 370, y: 200, type: "output" },
-    { id: "proof_bundle", label: "Proof Bundle", x: 370, y: 300, type: "output" },
+    { id: "income",       label: "Income",       x: 65,  y: 70,  type: "input" },
+    { id: "credit_score", label: "Credit Score", x: 65,  y: 130, type: "input" },
+    { id: "employment",   label: "Employment",   x: 65,  y: 190, type: "input" },
+    { id: "loan_amount",  label: "Loan Amount",  x: 65,  y: 250, type: "input" },
+    { id: "zip_code",     label: "ZIP Code",     x: 65,  y: 315,
+      type: severedEdges.includes("zip_code -> risk_score") || severedEdges.includes("zip_code -> credit_decision") ? "severed" : "proxy" },
+    { id: "neighborhood", label: "Neighborhood", x: 65,  y: 365,
+      type: severedEdges.includes("neighborhood_score -> approval_gate") ? "severed" : "proxy" },
+    { id: "school_dist",  label: "School Dist.", x: 65,  y: 415,
+      type: severedEdges.includes("school_district -> creditworthiness") ? "severed" : "proxy" },
+    { id: "risk_model",       label: "Risk Model",     x: 220, y: 155, type: "model" },
+    { id: "fairness_layer",   label: "Fairness Layer", x: 220, y: 250, type: "model" },
+    { id: "causal_engine",    label: "Causal Engine",  x: 220, y: 335, type: "model" },
+    { id: "credit_decision",  label: "Credit Decision",x: 375, y: 195, type: "output" },
+    { id: "proof_bundle",     label: "Proof Bundle",   x: 375, y: 295, type: "output" },
   ]
 
   const edges: GraphEdge[] = [
-    { from: "income", to: "risk_model" },
+    { from: "income",       to: "risk_model" },
     { from: "credit_score", to: "risk_model" },
-    { from: "employment", to: "risk_model" },
-    { from: "loan_amount", to: "risk_model" },
-    { from: "zip_code", to: "risk_model", severed: severedEdges.includes("zip_code -> risk_score") || severedEdges.includes("zip_code -> credit_decision") },
-    { from: "neighborhood", to: "fairness_layer", severed: severedEdges.includes("neighborhood_score -> approval_gate") },
-    { from: "school_dist", to: "causal_engine", severed: severedEdges.includes("school_district -> creditworthiness") },
-    { from: "risk_model", to: "fairness_layer" },
-    { from: "fairness_layer", to: "causal_engine" },
-    { from: "fairness_layer", to: "credit_decision" },
+    { from: "employment",   to: "risk_model" },
+    { from: "loan_amount",  to: "risk_model" },
+    { from: "zip_code",     to: "risk_model",      severed: severedEdges.includes("zip_code -> risk_score") || severedEdges.includes("zip_code -> credit_decision") },
+    { from: "neighborhood", to: "fairness_layer",  severed: severedEdges.includes("neighborhood_score -> approval_gate") },
+    { from: "school_dist",  to: "causal_engine",   severed: severedEdges.includes("school_district -> creditworthiness") },
+    { from: "risk_model",    to: "fairness_layer" },
+    { from: "fairness_layer",to: "causal_engine" },
+    { from: "fairness_layer",to: "credit_decision" },
     { from: "causal_engine", to: "credit_decision" },
     { from: "causal_engine", to: "proof_bundle" },
-    { from: "risk_model", to: "credit_decision" },
+    { from: "risk_model",    to: "credit_decision" },
   ]
 
   const getNode = (id: string) => nodes.find(n => n.id === id)!
 
-  const nodeColor: Record<string, string> = {
-    input: "oklch(0.35 0.065 255)",
-    model: "oklch(0.42 0.09 195)",
-    output: "oklch(0.35 0.065 255)",
-    proxy: "oklch(0.65 0.18 85)",
-    severed: "oklch(0.577 0.245 27.325)",
+  const nodeColors: Record<string, { fill: string; stroke: string }> = {
+    input:   { fill: "#1e3a5f", stroke: "#2563eb" },
+    model:   { fill: "#1a3040", stroke: "#0891b2" },
+    output:  { fill: "#1e3a5f", stroke: "#6366f1" },
+    proxy:   { fill: "#44330a", stroke: "#d97706" },
+    severed: { fill: "#3f1010", stroke: "#ef4444" },
   }
 
-  const pulseRadius = running ? 4 + Math.sin(tick * 0.2) * 1.5 : 4
+  const pulseR = running ? 5 + Math.sin(tick * 0.2) * 1.5 : 5
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-lg border bg-card">
-      {/* Grid background */}
+    <div className="relative h-full w-full overflow-hidden rounded-xl border border-slate-200/60 bg-slate-50 dark:border-slate-800 dark:bg-[#0d1117]">
       <svg
-        ref={canvasRef}
         className="absolute inset-0 h-full w-full"
-        viewBox="0 0 460 480"
+        viewBox="0 0 460 470"
         preserveAspectRatio="xMidYMid meet"
         data-testid="causal-graph"
       >
-        {/* Grid */}
+        {/* Dot-grid background */}
         <defs>
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="oklch(0.91 0.008 247)" strokeWidth="0.5" />
+          <pattern id="dotgrid" width="18" height="18" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.8" fill="rgba(100,116,139,0.18)" />
           </pattern>
-          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="oklch(0.75 0.008 247)" />
+          <marker id="arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="rgba(100,116,139,0.5)" />
           </marker>
-          <marker id="arrowhead-severed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="oklch(0.577 0.245 27.325)" />
+          <marker id="arr-active" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#6366f1" />
           </marker>
+          <marker id="arr-severed" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#ef4444" />
+          </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
         </defs>
-        <rect width="460" height="480" fill="url(#grid)" />
+        <rect width="460" height="470" fill="url(#dotgrid)" />
 
-        {/* Label areas */}
-        <text x="110" y="20" fontSize="8" fill="oklch(0.52 0.018 255)" fontFamily="IBM Plex Sans" fontWeight="500" letterSpacing="2">INPUT FEATURES</text>
-        <text x="187" y="20" fontSize="8" fill="oklch(0.52 0.018 255)" fontFamily="IBM Plex Sans" fontWeight="500" letterSpacing="2">MODEL LAYERS</text>
-        <text x="342" y="20" fontSize="8" fill="oklch(0.52 0.018 255)" fontFamily="IBM Plex Sans" fontWeight="500" letterSpacing="2">OUTPUTS</text>
-        <line x1="155" y1="30" x2="155" y2="470" stroke="oklch(0.91 0.008 247)" strokeWidth="1" strokeDasharray="4,4" />
-        <line x1="320" y1="30" x2="320" y2="470" stroke="oklch(0.91 0.008 247)" strokeWidth="1" strokeDasharray="4,4" />
+        {/* Column dividers */}
+        <line x1="158" y1="35" x2="158" y2="455" stroke="rgba(100,116,139,0.12)" strokeWidth="1" strokeDasharray="5,4" />
+        <line x1="315" y1="35" x2="315" y2="455" stroke="rgba(100,116,139,0.12)" strokeWidth="1" strokeDasharray="5,4" />
+
+        {/* Column labels */}
+        <text x="79"  y="22" fontSize="7.5" fill="rgba(100,116,139,0.6)" fontFamily="IBM Plex Sans" fontWeight="600" letterSpacing="2" textAnchor="middle">INPUT FEATURES</text>
+        <text x="237" y="22" fontSize="7.5" fill="rgba(100,116,139,0.6)" fontFamily="IBM Plex Sans" fontWeight="600" letterSpacing="2" textAnchor="middle">MODEL LAYERS</text>
+        <text x="393" y="22" fontSize="7.5" fill="rgba(100,116,139,0.6)" fontFamily="IBM Plex Sans" fontWeight="600" letterSpacing="2" textAnchor="middle">OUTPUTS</text>
 
         {/* Edges */}
         {edges.map((edge, i) => {
@@ -215,23 +249,25 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
           return (
             <g key={i}>
               <path
-                d={`M ${from.x + 30} ${from.y} C ${mx + 10} ${from.y}, ${mx - 10} ${to.y}, ${to.x - 30} ${to.y}`}
+                d={`M ${from.x + 32} ${from.y} C ${mx + 8} ${from.y}, ${mx - 8} ${to.y}, ${to.x - 32} ${to.y}`}
                 fill="none"
-                stroke={isSevered ? "oklch(0.577 0.245 27.325)" : running ? "oklch(0.42 0.09 195)" : "oklch(0.78 0.008 247)"}
+                stroke={isSevered ? "#ef4444" : running ? "#6366f1" : "rgba(100,116,139,0.35)"}
                 strokeWidth={isSevered ? 1.5 : running ? 1.5 : 1}
-                strokeDasharray={isSevered ? "4,4" : "none"}
-                opacity={isSevered ? 0.6 : 0.8}
-                markerEnd={isSevered ? "url(#arrowhead-severed)" : "url(#arrowhead)"}
+                strokeDasharray={isSevered ? "4,3" : "none"}
+                opacity={isSevered ? 0.7 : running ? 0.85 : 0.6}
+                markerEnd={isSevered ? "url(#arr-severed)" : running ? "url(#arr-active)" : "url(#arr)"}
+                filter={running && !isSevered ? "url(#glow)" : undefined}
               />
               {isSevered && (
                 <text
                   x={mx}
                   y={(from.y + to.y) / 2 - 4}
-                  fontSize="7"
-                  fill="oklch(0.577 0.245 27.325)"
+                  fontSize="6.5"
+                  fill="#ef4444"
                   textAnchor="middle"
                   fontFamily="IBM Plex Mono"
-                  fontWeight="600"
+                  fontWeight="700"
+                  opacity={0.9}
                 >
                   SEVERED
                 </text>
@@ -242,35 +278,36 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
 
         {/* Nodes */}
         {nodes.map(node => {
-          const color = nodeColor[node.type]
+          const { fill, stroke } = nodeColors[node.type]
           const isProxy = node.type === "proxy" || node.type === "severed"
           const isPulsing = running && (node.type === "model" || node.type === "output")
           return (
             <g key={node.id} data-testid={`graph-node-${node.id}`}>
               {isPulsing && (
-                <circle cx={node.x} cy={node.y} r={pulseRadius + 8} fill={color} opacity={0.12} />
+                <rect
+                  x={node.x - 34} y={node.y - 16}
+                  width={68} height={32} rx={6}
+                  fill={stroke} opacity={0.08 + Math.sin(tick * 0.15) * 0.05}
+                />
               )}
               <rect
-                x={node.x - 30}
-                y={node.y - 12}
-                width={60}
-                height={24}
-                rx={4}
-                fill={color}
-                opacity={node.type === "severed" ? 0.35 : 0.9}
-                stroke={node.type === "severed" ? "oklch(0.577 0.245 27.325)" : "none"}
-                strokeWidth={node.type === "severed" ? 1.5 : 0}
+                x={node.x - 32} y={node.y - 13}
+                width={64} height={26} rx={5}
+                fill={fill}
+                opacity={node.type === "severed" ? 0.5 : 0.95}
+                stroke={stroke}
+                strokeWidth={node.type === "severed" ? 1.5 : 1}
                 strokeDasharray={node.type === "severed" ? "3,2" : "none"}
+                filter={isPulsing ? "url(#glow)" : undefined}
               />
               <text
-                x={node.x}
-                y={node.y + 4}
+                x={node.x} y={node.y + 4}
                 fontSize={isProxy ? 7.5 : 8}
-                fill="white"
+                fill="rgba(255,255,255,0.9)"
                 textAnchor="middle"
                 fontFamily="IBM Plex Sans"
                 fontWeight="600"
-                opacity={node.type === "severed" ? 0.7 : 1}
+                opacity={node.type === "severed" ? 0.6 : 1}
               >
                 {node.label}
               </text>
@@ -278,29 +315,26 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
           )
         })}
 
-        {/* Running indicator */}
+        {/* Live indicator */}
         {running && (
           <g>
-            <circle cx={430} cy={460} r={5} fill="oklch(0.55 0.15 195)" opacity={0.9 + Math.sin(tick * 0.3) * 0.1} />
-            <text x={418} y={457} fontSize="7" fill="oklch(0.42 0.09 195)" textAnchor="end" fontFamily="IBM Plex Mono">
-              ACTIVE
-            </text>
+            <circle cx={442} cy={455} r={4.5} fill="#6366f1" opacity={0.9 + Math.sin(tick * 0.3) * 0.1} filter="url(#glow)" />
+            <text x={434} y={452} fontSize="6.5" fill="#6366f1" textAnchor="end" fontFamily="IBM Plex Mono" fontWeight="700">ACTIVE</text>
           </g>
         )}
       </svg>
 
       {/* Legend */}
-      <div className="absolute bottom-2 left-2 flex items-center gap-3 rounded-md border bg-card/90 px-2 py-1 backdrop-blur-sm">
+      <div className="absolute bottom-2.5 left-2.5 flex items-center gap-3 rounded-lg border border-slate-200/60 bg-white/80 px-2.5 py-1.5 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/80">
         {[
-          { label: "Input", color: "bg-blue-600" },
-          { label: "Model", color: "bg-primary" },
-          { label: "Output", color: "bg-blue-600" },
-          { label: "Proxy", color: "bg-amber-500" },
-          { label: "Severed", color: "bg-destructive" },
+          { label: "Input/Output", color: "bg-blue-700" },
+          { label: "Model",        color: "bg-cyan-700" },
+          { label: "Proxy",        color: "bg-amber-600" },
+          { label: "Severed",      color: "bg-rose-600" },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-1">
-            <div className={cn("h-2 w-2 rounded-sm", item.color)} />
-            <span className="text-[0.6rem] text-muted-foreground">{item.label}</span>
+            <div className={cn("h-1.5 w-2 rounded-sm", item.color)} />
+            <span className="text-[0.55rem] font-medium text-slate-500 dark:text-slate-400">{item.label}</span>
           </div>
         ))}
       </div>
@@ -308,246 +342,651 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
   )
 }
 
-// ─── Evidence Feed ────────────────────────────────────────────────────────────
-function EvidenceFeed({ entries }: { entries: LedgerEntry[] }) {
+// ─── Fairness Wave Chart ──────────────────────────────────────────────────────
+function FairnessWaveChart({ running }: { running: boolean }) {
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-center justify-between px-1 pb-2">
-        <div className="flex items-center gap-1.5">
-          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-          <span className="text-xs font-semibold text-foreground">Live Feed</span>
-        </div>
-        <Badge variant="secondary" className="text-[0.6rem]">
-          {entries.length} events
-        </Badge>
-      </div>
-      <div className="flex-1 overflow-y-auto space-y-1.5">
-        {entries.map((entry, i) => (
-          <div
-            key={entry.id}
-            className={cn(
-              "rounded-md border bg-card p-2.5 transition-all",
-              i === 0 ? "animate-ledger-in border-primary/20 shadow-sm" : ""
-            )}
-            data-testid={`ledger-entry-${entry.id}`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1 mb-1">
-                  <EventTypeBadge type={entry.eventType} />
-                  {entry.decision && <DecisionBadge decision={entry.decision} />}
-                  {entry.severity && <SeverityBadge severity={entry.severity} />}
-                </div>
-                <p className="text-xs font-medium text-foreground truncate">{entry.applicantName}</p>
-                <p className="text-[0.65rem] text-muted-foreground truncate">{entry.message}</p>
-                <p className="text-[0.6rem] text-primary/70 mt-0.5">
-                  Based on {DATA_VOLUME.featuresPerDecision} features • {entry.interventionType ? "1" : "0"} intervention{entry.interventionType ? "" : "s"} applied
-                </p>
-              </div>
-            </div>
-            <div className="mt-1.5 flex items-center justify-between">
-              <span className="font-mono text-[0.6rem] text-muted-foreground truncate max-w-[120px]" title={entry.hash}>
-                #{entry.hash.slice(0, 16)}…
-              </span>
-              <div className="flex items-center gap-1 shrink-0">
-                <span className="font-mono text-[0.6rem] text-primary font-medium">
-                  {(entry.fairnessScore * 100).toFixed(0)}%
-                </span>
-                <span className="text-[0.6rem] text-muted-foreground">fair</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="h-full w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={WAVE_DATA} margin={{ top: 4, right: 4, left: -30, bottom: 0 }}>
+          <defs>
+            <linearGradient id="gradFairness" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="gradBaseline" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor="#94a3b8" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#94a3b8" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.1)" />
+          <XAxis dataKey="month" tick={{ fontSize: 9, fill: "rgba(100,116,139,0.7)", fontFamily: "IBM Plex Sans" }} axisLine={false} tickLine={false} />
+          <YAxis domain={[60, 100]} tick={{ fontSize: 9, fill: "rgba(100,116,139,0.7)", fontFamily: "IBM Plex Mono" }} axisLine={false} tickLine={false} />
+          <RechartsTooltip
+            contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 8, padding: "6px 10px" }}
+            labelStyle={{ color: "#e2e8f0", fontSize: 10, fontWeight: 600 }}
+            itemStyle={{ color: "#a5b4fc", fontSize: 10 }}
+            cursor={{ stroke: "rgba(99,102,241,0.3)", strokeWidth: 1 }}
+          />
+          <Area type="monotone" dataKey="baseline" stroke="#94a3b8" strokeWidth={1} strokeDasharray="4 3" fill="url(#gradBaseline)" dot={false} name="CFPB Floor" />
+          <Area type="monotone" dataKey="score"    stroke={running ? "#818cf8" : "#6366f1"} strokeWidth={2} fill="url(#gradFairness)" dot={false} name="Fairness Score" />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   )
 }
 
-// ─── Red Team Console ─────────────────────────────────────────────────────────
-function RedTeamConsole({
-  scenario,
-  onRun,
-  running,
+// ─── Left Panel: Compliance Controls ─────────────────────────────────────────
+function ComplianceControlsPanel({
+  scenario, onRun, running, activeScenario,
+  onScenarioSelect, testResult, onStartTour,
 }: {
   scenario: ScenarioConfig | null
   onRun: () => void
   running: boolean
+  activeScenario: ScenarioConfig | null
+  onScenarioSelect: (id: DemoScenario) => void
+  testResult: { outcome: string; fairness: number } | null
+  onStartTour: () => void
 }) {
-  const [enableProxyScan, setEnableProxyScan] = useState(true)
-  const [enableDoCalc, setEnableDoCalc] = useState(true)
-  const [enableHashChain, setEnableHashChain] = useState(true)
-  const [loanType, setLoanType] = useState("mortgage")
-  const [modelSensitivity, setModelSensitivity] = useState("balanced")
+  const [enableProxyScan,  setEnableProxyScan]  = useState(true)
+  const [enableDoCalc,     setEnableDoCalc]      = useState(true)
+  const [enableHashChain,  setEnableHashChain]   = useState(true)
+  const [loanType,         setLoanType]          = useState("mortgage")
+  const [modelSensitivity, setModelSensitivity]  = useState("balanced")
+  const [scenariosOpen,    setScenariosOpen]      = useState(true)
+  const [profileOpen,      setProfileOpen]        = useState(true)
+  const [controlsOpen,     setControlsOpen]       = useState(true)
 
   return (
-    <div className="flex h-full flex-col gap-3" data-testid="red-team-console">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Zap className="h-3.5 w-3.5 text-primary" />
-          <span className="text-xs font-bold uppercase tracking-wide text-foreground">Red Team Console</span>
+    <div className="flex h-full flex-col overflow-y-auto" data-testid="red-team-console">
+      {/* Panel header */}
+      <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500/10">
+          <Filter className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
         </div>
-        <Badge variant="outline" className="text-[0.6rem] border-primary/30 text-primary">
-          ADVERSARIAL
-        </Badge>
-      </div>
-
-      {/* Data volume indicator */}
-      <div className="flex items-center gap-2 rounded-md bg-primary/5 border border-primary/10 px-2.5 py-1.5">
-        <Database className="h-3 w-3 text-primary" />
-        <span className="text-[0.65rem] text-foreground">
-          Using <span className="font-semibold text-primary">{DATA_VOLUME.featuresPerDecision}</span> data points for this decision
+        <span className="text-[0.7rem] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-300">
+          Controls
         </span>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs">
-            <p className="text-[0.65rem]">Optimal range: {DATA_VOLUME.featuresRange.min}–{DATA_VOLUME.featuresRange.max} features per decision. 82 provides the best balance of accuracy, explainability, and low proxy risk.</p>
-          </TooltipContent>
-        </Tooltip>
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            onClick={onStartTour}
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+            title="Start Interactive Tour"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+          </button>
+          <DataImportDialog />
+        </div>
       </div>
 
-      {/* Applicant info */}
-      {scenario ? (
-        <div className="rounded-md border bg-secondary/40 p-2.5">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-            Applicant Profile
-          </p>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-            {[
-              ["Name", scenario.applicantName],
-              ["ID", scenario.applicantId],
-              ["Loan", scenario.loanType],
-              ["Amount", `$${scenario.loanAmount.toLocaleString()}`],
-              ["Income", `$${scenario.income.toLocaleString()}/yr`],
-              ["Credit", scenario.creditScore.toString()],
-              ["ZIP", scenario.zipCode],
-              ["Employment", `${scenario.employmentYears} yrs`],
-            ].map(([k, v]) => (
-              <div key={k}>
-                <span className="text-[0.6rem] text-muted-foreground">{k}: </span>
-                <span className="font-mono text-[0.65rem] font-medium text-foreground">{v}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-md border border-dashed bg-secondary/20 p-4 text-center">
-          <Shield className="mx-auto mb-1.5 h-6 w-6 text-muted-foreground/50" />
-          <p className="text-xs text-muted-foreground">
-            Select a Demo Scenario above to populate the console
-          </p>
-        </div>
-      )}
-
-      {/* Attack vector */}
-      {scenario && scenario.attackVector && (
-        <div className="rounded-md border border-orange-200 bg-orange-50 p-2">
-          <div className="flex items-center gap-1.5">
-            <AlertTriangle className="h-3 w-3 text-orange-600" />
-            <span className="text-[0.65rem] font-semibold text-orange-700">
-              Attack Vector: {scenario.attackVector}
+      {/* Scenarios accordion */}
+      <div className="border-b border-slate-100 dark:border-slate-800" data-testid="demo-scenarios-bar">
+        <button
+          onClick={() => setScenariosOpen(o => !o)}
+          className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Activity className="h-3 w-3 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Test Scenarios</span>
+            <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[0.6rem] font-bold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+              {Object.keys(DEMO_SCENARIOS).length}
             </span>
           </div>
-          {scenario.proxiesDetected > 0 && (
-            <p className="mt-0.5 text-[0.6rem] text-orange-600">
-              {scenario.proxiesDetected} proxy variable{scenario.proxiesDetected > 1 ? "s" : ""} injected
-            </p>
-          )}
-        </div>
-      )}
-
-      <Separator />
-
-      {/* Controls */}
-      <div className="space-y-2">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">
-          Detection Controls
-        </p>
-        <div className="space-y-2">
-          {[
-            { label: "Proxy Variable Scanning", value: enableProxyScan, set: setEnableProxyScan, testId: "toggle-proxy-scan" },
-            { label: "Do-Calculus Intervention", value: enableDoCalc, set: setEnableDoCalc, testId: "toggle-do-calc" },
-            { label: "Hash-Chain Ledger Signing", value: enableHashChain, set: setEnableHashChain, testId: "toggle-hash-chain" },
-          ].map(item => (
-            <div key={item.label} className="flex items-center justify-between">
-              <Label className="cursor-pointer text-xs text-foreground" htmlFor={item.testId}>
-                {item.label}
-              </Label>
-              <Switch
-                id={item.testId}
-                checked={item.value}
-                onCheckedChange={item.set}
-                data-testid={item.testId}
-                size="sm"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="mb-1 block text-[0.65rem] text-muted-foreground">Loan Type</Label>
-          <Select value={loanType} onValueChange={setLoanType}>
-            <SelectTrigger className="h-7 text-xs" data-testid="select-loan-type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mortgage">Mortgage</SelectItem>
-              <SelectItem value="auto">Auto Loan</SelectItem>
-              <SelectItem value="personal">Personal</SelectItem>
-              <SelectItem value="business">Business</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="mb-1 block text-[0.65rem] text-muted-foreground">Sensitivity</Label>
-          <Select value={modelSensitivity} onValueChange={setModelSensitivity}>
-            <SelectTrigger className="h-7 text-xs" data-testid="select-sensitivity">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="strict">Strict</SelectItem>
-              <SelectItem value="balanced">Balanced</SelectItem>
-              <SelectItem value="lenient">Lenient</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <Button
-        className="mt-auto w-full font-semibold"
-        onClick={onRun}
-        disabled={!scenario || running}
-        data-testid="execute-adversarial-test"
-        size="default"
-      >
-        {running ? (
-          <>
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            Processing…
-          </>
-        ) : (
-          <>
-            <Play className="mr-2 h-4 w-4" />
-            Execute Adversarial Test
-          </>
+          <ChevronDown className={cn("h-3 w-3 text-slate-400 transition-transform", scenariosOpen && "rotate-180")} />
+        </button>
+        {scenariosOpen && (
+          <div className="px-3 pb-3 space-y-1.5">
+            {(Object.values(DEMO_SCENARIOS) as ScenarioConfig[]).map(s => {
+              const isActive = activeScenario?.id === s.id
+              const styleMap = {
+                good_faith: {
+                  base: "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/30",
+                  active: "border-emerald-500 bg-emerald-100 dark:bg-emerald-900/50",
+                  icon: <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />,
+                  accent: "text-emerald-700 dark:text-emerald-400",
+                },
+                mild_proxy: {
+                  base: "border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/30",
+                  active: "border-amber-500 bg-amber-100 dark:bg-amber-900/50",
+                  icon: <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />,
+                  accent: "text-amber-700 dark:text-amber-400",
+                },
+                bad_faith: {
+                  base: "border-rose-200 bg-rose-50/60 dark:border-rose-900 dark:bg-rose-950/30",
+                  active: "border-rose-500 bg-rose-100 dark:bg-rose-900/50",
+                  icon: <Shield className="h-3 w-3 text-rose-600 dark:text-rose-400" />,
+                  accent: "text-rose-700 dark:text-rose-400",
+                },
+              }[s.id]
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => onScenarioSelect(s.id)}
+                  data-testid={`scenario-${s.id}`}
+                  className={cn(
+                    "w-full rounded-lg border px-3 py-2 text-left transition-all duration-150",
+                    isActive ? styleMap.active : styleMap.base,
+                    "hover:shadow-sm"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {styleMap.icon}
+                    <span className={cn("text-xs font-semibold", styleMap.accent)}>{s.label}</span>
+                    {isActive && <span className="ml-auto flex h-1.5 w-1.5 rounded-full bg-current opacity-70 animate-pulse" />}
+                  </div>
+                  <p className="mt-0.5 pl-5 text-[0.6rem] text-slate-500 dark:text-slate-400 line-clamp-1">{s.description.split("—")[0].replace("DEMO: ", "")}</p>
+                </button>
+              )
+            })}
+            {testResult && (
+              <div className="mt-1 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-slate-700 dark:bg-slate-800">
+                <span className="text-[0.65rem] text-slate-500 dark:text-slate-400">Last result:</span>
+                <div className="flex items-center gap-1.5">
+                  <DecisionBadge decision={testResult.outcome} />
+                  <span className="font-mono text-[0.65rem] font-bold text-indigo-600 dark:text-indigo-400">
+                    AIR: {testResult.fairness.toFixed(2)} · SPD: {Math.max(0, 1 - testResult.fairness).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
-      </Button>
+      </div>
+
+      {/* Applicant profile accordion */}
+      <div className="border-b border-slate-100 dark:border-slate-800">
+        <button
+          onClick={() => setProfileOpen(o => !o)}
+          className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Hash className="h-3 w-3 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Applicant Profile</span>
+          </div>
+          <ChevronDown className={cn("h-3 w-3 text-slate-400 transition-transform", profileOpen && "rotate-180")} />
+        </button>
+        {profileOpen && (
+          <div className="px-3 pb-3">
+            {scenario ? (
+              <div className="space-y-1">
+                {/* Attack vector badge */}
+                {scenario.attackVector && (
+                  <div className="mb-2 flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 dark:border-orange-900 dark:bg-orange-950/40">
+                    <AlertTriangle className="h-3 w-3 text-orange-600 dark:text-orange-400 shrink-0" />
+                    <span className="text-[0.62rem] font-semibold text-orange-700 dark:text-orange-400 line-clamp-1">
+                      {scenario.attackVector}
+                    </span>
+                    {scenario.proxiesDetected > 0 && (
+                      <span className="ml-auto shrink-0 rounded-full bg-orange-600 px-1.5 py-0.5 text-[0.55rem] font-bold text-white">
+                        {scenario.proxiesDetected} proxy
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
+                  {[
+                    ["Name",       scenario.applicantName],
+                    ["ID",         scenario.applicantId],
+                    ["Loan Type",  scenario.loanType],
+                    ["Amount",     `$${scenario.loanAmount.toLocaleString()}`],
+                    ["Income",     `$${scenario.income.toLocaleString()}/yr`],
+                    ["Credit",     scenario.creditScore.toString()],
+                    ["ZIP",        scenario.zipCode],
+                    ["Employment", `${scenario.employmentYears} yrs`],
+                  ].map(([k, v]) => (
+                    <div key={k} className="rounded-md bg-slate-50 px-2 py-1 dark:bg-slate-800/60">
+                      <p className="text-[0.55rem] text-slate-400 uppercase tracking-wide">{k}</p>
+                      <p className="font-mono text-[0.65rem] font-semibold text-slate-700 dark:text-slate-200 truncate">{v}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/60 py-6 dark:border-slate-700 dark:bg-slate-800/30">
+                <Shield className="h-6 w-6 text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="text-[0.65rem] text-slate-400 text-center">Select a scenario above</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Detection controls accordion */}
+      <div className="border-b border-slate-100 dark:border-slate-800">
+        <button
+          onClick={() => setControlsOpen(o => !o)}
+          className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Zap className="h-3 w-3 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Detection Controls</span>
+          </div>
+          <ChevronDown className={cn("h-3 w-3 text-slate-400 transition-transform", controlsOpen && "rotate-180")} />
+        </button>
+        {controlsOpen && (
+          <div className="px-3 pb-3 space-y-2.5">
+            {/* Data volume indicator */}
+            <div className="flex items-center gap-2 rounded-lg bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 dark:bg-indigo-950/30 dark:border-indigo-900/50">
+              <Database className="h-3 w-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
+              <span className="text-[0.62rem] text-slate-600 dark:text-slate-400">
+                Using <span className="font-bold text-indigo-600 dark:text-indigo-400">{DATA_VOLUME.featuresPerDecision}</span> data points
+              </span>
+            </div>
+            {/* Toggles */}
+            <div className="space-y-2">
+              {[
+                { 
+                  label: "Proxy Variable Scanning", 
+                  value: enableProxyScan,  
+                  set: (val: boolean) => {
+                    setEnableProxyScan(val)
+                    if (!val) {
+                      toast.warning("Warning: Real-time proxy variable scanning disabled. This immediately elevates disparate impact risk.")
+                    }
+                  },  
+                  testId: "toggle-proxy-scan" 
+                },
+                { 
+                  label: "Do-Calculus Intervention", 
+                  value: enableDoCalc,    
+                  set: (val: boolean) => {
+                    setEnableDoCalc(val)
+                    if (!val) {
+                      toast.warning("Warning: Causal path intervention disabled. Proxies will act directly on decisioning models.")
+                    }
+                  },     
+                  testId: "toggle-do-calc" 
+                },
+                { 
+                  label: "Hash-Chain Ledger Signing", 
+                  value: enableHashChain, 
+                  set: (val: boolean) => {
+                    setEnableHashChain(val)
+                    if (!val) {
+                      toast.warning("Warning: Ledger signing disabled. Decision events will not be cryptographically recorded.")
+                    }
+                  },  
+                  testId: "toggle-hash-chain" 
+                },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between">
+                  <Label className="cursor-pointer text-[0.7rem] text-slate-600 dark:text-slate-300" htmlFor={item.testId}>
+                    {item.label}
+                  </Label>
+                  <Switch
+                    id={item.testId}
+                    checked={item.value}
+                    onCheckedChange={item.set}
+                    data-testid={item.testId}
+                    size="sm"
+                  />
+                </div>
+              ))}
+            </div>
+            {/* Selectors */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="mb-1 block text-[0.6rem] text-slate-400 tracking-wide">Loan Type</Label>
+                <Select value={loanType} onValueChange={setLoanType}>
+                  <SelectTrigger className="h-7 text-xs" data-testid="select-loan-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mortgage">Mortgage</SelectItem>
+                    <SelectItem value="auto">Auto Loan</SelectItem>
+                    <SelectItem value="personal">Personal</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-1 block text-[0.6rem] text-slate-400 tracking-wide">Sensitivity</Label>
+                <Select value={modelSensitivity} onValueChange={setModelSensitivity}>
+                  <SelectTrigger className="h-7 text-xs" data-testid="select-sensitivity">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="strict">Strict</SelectItem>
+                    <SelectItem value="balanced">Balanced</SelectItem>
+                    <SelectItem value="lenient">Lenient</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Execute button */}
+      <div className="mt-auto p-3">
+        <Button
+          className="w-full gap-2 font-bold text-xs h-9 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 shadow-md shadow-indigo-500/20 transition-all duration-200"
+          onClick={onRun}
+          disabled={!scenario || running}
+          data-testid="execute-adversarial-test"
+        >
+          {running ? (
+            <><RefreshCw className="h-3.5 w-3.5 animate-spin" />Processing...</>
+          ) : (
+            <><Play className="h-3.5 w-3.5" />Execute Adversarial Test</>
+          )}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Evidence Feed (right panel) ──────────────────────────────────────────────
+function EvidenceFeed({ entries }: { entries: LedgerEntry[] }) {
+  return (
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
+        {entries.map((entry, i) => (
+          <div
+            key={entry.id}
+            className={cn(
+              "rounded-xl border bg-white p-2.5 transition-all dark:bg-slate-900/60 dark:border-slate-800",
+              i === 0 ? "animate-ledger-in border-indigo-100 shadow-sm dark:border-indigo-900/40" : "border-slate-100"
+            )}
+            data-testid={`ledger-entry-${entry.id}`}
+          >
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div className="flex flex-wrap items-center gap-1">
+                <EventTypeBadge type={entry.eventType} />
+                {entry.decision && <DecisionBadge decision={entry.decision} />}
+                {entry.severity && <SeverityBadge severity={entry.severity} />}
+              </div>
+            </div>
+            <p className="text-[0.7rem] font-semibold text-slate-800 dark:text-slate-200 truncate">{entry.applicantName}</p>
+            <p className="text-[0.62rem] text-slate-500 dark:text-slate-400 truncate mt-0.5">{entry.message}</p>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="font-mono text-[0.58rem] text-slate-400 dark:text-slate-600 truncate max-w-[100px]">
+                #{entry.hash.slice(0, 14)}...
+              </span>
+              <div className="flex items-center gap-1">
+                <div className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  entry.fairnessScore >= 0.8 ? "bg-emerald-500" : "bg-rose-500"
+                )} />
+                <span className="font-mono text-[0.62rem] font-bold text-slate-600 dark:text-slate-300">
+                  AIR: {entry.fairnessScore.toFixed(2)} · SPD: {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Applicant Decision Table ─────────────────────────────────────────────────
+type TabFilter = "all" | "approved" | "escalated" | "under_review"
+
+function ApplicantTable({ activeScenario }: { activeScenario: ScenarioConfig | null }) {
+  const [tab, setTab] = useState<TabFilter>("all")
+  const filtered = RECENT_DECISIONS.filter(d => tab === "all" || d.decision === tab)
+  const counts = {
+    all:          RECENT_DECISIONS.length,
+    approved:     RECENT_DECISIONS.filter(d => d.decision === "approved").length,
+    escalated:    RECENT_DECISIONS.filter(d => d.decision === "escalated").length,
+    under_review: RECENT_DECISIONS.filter(d => d.decision === "under_review").length,
+  }
+  const tabs: { id: TabFilter; label: string; count: number }[] = [
+    { id: "all",          label: "All applications", count: counts.all },
+    { id: "approved",     label: "Approved",          count: counts.approved },
+    { id: "escalated",    label: "Escalated",         count: counts.escalated },
+    { id: "under_review", label: "Under Review",      count: counts.under_review },
+  ]
+  return (
+    <div className="flex flex-col h-full">
+      {/* Tabs */}
+      <div className="flex items-center gap-0.5 border-b border-slate-100 dark:border-slate-800 px-1">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-2 text-[0.65rem] font-semibold transition-all border-b-2 -mb-px",
+              tab === t.id
+                ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            )}
+          >
+            {t.label}
+            <span className={cn(
+              "rounded-full px-1.5 py-0.5 text-[0.55rem] font-bold",
+              tab === t.id
+                ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300"
+                : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+            )}>
+              {t.count}
+            </span>
+          </button>
+        ))}
+      </div>
+      {/* Column headers */}
+      <div className="grid grid-cols-[32px_1fr_75px_68px_38px_38px_44px] gap-2 px-3 py-1.5 text-[0.58rem] font-bold uppercase tracking-widest text-slate-400">
+        <span />
+        <span>Applicant</span>
+        <span>Loan</span>
+        <span>Decision</span>
+        <span className="text-right">AIR</span>
+        <span className="text-right">SPD</span>
+        <span className="text-right">Trend</span>
+      </div>
+      {/* Rows */}
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/60">
+        {filtered.map((d, i) => {
+          const isHighlighted = activeScenario?.applicantId?.includes(d.id.split("-")[1] ?? "")
+          return (
+            <div
+              key={d.id}
+              className={cn(
+                "grid grid-cols-[32px_1fr_75px_68px_38px_38px_44px] items-center gap-2 px-3 py-2 transition-colors",
+                "hover:bg-slate-50 dark:hover:bg-slate-800/30",
+                isHighlighted && "bg-indigo-50/60 dark:bg-indigo-950/20"
+              )}
+              style={{ animationDelay: `${i * 50}ms` }}
+            >
+              {/* Avatar initial */}
+              <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold text-white", d.color)}>
+                {d.initials}
+              </div>
+              {/* Name + ID */}
+              <div className="min-w-0">
+                <p className="text-[0.7rem] font-semibold text-slate-800 dark:text-slate-200 truncate">{d.name}</p>
+                <p className="text-[0.58rem] font-mono text-slate-400 dark:text-slate-500">{d.id} · {d.time}</p>
+              </div>
+              {/* Loan type + amount */}
+              <div>
+                <p className="text-[0.65rem] font-semibold text-slate-700 dark:text-slate-300">{d.loan}</p>
+                <p className="text-[0.58rem] text-slate-400">${(d.amount / 1000).toFixed(0)}k</p>
+              </div>
+              {/* Decision badge */}
+              <div><DecisionBadge decision={d.decision} /></div>
+              {/* AIR */}
+              <div className="text-right">
+                <span className={cn(
+                  "font-mono text-[0.65rem] font-bold",
+                  d.fairness >= 0.8 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                )}>
+                  {d.fairness.toFixed(2)}
+                </span>
+              </div>
+              {/* SPD */}
+              <div className="text-right">
+                <span className={cn(
+                  "font-mono text-[0.65rem] font-bold",
+                  d.fairness >= 0.8 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                )}>
+                  {Math.max(0, 1 - d.fairness).toFixed(2)}
+                </span>
+              </div>
+              {/* Sparkline */}
+              <div className="flex justify-end">
+                <Sparkline
+                  data={d.trend}
+                  color={
+                    d.decision === "approved"     ? "#10b981" :
+                    d.decision === "escalated"    ? "#f97316" :
+                    d.decision === "under_review" ? "#f59e0b" : "#6366f1"
+                  }
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Right Insights Panel ─────────────────────────────────────────────────────
+function InsightsPanel({ entries, severedEdges, activeScenario, running }: {
+  entries: LedgerEntry[]
+  severedEdges: string[]
+  activeScenario: ScenarioConfig | null
+  running: boolean
+}) {
+  const avgFairness = entries.length
+    ? entries.reduce((s, e) => s + e.fairnessScore, 0) / entries.length
+    : DAILY_STATS.fairnessScore
+
+  return (
+    <div className="flex h-full flex-col overflow-y-auto gap-3 py-1">
+      {/* Insights header */}
+      <div className="px-1">
+        <p className="text-[0.6rem] font-bold tracking-widest text-slate-400 mb-1">Insights</p>
+        <h2 className="text-base font-black text-slate-900 dark:text-slate-100 leading-tight">
+          {activeScenario ? activeScenario.label : "All Audits"}
+        </h2>
+      </div>
+
+      {/* KPI tiles row */}
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { label: "Models Active",    value: DAILY_STATS.modelsInProduction, icon: Boxes,    accent: false },
+          { label: "24h Audits",       value: DAILY_STATS.auditsLast24h,      icon: BarChart2, accent: false },
+          { label: "Features",         value: DATA_VOLUME.featuresPerDecision, icon: Database, accent: true },
+          { label: "Open Alerts",      value: DAILY_STATS.openIncidents,       icon: AlertTriangle, accent: DAILY_STATS.openIncidents > 0 },
+        ].map(({ label, value, icon: Icon, accent }) => (
+          <div key={label} className={cn(
+            "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
+            accent
+              ? "border-indigo-100 bg-indigo-50 dark:border-indigo-900/50 dark:bg-indigo-950/30"
+              : "border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900/60"
+          )}>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">{label}</p>
+              <Icon className={cn("h-3 w-3", accent ? "text-indigo-500" : "text-slate-400")} />
+            </div>
+            <p className={cn("text-xl font-black tabular-nums", accent ? "text-indigo-700 dark:text-indigo-300" : "text-slate-800 dark:text-slate-200")}>
+              {value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Fairness score summary */}
+      <div className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/60">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-4">
+            <div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[0.58rem] font-bold text-slate-400 cursor-help border-b border-dashed border-slate-300 dark:border-slate-750">
+                    AIR
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Adverse Impact Ratio: Selection rate of protected class / selection rate of control class. CFPB minimum is 0.80.
+                </TooltipContent>
+              </Tooltip>
+              <p className="text-sm font-black text-slate-700 dark:text-slate-300 font-mono mt-0.5">
+                {avgFairness.toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[0.58rem] font-bold text-slate-400 cursor-help border-b border-dashed border-slate-300 dark:border-slate-750">
+                    SPD
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Statistical Parity Difference: Difference in selection rates between control and protected classes. Target is &le; 0.10.
+                </TooltipContent>
+              </Tooltip>
+              <p className="text-sm font-black text-slate-700 dark:text-slate-300 font-mono mt-0.5">
+                {Math.max(0, 1 - avgFairness).toFixed(2)}
+              </p>
+            </div>
+          </div>
+          <span className={cn(
+            "font-mono text-[0.6rem] font-black rounded-md px-1.5 py-0.5 border shrink-0",
+            avgFairness >= 0.8
+              ? "bg-emerald-50 text-emerald-700 border-emerald-250 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50"
+              : "bg-rose-50 text-rose-700 border-rose-250 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/50"
+          )}>
+            {avgFairness >= 0.8 ? "CFPB PASS" : "CFPB FAIL"}
+          </span>
+        </div>
+        <Progress value={avgFairness * 100} className="h-1.5 mb-1.5" />
+        <div className="flex justify-between text-[0.58rem] text-slate-400">
+          <span>Floor: 0.80</span>
+          <span>{severedEdges.length > 0 ? `${severedEdges.length} edge${severedEdges.length > 1 ? "s" : ""} severed` : "No interventions"}</span>
+        </div>
+      </div>
+
+      {/* Circular compliance gauges */}
+      <div className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/60">
+        <p className="text-[0.6rem] font-bold tracking-widest text-slate-400 mb-3">Compliance Metrics</p>
+        <div className="flex justify-around items-start">
+          <CircularGauge value={90} label="Consistency"  sub="Highly consistent" color="#6366f1" />
+          <CircularGauge value={90} label="Regularity"   sub="Regular audits"    color="#0891b2" />
+          <CircularGauge value={80} label="Robustness"   sub="Adversarial tests"  color="#10b981" />
+        </div>
+      </div>
+
+      {/* Evidence feed */}
+      <div className="flex-1 overflow-hidden rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/60">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <div className={cn("h-1.5 w-1.5 rounded-full", running ? "bg-indigo-500 animate-pulse" : "bg-emerald-500 animate-pulse")} />
+            <span className="text-[0.6rem] font-bold tracking-widest text-slate-500 dark:text-slate-400">Evidence Ledger</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition-colors">
+                  <Download className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Export ledger</TooltipContent>
+            </Tooltip>
+            <Badge variant="secondary" className="text-[0.58rem] h-4 px-1.5">
+              {entries.length} events
+            </Badge>
+          </div>
+        </div>
+        <EvidenceFeed entries={entries} />
+      </div>
     </div>
   )
 }
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export function DashboardPage() {
-  const [activeScenario, setActiveScenario] = useState<ScenarioConfig | null>(null)
-  const [running, setRunning] = useState(false)
-  const [severedEdges, setSeveredEdges] = useState<string[]>([])
-  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([])
-  const [testResult, setTestResult] = useState<{ outcome: string; fairness: number } | null>(null)
+  const [activeScenario, setActiveScenario]   = useState<ScenarioConfig | null>(null)
+  const [running,        setRunning]           = useState(false)
+  const [severedEdges,   setSeveredEdges]      = useState<string[]>([])
+  const [ledgerEntries,  setLedgerEntries]     = useState<LedgerEntry[]>([])
+  const [testResult,     setTestResult]        = useState<{ outcome: string; fairness: number } | null>(null)
+  const [graphVisible,   setGraphVisible]      = useState(false)
+  const [showTour,       setShowTour]          = useState(false)
+  const [tourStep,       setTourStep]          = useState(0)
 
-  // Load ledger entries on mount
   useEffect(() => {
     setLedgerEntries(ledgerService.getRecent(6))
   }, [])
@@ -558,11 +997,9 @@ export function DashboardPage() {
     setSeveredEdges([])
     setTestResult(null)
 
-    // Step 1: scanning
     await new Promise(r => setTimeout(r, 600))
-    toast.info(`Scanning application for proxy variables…`, { duration: 2000 })
+    toast.info("Scanning application for proxy variables...", { duration: 2000 })
 
-    // Step 2: proxy detection
     await new Promise(r => setTimeout(r, 800))
     if (activeScenario.proxiesDetected > 0) {
       toast.warning(`${activeScenario.proxiesDetected} proxy variable(s) detected!`, { duration: 3000 })
@@ -575,14 +1012,12 @@ export function DashboardPage() {
       toast.success("No proxy variables detected — clean application", { duration: 2000 })
     }
 
-    // Step 3: execute scenario and persist results
     await new Promise(r => setTimeout(r, 700))
     try {
       const result = await scenarioService.runScenario(activeScenario.id)
       setLedgerEntries(ledgerService.getRecent(6))
       setTestResult({ outcome: result.outcome, fairness: result.fairnessScore })
 
-      // Step 4: result toast
       if (result.outcome === "approved") {
         toast.success(`Application APPROVED — Fairness score: ${(result.fairnessScore * 100).toFixed(0)}%`, { duration: 4000 })
       } else if (result.outcome === "escalated") {
@@ -606,250 +1041,270 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-0 overflow-hidden bg-slate-50/50">
-      {/* Professional Header */}
-      <div className="border-b bg-white px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Shield className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold text-slate-900">AVARENT Sentinel</h1>
-              <p className="text-[0.7rem] text-slate-500">Fair Lending Compliance Platform</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[0.65rem] border-emerald-200 bg-emerald-50 text-emerald-700">
-              System Operational
-            </Badge>
-            <span className="text-[0.65rem] text-slate-400">v2.4.1</span>
-          </div>
-        </div>
+    <div className="flex flex-col lg:flex-row h-auto lg:h-full overflow-y-auto lg:overflow-hidden bg-slate-50/70 dark:bg-slate-950">
+
+      {/* ── Left Column: Controls ─────────────────────────────────────── */}
+      <div className="flex w-full lg:w-72 shrink-0 flex-col border-b lg:border-b-0 lg:border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <ComplianceControlsPanel
+          scenario={activeScenario}
+          onRun={runScenario}
+          running={running}
+          activeScenario={activeScenario}
+          onScenarioSelect={handleScenarioSelect}
+          testResult={testResult}
+          onStartTour={() => {
+            setTourStep(0)
+            setShowTour(true)
+          }}
+        />
       </div>
 
-      {/* Stats row - Professional KPIs */}
-      <div className="grid grid-cols-5 gap-3 border-b border-slate-200 bg-white px-6 py-4">
-        <StatCard label="Active Models" value={DAILY_STATS.modelsInProduction} icon={Boxes} trend="neutral" />
-        <StatCard label="24h Audits" value={DAILY_STATS.auditsLast24h} icon={Clock} trend="up" />
-        <StatCard label="Features / Decision" value={DATA_VOLUME.featuresPerDecision} sub="Optimal range" icon={Database} accent trend="up" />
-        <StatCard label="Fairness Score" value={`${(DAILY_STATS.fairnessScore * 100).toFixed(1)}%`} icon={Scale} trend="up" />
-        <StatCard label="Active Alerts" value={DAILY_STATS.openIncidents} icon={AlertTriangle} trend={DAILY_STATS.openIncidents > 0 ? "down" : "neutral"} />
-      </div>
+      {/* ── Center Column: Analytics ──────────────────────────────────── */}
+      <div className="flex flex-1 flex-col overflow-visible lg:overflow-hidden">
+        {/* ── Fairness wave + mini-stats row ── */}
+        <div className="border-b border-slate-200 bg-white px-5 py-3 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-stretch gap-4">
+            {/* Metric tiles */}
+            <div className="flex gap-3 shrink-0">
+              {[
+                {
+                  label: "Scenarios",
+                  value: Object.keys(DEMO_SCENARIOS).length,
+                  icon: <Activity className="h-3 w-3" />,
+                  trend: <TrendingUp className="h-2.5 w-2.5 text-emerald-500" />,
+                  accent: "#6366f1",
+                },
+                {
+                  label: "Interventions",
+                  value: severedEdges.length,
+                  icon: <Zap className="h-3 w-3" />,
+                  trend: severedEdges.length > 0
+                    ? <TrendingDown className="h-2.5 w-2.5 text-rose-500" />
+                    : <Minus className="h-2.5 w-2.5 text-slate-400" />,
+                  accent: severedEdges.length > 0 ? "#ef4444" : "#6366f1",
+                },
+                {
+                  label: "AIR",
+                  value: DAILY_STATS.fairnessScore.toFixed(2),
+                  icon: <Scale className="h-3 w-3" />,
+                  trend: <TrendingUp className="h-2.5 w-2.5 text-emerald-500" />,
+                  accent: "#10b981",
+                },
+                {
+                  label: "SPD",
+                  value: Math.max(0, 1 - DAILY_STATS.fairnessScore).toFixed(2),
+                  icon: <Scale className="h-3 w-3" />,
+                  trend: <TrendingDown className="h-2.5 w-2.5 text-emerald-500" />,
+                  accent: "#0ea5e9",
+                },
+              ].map(({ label, value, icon, trend, accent }) => (
+                <div key={label} className="flex flex-col justify-between rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-2.5 dark:border-slate-800 dark:bg-slate-800/40 min-w-[90px]">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-slate-400" style={{ color: accent + "99" }}>{icon}</span>
+                    {trend}
+                  </div>
+                  <p className="text-xl font-black tabular-nums text-slate-800 dark:text-slate-100" style={{ color: accent }}>{value}</p>
+                  <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">{label}</p>
+                </div>
+              ))}
+            </div>
 
-      {/* Demo Scenarios Bar - Professional */}
-      <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-6 py-3 shadow-sm" data-testid="demo-scenarios-bar">
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10">
-            <Activity className="h-3 w-3 text-primary" />
-          </div>
-          <div>
-            <span className="text-xs font-semibold text-slate-700">Test Scenarios</span>
-            <p className="text-[0.6rem] text-slate-400">Compliance validation suite</p>
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="h-3 w-3 text-slate-400 cursor-help hover:text-slate-600" />
-            </TooltipTrigger>
-            <TooltipContent className="max-w-sm">
-              <p className="font-medium text-sm mb-1">Interactive Testing</p>
-              <p className="text-xs text-slate-600">Validate fair lending compliance with predefined scenarios</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        <Separator orientation="vertical" className="h-8 bg-slate-200" />
-        <div className="flex items-center gap-2">
-          <ApiKeyDialog />
-          <DataImportDialog />
-        </div>
-        <Separator orientation="vertical" className="h-8 bg-slate-200" />
-        <div className="flex items-center gap-2 flex-wrap">
-          {(Object.values(DEMO_SCENARIOS) as ScenarioConfig[]).map(s => {
-            const isActive = activeScenario?.id === s.id
-            const colors = {
-              good_faith: isActive ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700" : "border-emerald-300 text-emerald-700 hover:bg-emerald-50",
-              mild_proxy: isActive ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700" : "border-amber-300 text-amber-700 hover:bg-amber-50",
-              bad_faith: isActive ? "bg-destructive text-white border-destructive hover:bg-destructive/90" : "border-destructive/30 text-destructive hover:bg-destructive/5",
-            }[s.id]
-            return (
-              <Tooltip key={s.id}>
-                <TooltipTrigger asChild>
+            {/* Fairness wave chart */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-[0.6rem] font-bold tracking-widest text-slate-400">Fairness Trend</p>
+                  <span className="text-[0.6rem] text-slate-400">NOV 2025 – MAY 2026</span>
+                  <div className="flex items-center gap-1 ml-1">
+                    <div className="h-0.5 w-3 rounded bg-indigo-500" />
+                    <span className="text-[0.58rem] text-slate-400">Score</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="h-px w-3 border-t border-dashed border-slate-400" />
+                    <span className="text-[0.58rem] text-slate-400">CFPB Floor</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {running && (
+                    <span className="flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[0.6rem] font-bold text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900">
+                      <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+                      Live Auditing
+                    </span>
+                  )}
+                  {severedEdges.length > 0 && (
+                    <Badge variant="outline" className="border-rose-200 text-rose-600 dark:border-rose-900 dark:text-rose-400 text-[0.58rem] h-5 px-1.5">
+                      {severedEdges.length} severed
+                    </Badge>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => { setSeveredEdges([]); setActiveScenario(null); setTestResult(null) }}
+                        className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Reset</TooltipContent>
+                  </Tooltip>
                   <button
-                    onClick={() => handleScenarioSelect(s.id)}
-                    data-testid={`scenario-${s.id}`}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold transition-all duration-150",
-                      colors
-                    )}
+                    onClick={() => setGraphVisible(v => !v)}
+                    className="rounded border border-slate-200 px-2 py-0.5 text-[0.6rem] font-semibold text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 transition-colors"
                   >
-                    {s.id === "good_faith" && <CheckCircle className="h-3.5 w-3.5" />}
-                    {s.id === "mild_proxy" && <AlertTriangle className="h-3.5 w-3.5" />}
-                    {s.id === "bad_faith" && <Shield className="h-3.5 w-3.5" />}
-                    {s.label}
+                    {graphVisible ? "Hide Graph" : "Show Graph"}
                   </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="font-semibold">{s.label}</p>
-                  <p className="text-xs opacity-80">{s.description}</p>
-                </TooltipContent>
-              </Tooltip>
-            )
-          })}
-        </div>
-        {testResult && (
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-            <span className="text-xs text-muted-foreground">Last result:</span>
-            <DecisionBadge decision={testResult.outcome} />
-            <span className="font-mono text-xs font-medium text-primary">
-              {(testResult.fairness * 100).toFixed(0)}% fair
-            </span>
+                </div>
+              </div>
+              <div className="h-[80px]">
+                <FairnessWaveChart running={running} />
+              </div>
+            </div>
           </div>
-        )}
-      </div>
-
-      {/* 3-column main layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left: Red Team Console */}
-        <div className="flex w-72 shrink-0 flex-col overflow-y-auto border-r bg-card px-4 py-4">
-          <RedTeamConsole
-            scenario={activeScenario}
-            onRun={runScenario}
-            running={running}
-          />
         </div>
 
-        {/* Center: Causal Graph */}
-        <div className="flex flex-1 flex-col overflow-hidden px-4 py-4">
-          <div className="mb-2 flex items-center justify-between">
+        {/* ── Causal Graph Section ── */}
+        <div className="border-b border-slate-200 px-5 py-3 dark:border-slate-800 transition-all">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Hash className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-bold uppercase tracking-wide text-foreground">
-                Causal Graph — {DATA_VOLUME.featuresPerDecision} features analyzed
+              <Hash className="h-3 w-3 text-indigo-500" />
+              <span className="text-[0.65rem] font-bold text-slate-500 dark:text-slate-400">
+                {graphVisible 
+                  ? `Causal Graph — ${DATA_VOLUME.featuresPerDecision} features` 
+                  : "Feature Dependency Graph — 82 variables mapped"}
               </span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="border-primary/30 text-primary text-[0.6rem] cursor-help">
-                    {DATA_VOLUME.featuresRange.min}–{DATA_VOLUME.featuresRange.max} range
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="text-[0.65rem]">{DATA_VOLUME.featuresPerDecision} features is the optimal sweet spot—enough for high accuracy while maintaining explainability and minimizing proxy variable risk.</p>
-                </TooltipContent>
-              </Tooltip>
-              {running && (
-                <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold text-primary">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                  LIVE
-                </span>
+              {graphVisible && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="border-indigo-200 text-indigo-600 dark:border-indigo-900 dark:text-indigo-400 text-[0.58rem] cursor-help">
+                      {DATA_VOLUME.featuresRange.min}–{DATA_VOLUME.featuresRange.max} range
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-[0.65rem]">
+                      {DATA_VOLUME.featuresPerDecision} features is the optimal sweet spot—enough for high accuracy while maintaining explainability and minimizing proxy risk.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {severedEdges.length > 0 && (
-                <Badge variant="outline" className="border-destructive/30 text-destructive text-[0.65rem]">
-                  {severedEdges.length} edge{severedEdges.length > 1 ? "s" : ""} severed
-                </Badge>
-              )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => { setSeveredEdges([]); setActiveScenario(null); setTestResult(null) }}
-                    className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Reset graph</TooltipContent>
-              </Tooltip>
-            </div>
+            <button
+              onClick={() => setGraphVisible(v => !v)}
+              className="text-[0.65rem] font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors flex items-center gap-1"
+            >
+              {graphVisible ? "Hide Feature Graph" : "Show Feature Graph"}
+            </button>
           </div>
-
-          {/* Training data info */}
-          <div className="mb-2 flex items-center gap-2 text-[0.6rem] text-muted-foreground">
-            <Database className="h-3 w-3" />
-            <span>Trained on {(DATA_VOLUME.trainingRecords / 1000000).toFixed(1)}M historical records</span>
-            <span className="text-border">|</span>
-            <span>Monthly batch: {(DATA_VOLUME.monthlyRetraining / 1000).toFixed(0)}K new applications</span>
-          </div>
-
-          {activeScenario ? (
-            <div className="flex-1 overflow-hidden rounded-lg border shadow-sm">
+          {graphVisible && (
+            <div className="mt-3 overflow-hidden" style={{ height: "230px" }}>
               <CausalGraph severedEdges={severedEdges} running={running} />
             </div>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed bg-secondary/20">
-              <Shield className="mb-3 h-10 w-10 text-muted-foreground/30" />
-              <p className="text-sm font-medium text-muted-foreground">Select a Demo Scenario to activate the causal graph</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">The graph will show real-time proxy detection and causal interventions</p>
-              <div className="mt-4 flex gap-2">
-                {(Object.values(DEMO_SCENARIOS) as ScenarioConfig[]).map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => handleScenarioSelect(s.id)}
-                    className="rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Intervention status bar */}
-          {activeScenario && (
-            <div className="mt-2 rounded-md border bg-card p-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Fairness Score
-                </span>
-                <span className={cn(
-                  "font-mono text-xs font-bold",
-                  activeScenario.fairnessScore >= 0.9 ? "text-emerald-600" :
-                  activeScenario.fairnessScore >= 0.75 ? "text-amber-600" : "text-destructive"
-                )}>
-                  {(activeScenario.fairnessScore * 100).toFixed(1)}%
-                </span>
-              </div>
-              <Progress
-                value={activeScenario.fairnessScore * 100}
-                className="mt-1.5 h-1.5"
-              />
-              <div className="mt-1.5 flex items-center justify-between text-[0.6rem] text-muted-foreground">
-                <span>CFPB 4/5ths rule: {activeScenario.fairnessScore >= 0.8 ? "Pass" : "Fail"}</span>
-                <span>Scenario: {activeScenario.label}</span>
-              </div>
-            </div>
           )}
         </div>
 
-        {/* Right: Evidence Feed */}
-        <div className="flex w-72 shrink-0 flex-col overflow-hidden border-l bg-card px-4 py-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-bold uppercase tracking-wide text-foreground">
-                Evidence Ledger
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-                    <Download className="h-3 w-3" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Export ledger</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>Hash-chained immutable ledger</TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-          <EvidenceFeed entries={ledgerEntries} />
+        {/* ── Applicant Decisions Table ── */}
+        <div className="flex-1 overflow-hidden bg-white dark:bg-slate-900">
+          <ApplicantTable activeScenario={activeScenario} />
         </div>
       </div>
+
+      {/* ── Right Column: Insights ────────────────────────────────────── */}
+      <div className="flex w-full lg:w-72 shrink-0 flex-col border-t lg:border-t-0 lg:border-l border-slate-200 bg-slate-50/80 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/50">
+        <InsightsPanel
+          entries={ledgerEntries}
+          severedEdges={severedEdges}
+          activeScenario={activeScenario}
+          running={running}
+        />
+      </div>
+      
+      {/* Onboarding Tour Overlay */}
+      {showTour && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
+          <div className="w-full max-w-sm rounded-xl border border-slate-100 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/95 animate-fade-slide-up">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Meridian Tour</span>
+              </div>
+              <span className="text-[0.65rem] font-bold text-slate-400">Step {tourStep + 1} of 4</span>
+            </div>
+            
+            {tourStep === 0 && (
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Welcome to AVARENT Meridian</h3>
+                <p className="mt-2 text-[0.7rem] leading-relaxed text-slate-500 dark:text-slate-400">
+                  AVARENT Meridian is a high-density, authoritative console designed for real-time model risk management and fair lending auditing. Let's take a quick 4-step tour to get familiar with the 3-column operational layout.
+                </p>
+              </div>
+            )}
+
+            {tourStep === 1 && (
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">1. Red-Team & Simulation Controls</h3>
+                <p className="mt-2 text-[0.7rem] leading-relaxed text-slate-500 dark:text-slate-400">
+                  The Left Column is your simulation bay. Here you can load active Good-Faith or Bad-Faith borrower profiles, select credit scenarios, adjust model sensitivities, and test automated compliance scanning in real-time.
+                </p>
+              </div>
+            )}
+
+            {tourStep === 2 && (
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">2. Causal Interventions & Decision Ledger</h3>
+                <p className="mt-2 text-[0.7rem] leading-relaxed text-slate-500 dark:text-slate-400">
+                  The Center Column tracks immediate telemetry. Watch historical Fairness trends, expand the **Feature Dependency Graph** to inspect proxy pathway severings, and audit the live, monospaced **Applicant Table** decisions.
+                </p>
+              </div>
+            )}
+
+            {tourStep === 3 && (
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">3. Compliance Metrics & Sealed Ledger</h3>
+                <p className="mt-2 text-[0.7rem] leading-relaxed text-slate-500 dark:text-slate-400">
+                  The Right Column is the MRM telemetry system. It displays aggregated decimals for **AIR** (Adverse Impact Ratio) and **SPD** (Statistical Parity Difference) side-by-side alongside an active chronological feed of cryptographically **Audit Sealed** proofs.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-4 flex items-center justify-between border-t pt-3 dark:border-slate-800">
+              <button
+                onClick={() => {
+                  localStorage.setItem("meridian_tour_completed", "true")
+                  setShowTour(false)
+                }}
+                className="text-[0.65rem] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-600 dark:hover:text-slate-350"
+              >
+                Skip Tour
+              </button>
+              <div className="flex gap-2">
+                {tourStep > 0 && (
+                  <button
+                    onClick={() => setTourStep(s => s - 1)}
+                    className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[0.65rem] font-bold text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-750 transition-colors"
+                  >
+                    Back
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (tourStep < 3) {
+                      setTourStep(s => s + 1)
+                    } else {
+                      localStorage.setItem("meridian_tour_completed", "true")
+                      setShowTour(false)
+                      toast.success("Meridian System Tour Complete!", {
+                        description: "You are ready to audit and enforce model fairness."
+                      })
+                    }
+                  }}
+                  className="rounded-md bg-primary px-3 py-1.5 text-[0.65rem] font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  {tourStep === 3 ? "Complete" : "Next"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

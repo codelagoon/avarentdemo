@@ -124,7 +124,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
       // Mark onboarding complete
       companyService.setOnboardingComplete(true)
 
-      toast.success(`Welcome, ${data.companyName}! Your AVARENT Sentinel dashboard is ready.`)
+      toast.success(`Welcome, ${data.companyName}! Your AVARENT Meridian dashboard is ready.`)
       onComplete()
     } catch (error) {
       toast.error("Failed to complete onboarding. Please try again.")
@@ -142,7 +142,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <Shield className="h-8 w-8 text-primary" />
             </div>
-            <CardTitle className="text-2xl font-bold">Welcome to AVARENT Sentinel</CardTitle>
+            <CardTitle className="text-2xl font-bold">Welcome to AVARENT Meridian</CardTitle>
             <CardDescription className="text-base mt-2">
               Fair Lending Compliance & Risk Management Platform
             </CardDescription>

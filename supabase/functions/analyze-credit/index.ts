@@ -67,8 +67,8 @@ async function callOpenRouter(app: CreditApplication, apiKey: string): Promise<R
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://avarent-sentinel.app",
-          "X-Title": "AVARENT Sentinel",
+          "HTTP-Referer": "https://avarent-meridian.app",
+          "X-Title": "AVARENT Meridian",
         },
         body: JSON.stringify({
           model: model,

@@ -1,4 +1,11 @@
 import { toast } from "sonner"
+import { createClient } from "@supabase/supabase-js"
+
+// Initialize Supabase connection for persistent caching (Option B)
+// Enforces a 24-hour TTL shared cache across all Next.js/Vercel serverless instances
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://kkjrnlsmunacdcjleqjv.supabase.co"
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy"
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export interface BIFSGInput {
   firstName: string
@@ -283,6 +290,50 @@ class BIFSGService {
    */
   isPrivateSchema(): boolean {
     return true // Always returns true - this is the private schema
+  }
+
+  /**
+   * Fetch from Supabase BISG cache table (Option B - Persistent Caching)
+   * Surname + Zip Code composite key cache, with 24-hour TTL expiration constraint.
+   */
+  async getCachedResult(surname: string, zipCode: string): Promise<{ calculated_air: number; calculated_spd: number } | null> {
+    try {
+      const { data, error } = await supabase
+        .from("bisg_cache")
+        .select("calculated_air, calculated_spd")
+        .eq("surname", surname.toUpperCase())
+        .eq("zip_code", zipCode)
+        .gt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .single()
+
+      if (error || !data) return null
+      return {
+        calculated_air: Number(data.calculated_air),
+        calculated_spd: Number(data.calculated_spd)
+      }
+    } catch (e) {
+      console.warn("Failed to read from Supabase bisg_cache table:", e)
+      return null
+    }
+  }
+
+  /**
+   * Write to Supabase BISG cache table (Option B - Persistent Caching)
+   */
+  async setCachedResult(surname: string, zipCode: string, air: number, spd: number): Promise<void> {
+    try {
+      await supabase
+        .from("bisg_cache")
+        .upsert({
+          surname: surname.toUpperCase(),
+          zip_code: zipCode,
+          calculated_air: air,
+          calculated_spd: spd,
+          created_at: new Date().toISOString()
+        })
+    } catch (e) {
+      console.warn("Failed to write to Supabase bisg_cache table:", e)
+    }
   }
 
   private generateProxyExplanation(
