@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useLiveData } from "@/hooks/useLiveData"
 import { BookOpen, Search, Download, Hash, ChevronDown, ChevronUp, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, FileText, Lock, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
@@ -64,7 +64,13 @@ export function EvidenceLedgerPage() {
   const [typeFilter, setTypeFilter] = useState("all")
   const [sortField, setSortField] = useState<"timestamp" | "fairnessScore">("timestamp")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
   const entries = useLiveData(() => ledgerService.getAll(), ["ledger"])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, typeFilter, pageSize])
   const stats = useMemo(() => {
     const all = entries
     return {
@@ -92,6 +98,11 @@ export function EvidenceLedgerPage() {
     })
     return arr
   }, [entries, search, typeFilter, sortField, sortDir])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const paginated = useMemo(() => {
+    return filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  }, [filtered, currentPage, pageSize])
 
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) setSortDir(d => d === "desc" ? "asc" : "desc")
@@ -161,7 +172,7 @@ export function EvidenceLedgerPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-5">
+      <div className="flex-1 flex flex-col p-5 overflow-hidden min-h-0">
         {/* Summary cards */}
         <div className="mb-5 grid grid-cols-4 gap-3">
           {[
@@ -188,8 +199,8 @@ export function EvidenceLedgerPage() {
         </div>
 
         {/* Table card */}
-        <Card className="border-border/60 shadow-sm">
-          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+        <Card className="flex-1 flex flex-col border-border/60 shadow-sm overflow-hidden min-h-0">
+          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3 shrink-0">
             <p className="text-sm font-semibold text-foreground">Ledger Entries</p>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -218,63 +229,124 @@ export function EvidenceLedgerPage() {
               <Badge variant="secondary" className="text-[0.65rem]">{filtered.length} records</Badge>
             </div>
           </div>
-          <Table data-testid="ledger-table">
-            <TableHeader>
-              <TableRow className="border-border/40 hover:bg-transparent">
-                <TableHead className="w-8 pl-5" />
-                <TableHead className="cursor-pointer text-[0.68rem] font-semibold uppercase tracking-wider" onClick={() => toggleSort("timestamp")}>
-                  Timestamp <SortIcon field="timestamp" />
-                </TableHead>
-                <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Event ID</TableHead>
-                <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Applicant</TableHead>
-                <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Type</TableHead>
-                <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Decision</TableHead>
-                <TableHead className="cursor-pointer text-[0.68rem] font-semibold uppercase tracking-wider" onClick={() => toggleSort("fairnessScore")}>
-                  AIR / SPD <SortIcon field="fairnessScore" />
-                </TableHead>
-                <TableHead className="pr-5 text-[0.68rem] font-semibold uppercase tracking-wider">Hash</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map(entry => (
-                <TableRow key={entry.id} className="border-border/30 transition-colors hover:bg-muted/30" data-testid={`ledger-row-${entry.id}`}>
-                  <TableCell className="pl-5"><EventTypeIcon type={entry.eventType} /></TableCell>
-                  <TableCell>
-                    <p className="font-mono text-[0.72rem] tabular-nums text-foreground">
-                      {new Date(entry.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
-                    </p>
-                    <p className="font-mono text-[0.62rem] text-muted-foreground">
-                      {new Date(entry.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-mono text-[0.68rem] text-muted-foreground">{entry.id}</span>
-                  </TableCell>
-                  <TableCell>
-                    <p className="text-[0.8rem] font-medium text-foreground">{entry.applicantName}</p>
-                    <p className="font-mono text-[0.62rem] text-muted-foreground">{entry.applicantId}</p>
-                  </TableCell>
-                  <TableCell><EventTypeBadge type={entry.eventType} /></TableCell>
-                  <TableCell><DecisionBadge decision={entry.decision} /></TableCell>
-                  <TableCell>
-                    <span className={cn("font-mono text-[0.78rem] font-bold tabular-nums", entry.fairnessScore >= 0.8 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
-                      {entry.fairnessScore.toFixed(2)} / {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="pr-5">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-help rounded bg-muted/60 px-1.5 py-0.5 font-mono text-[0.62rem] text-muted-foreground">
-                          {entry.hash.slice(0, 12)}…
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent><span className="font-mono text-[0.65rem]">{entry.hash}</span></TooltipContent>
-                    </Tooltip>
-                  </TableCell>
+          <div className="flex-1 overflow-auto min-h-0">
+            <Table data-testid="ledger-table">
+              <TableHeader>
+                <TableRow className="border-border/40 hover:bg-transparent">
+                  <TableHead className="w-8 pl-5" />
+                  <TableHead className="cursor-pointer text-[0.68rem] font-semibold uppercase tracking-wider" onClick={() => toggleSort("timestamp")}>
+                    Timestamp <SortIcon field="timestamp" />
+                  </TableHead>
+                  <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Event ID</TableHead>
+                  <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Applicant</TableHead>
+                  <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Type</TableHead>
+                  <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Decision</TableHead>
+                  <TableHead className="cursor-pointer text-[0.68rem] font-semibold uppercase tracking-wider" onClick={() => toggleSort("fairnessScore")}>
+                    AIR / SPD <SortIcon field="fairnessScore" />
+                  </TableHead>
+                  <TableHead className="pr-5 text-[0.68rem] font-semibold uppercase tracking-wider">Hash</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginated.map(entry => (
+                  <TableRow key={entry.id} className="border-border/30 transition-colors hover:bg-muted/30" data-testid={`ledger-row-${entry.id}`}>
+                    <TableCell className="pl-5"><EventTypeIcon type={entry.eventType} /></TableCell>
+                    <TableCell>
+                      <p className="font-mono text-[0.72rem] tabular-nums text-foreground">
+                        {new Date(entry.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+                      </p>
+                      <p className="font-mono text-[0.62rem] text-muted-foreground">
+                        {new Date(entry.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-[0.68rem] text-muted-foreground">{entry.id}</span>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-[0.8rem] font-medium text-foreground">{entry.applicantName}</p>
+                      <p className="font-mono text-[0.62rem] text-muted-foreground">{entry.applicantId}</p>
+                    </TableCell>
+                    <TableCell><EventTypeBadge type={entry.eventType} /></TableCell>
+                    <TableCell><DecisionBadge decision={entry.decision} /></TableCell>
+                    <TableCell>
+                      <span className={cn("font-mono text-[0.78rem] font-bold tabular-nums", entry.fairnessScore >= 0.8 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                        {entry.fairnessScore.toFixed(2)} / {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="pr-5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help rounded bg-muted/60 px-1.5 py-0.5 font-mono text-[0.62rem] text-muted-foreground">
+                            {entry.hash.slice(0, 12)}…
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent><span className="font-mono text-[0.65rem]">{entry.hash}</span></TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {/* Pagination Toolbar */}
+          <div className="flex items-center justify-between border-t border-border/40 px-5 py-3 bg-card shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[0.7rem] text-muted-foreground">Rows per page:</span>
+              <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setCurrentPage(1); }}>
+                <SelectTrigger className="h-7 w-[70px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-[0.7rem] text-muted-foreground ml-3">
+                Showing {filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(filtered.length, currentPage * pageSize)} of {filtered.length} entries
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                .map((p, i, arr) => {
+                  const showEllipsis = i > 0 && p - arr[i - 1] > 1;
+                  return (
+                    <div key={p} className="flex items-center gap-1">
+                      {showEllipsis && <span className="text-xs text-muted-foreground px-1">...</span>}
+                      <Button
+                        variant={currentPage === p ? "default" : "outline"}
+                        size="sm"
+                        className={cn("h-7 w-7 p-0 text-xs", currentPage === p && "bg-primary text-primary-foreground")}
+                        onClick={() => setCurrentPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    </div>
+                  );
+                })}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </Card>
       </div>
     </div>

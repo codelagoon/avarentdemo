@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { useLiveData } from "@/hooks/useLiveData"
-import { ShieldAlert, TrendingUp, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Search, Download, Info, ShieldCheck, Fingerprint, Shield, RefreshCw } from "lucide-react"
+import { ShieldAlert, TrendingUp, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Search, Download, Info, ShieldCheck, Fingerprint, Shield, RefreshCw, ChevronDown, ChevronUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -72,6 +72,14 @@ export function ThreatAnalysisPage() {
   const [search, setSearch] = useState("")
   const [severityFilter, setSeverityFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  
+  // Accordion / progressive disclosure states
+  const [isKSTableExpanded, setIsKSTableExpanded] = useState(true)
+  const [isRobustnessTableExpanded, setIsRobustnessTableExpanded] = useState(true)
+  const [isManipulationAlertsExpanded, setIsManipulationAlertsExpanded] = useState(true)
+  const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(true)
+  const [isDistributionExpanded, setIsDistributionExpanded] = useState(true)
+  
   const threats = useLiveData(() => threatService.getAll(), ["threat"])
 
   // Anti-fairwashing state
@@ -277,86 +285,102 @@ export function ThreatAnalysisPage() {
 
               {/* Heatmap */}
               <div>
-                <Card className="border-border/60 shadow-sm">
-                  <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
-                    <p className="text-sm font-semibold text-foreground">Attack Heatmap</p>
+                <Card className="border-border/60 shadow-sm flex flex-col min-h-0">
+                  <div 
+                    className="flex items-center gap-2 border-b border-border/40 px-5 py-3 cursor-pointer hover:bg-muted/20 select-none shrink-0"
+                    onClick={() => setIsHeatmapExpanded(!isHeatmapExpanded)}
+                  >
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      Attack Heatmap
+                      {isHeatmapExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </p>
                     <Tooltip>
                       <TooltipTrigger asChild><Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" /></TooltipTrigger>
                       <TooltipContent>Threat events by hour and day (past 4 weeks)</TooltipContent>
                     </Tooltip>
                     <span className="ml-auto text-[0.68rem] text-muted-foreground">hour × day</span>
                   </div>
-                  <div className="p-4">
-                    <div className="overflow-x-auto">
-                      <div className="min-w-[220px]">
-                        {/* Day headers */}
-                        <div className="mb-1 ml-8 grid grid-cols-7 gap-0.5">
-                          {DAYS.map(d => (
-                            <div key={d} className="text-center text-[0.6rem] font-medium text-muted-foreground">{d}</div>
-                          ))}
-                        </div>
-                        {/* Rows */}
-                        {HEATMAP_DATA.map(row => (
-                          <div key={row.hour} className="mb-0.5 flex items-center gap-1">
-                            <span className="w-7 text-right font-mono text-[0.6rem] text-muted-foreground">{row.hour}h</span>
-                            <div className="grid flex-1 grid-cols-7 gap-0.5">
-                              {DAY_KEYS.map(day => (
-                                <HeatCell key={day} value={row[day]} max={maxHeat} />
-                              ))}
-                            </div>
+                  {isHeatmapExpanded && (
+                    <div className="p-4">
+                      <div className="overflow-x-auto">
+                        <div className="min-w-[220px]">
+                          {/* Day headers */}
+                          <div className="mb-1 ml-8 grid grid-cols-7 gap-0.5">
+                            {DAYS.map(d => (
+                              <div key={d} className="text-center text-[0.6rem] font-medium text-muted-foreground">{d}</div>
+                            ))}
                           </div>
-                        ))}
-                        {/* Legend */}
-                        <div className="mt-3 flex items-center gap-1.5">
-                          <span className="text-[0.6rem] text-muted-foreground">Low</span>
-                          {[0.1, 0.3, 0.5, 0.7, 0.9].map(p => (
-                            <div
-                              key={p}
-                              className="h-3 w-3 rounded-sm"
-                              style={{ backgroundColor: `oklch(0.52 0.09 150 / ${0.3 + p * 0.7})`, opacity: 0.3 + p * 0.7 }}
-                            />
+                          {/* Rows */}
+                          {HEATMAP_DATA.map(row => (
+                            <div key={row.hour} className="mb-0.5 flex items-center gap-1">
+                              <span className="w-7 text-right font-mono text-[0.6rem] text-muted-foreground">{row.hour}h</span>
+                              <div className="grid flex-1 grid-cols-7 gap-0.5">
+                                {DAY_KEYS.map(day => (
+                                  <HeatCell key={day} value={row[day]} max={maxHeat} />
+                                ))}
+                              </div>
+                            </div>
                           ))}
-                          <span className="text-[0.6rem] text-muted-foreground">High</span>
+                          {/* Legend */}
+                          <div className="mt-3 flex items-center gap-1.5">
+                            <span className="text-[0.6rem] text-muted-foreground">Low</span>
+                            {[0.1, 0.3, 0.5, 0.7, 0.9].map(p => (
+                              <div
+                                key={p}
+                                className="h-3 w-3 rounded-sm"
+                                style={{ backgroundColor: `oklch(0.52 0.09 150 / ${0.3 + p * 0.7})`, opacity: 0.3 + p * 0.7 }}
+                              />
+                            ))}
+                            <span className="text-[0.6rem] text-muted-foreground">High</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="mt-4 space-y-2 border-t pt-3">
-                      <p className="text-[0.65rem] font-semibold tracking-wider text-muted-foreground">
-                        Top Attack Vectors
-                      </p>
-                      {[
-                        { label: "Sequential Proxy Correlation Attack", count: 3, pct: 43 },
-                        { label: "Single Proxy Variable", count: 2, pct: 29 },
-                        { label: "Dual Proxy Interaction", count: 1, pct: 14 },
-                        { label: "Indirect Correlation", count: 1, pct: 14 },
-                      ].map(v => (
-                        <div key={v.label}>
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-[0.65rem] text-foreground">{v.label}</span>
-                            <span className="font-mono text-[0.6rem] text-muted-foreground">{v.count}</span>
+                      <div className="mt-4 space-y-2 border-t pt-3">
+                        <p className="text-[0.65rem] font-semibold tracking-wider text-muted-foreground">
+                          Top Attack Vectors
+                        </p>
+                        {[
+                          { label: "Sequential Proxy Correlation Attack", count: 3, pct: 43 },
+                          { label: "Single Proxy Variable", count: 2, pct: 29 },
+                          { label: "Dual Proxy Interaction", count: 1, pct: 14 },
+                          { label: "Indirect Correlation", count: 1, pct: 14 },
+                        ].map(v => (
+                          <div key={v.label}>
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-[0.65rem] text-foreground">{v.label}</span>
+                              <span className="font-mono text-[0.6rem] text-muted-foreground">{v.count}</span>
+                            </div>
+                            <Progress value={v.pct} className="h-1" />
                           </div>
-                          <Progress value={v.pct} className="h-1" />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="mt-3 border-border/60 shadow-sm flex flex-col min-h-0">
+                  <div 
+                    className="flex items-center gap-1.5 border-b border-border/40 px-4 py-3 cursor-pointer hover:bg-muted/20 select-none shrink-0"
+                    onClick={() => setIsDistributionExpanded(!isDistributionExpanded)}
+                  >
+                    <TrendingUp className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      Model Score Distribution
+                      {isDistributionExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </span>
+                  </div>
+                  {isDistributionExpanded && (
+                    <div className="px-4 py-3">
+                      {threats.map(t => (
+                        <div key={t.id} className="mb-1.5 flex items-center gap-2">
+                          <span className="w-14 truncate text-[0.6rem] text-muted-foreground">{t.applicantName.split(" ")[0]}</span>
+                          <Progress value={t.modelScore * 100} className="h-1.5 flex-1" />
+                          <span className="font-mono text-[0.6rem] text-foreground w-6 text-right">{(t.modelScore * 100).toFixed(0)}</span>
                         </div>
                       ))}
                     </div>
-                  </div>
-                </Card>
-
-                <Card className="mt-3 border-border/60 shadow-sm">
-                  <div className="flex items-center gap-1.5 border-b border-border/40 px-4 py-3">
-                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">Model Score Distribution</span>
-                  </div>
-                  <div className="px-4 py-3">
-                    {threats.map(t => (
-                      <div key={t.id} className="mb-1.5 flex items-center gap-2">
-                        <span className="w-14 truncate text-[0.6rem] text-muted-foreground">{t.applicantName.split(" ")[0]}</span>
-                        <Progress value={t.modelScore * 100} className="h-1.5 flex-1" />
-                        <span className="font-mono text-[0.6rem] text-foreground w-6 text-right">{(t.modelScore * 100).toFixed(0)}</span>
-                      </div>
-                    ))}
-                  </div>
+                  )}
                 </Card>
               </div>
             </div>
@@ -428,62 +452,191 @@ export function ThreatAnalysisPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* KS/KL metrics table */}
-              <Card className="lg:col-span-2 border-border/60 shadow-sm">
-                <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+              <Card className="lg:col-span-2 border-border/60 shadow-sm flex flex-col min-h-0">
+                <div 
+                  className="flex items-center justify-between border-b border-border/40 px-5 py-3 cursor-pointer hover:bg-muted/20 select-none shrink-0"
+                  onClick={() => setIsKSTableExpanded(!isKSTableExpanded)}
+                >
                   <div>
-                    <p className="text-sm font-semibold text-foreground">KS Tests & KL Divergence Disparities</p>
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      KS Tests & KL Divergence Disparities
+                      {isKSTableExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </p>
                     <p className="text-[0.68rem] text-muted-foreground">Compares claimed fairness with true latent distributions — large divergence indicates fairwashing</p>
                   </div>
-                  <Badge variant="outline" className="text-[0.65rem]">ECOA / HMDA</Badge>
+                  <Badge variant="outline" className="text-[0.65rem] shrink-0">ECOA / HMDA</Badge>
                 </div>
-                <div className="p-4">
+                {isKSTableExpanded && (
+                  <div className="p-4 overflow-y-auto max-h-[300px]">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="pb-2 text-left text-xs font-semibold text-slate-500">Demographic Group</th>
+                            <th className="pb-2 text-center text-xs font-semibold text-slate-500">KS Distance (D)</th>
+                            <th className="pb-2 text-center text-xs font-semibold text-slate-500">KS p-value</th>
+                            <th className="pb-2 text-center text-xs font-semibold text-slate-500">KL Divergence</th>
+                            <th className="pb-2 text-center text-xs font-semibold text-slate-500">Reported/True Fairness</th>
+                            <th className="pb-2 text-center text-xs font-semibold text-slate-500">Audit Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {auditState.klDivergences.map((kl, idx) => {
+                            const ks = auditState.ksTests[idx] || { dStatistic: 0.05, pValue: 0.5, status: "pass" }
+                            return (
+                              <tr key={kl.groupName} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                                <td className="py-3 text-xs font-semibold text-foreground">{kl.groupName}</td>
+                                <td className="py-3 text-center font-mono text-xs">{ks.dStatistic.toFixed(2)}</td>
+                                <td className="py-3 text-center font-mono text-xs text-slate-500">{ks.pValue.toFixed(3)}</td>
+                                <td className="py-3 text-center font-mono text-xs">
+                                  <span className={cn(
+                                    "font-bold",
+                                    kl.status === "severe" ? "text-destructive" : kl.status === "drift" ? "text-amber-600" : "text-emerald-600"
+                                  )}>
+                                    {kl.klDivergenceValue.toFixed(2)}
+                                  </span>
+                                </td>
+                                <td className="py-3 text-center text-xs">
+                                  <span className="font-mono text-slate-500">{kl.claimedFairness}%</span>
+                                  <span className="mx-1 text-slate-300">/</span>
+                                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{kl.actualFairness}%</span>
+                                </td>
+                                <td className="py-3 text-center">
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-[0.6rem] font-bold uppercase",
+                                      ks.status === "failed"
+                                        ? "border-red-300 bg-red-50 text-red-700 dark:bg-red-950/20"
+                                        : ks.status === "warning"
+                                        ? "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/20"
+                                        : "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20"
+                                    )}
+                                  >
+                                    {ks.status === "failed" ? "Drift Disparity" : ks.status === "warning" ? "Warning" : "Compliant"}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              {/* Manipulation Alerts */}
+              <Card className="border-border/60 shadow-sm flex flex-col min-h-0">
+                <div 
+                  className="flex items-center gap-2 border-b border-border/40 px-5 py-3 cursor-pointer hover:bg-muted/20 select-none shrink-0"
+                  onClick={() => setIsManipulationAlertsExpanded(!isManipulationAlertsExpanded)}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      Fairwashing Manipulation Alerts
+                      {isManipulationAlertsExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </p>
+                    <p className="text-[0.68rem] text-muted-foreground">Identified label flipping patterns indicating compliance manipulation</p>
+                  </div>
+                </div>
+                {isManipulationAlertsExpanded && (
+                  <div className="space-y-3 p-4 overflow-y-auto max-h-[300px]">
+                    {auditState.alerts.filter(a => !a.resolved).map(alert => {
+                      return (
+                        <div key={alert.id} className="p-3 rounded-lg border border-red-200 bg-red-50/50 space-y-2 text-xs text-slate-900 dark:bg-red-950/20 dark:text-slate-200">
+                          <div className="flex items-center justify-between font-bold">
+                            <span className="text-red-700 dark:text-red-400">{alert.ruleName}</span>
+                            <Badge variant="destructive" className="text-[0.55rem] font-bold">CRITICAL</Badge>
+                          </div>
+                          <p className="text-[0.7rem] text-slate-600 dark:text-slate-300 leading-relaxed">{alert.description}</p>
+                          <div className="flex justify-between items-center pt-1 border-t border-red-100">
+                            <span className="text-[0.65rem] text-slate-500 font-mono">Flip Rate: {alert.labelFlipRate}%</span>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-5 p-0 text-[0.65rem] font-extrabold text-primary hover:no-underline"
+                              onClick={() => handleResolveAlert(alert.id)}
+                            >
+                              Resolve Alert
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {auditState.alerts.filter(a => !a.resolved).length === 0 && (
+                      <div className="rounded-lg border border-dashed border-border/60 py-10 text-center text-[0.72rem] text-muted-foreground">
+                        No active manipulation alerts. Compliance verified.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            {/* Row 3: PGD & FGSM Adversarial Robustness Table */}
+            <Card className="border-border/60 shadow-sm flex flex-col min-h-0">
+              <div 
+                className="flex items-center justify-between border-b border-border/40 px-5 py-3 cursor-pointer hover:bg-muted/20 select-none shrink-0"
+                onClick={() => setIsRobustnessTableExpanded(!isRobustnessTableExpanded)}
+              >
+                <div>
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    Demographic Adversarial Robustness Disparity (PGD / FGSM)
+                    {isRobustnessTableExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                  </p>
+                  <p className="text-[0.68rem] text-muted-foreground">Validates model stability under adversarial perturbations by demographic class</p>
+                </div>
+                <Badge variant="outline" className="border-primary/30 text-[0.65rem] text-primary shrink-0">Adversarial Defense Active</Badge>
+              </div>
+              {isRobustnessTableExpanded && (
+                <div className="p-4 overflow-y-auto max-h-[350px]">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
                           <th className="pb-2 text-left text-xs font-semibold text-slate-500">Demographic Group</th>
-                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">KS Distance (D)</th>
-                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">KS p-value</th>
-                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">KL Divergence</th>
-                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">Reported/True Fairness</th>
-                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">Audit Status</th>
+                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">Clean Accuracy</th>
+                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">FGSM Attack Accuracy</th>
+                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">PGD Attack Accuracy</th>
+                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">Robustness Disparity Index</th>
+                          <th className="pb-2 text-center text-xs font-semibold text-slate-500">Vulnerability Status</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {auditState.klDivergences.map((kl, idx) => {
-                          const ks = auditState.ksTests[idx] || { dStatistic: 0.05, pValue: 0.5, status: "pass" }
+                        {auditState.robustness.map(rob => {
+                          const isVulnerable = rob.robustnessDisparityIndex > 0.2
                           return (
-                            <tr key={kl.groupName} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                              <td className="py-3 text-xs font-semibold text-foreground">{kl.groupName}</td>
-                              <td className="py-3 text-center font-mono text-xs">{ks.dStatistic.toFixed(2)}</td>
-                              <td className="py-3 text-center font-mono text-xs text-slate-500">{ks.pValue.toFixed(3)}</td>
-                              <td className="py-3 text-center font-mono text-xs">
+                            <tr key={rob.groupName} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                              <td className="py-2.5 text-xs font-semibold text-foreground">{rob.groupName}</td>
+                              <td className="py-2.5 text-center font-mono text-xs">{rob.cleanAccuracy}%</td>
+                              <td className="py-2.5 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <Progress value={rob.fgsmAccuracy} className="h-1.5 w-16" />
+                                  <span className="font-mono text-xs text-foreground">{rob.fgsmAccuracy}%</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <Progress value={rob.pgdAccuracy} className="h-1.5 w-16" />
+                                  <span className="font-mono text-xs text-foreground">{rob.pgdAccuracy}%</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 text-center">
                                 <span className={cn(
-                                  "font-bold",
-                                  kl.status === "severe" ? "text-destructive" : kl.status === "drift" ? "text-amber-600" : "text-emerald-600"
+                                  "font-mono text-xs font-bold",
+                                  isVulnerable ? "text-destructive" : "text-emerald-600"
                                 )}>
-                                  {kl.klDivergenceValue.toFixed(2)}
+                                  {rob.robustnessDisparityIndex.toFixed(2)}
                                 </span>
                               </td>
-                              <td className="py-3 text-center text-xs">
-                                <span className="font-mono text-slate-500">{kl.claimedFairness}%</span>
-                                <span className="mx-1 text-slate-300">/</span>
-                                <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{kl.actualFairness}%</span>
-                              </td>
-                              <td className="py-3 text-center">
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "text-[0.6rem] font-bold uppercase",
-                                    ks.status === "failed"
-                                      ? "border-red-300 bg-red-50 text-red-700 dark:bg-red-950/20"
-                                      : ks.status === "warning"
-                                      ? "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/20"
-                                      : "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20"
-                                  )}
-                                >
-                                  {ks.status === "failed" ? "Drift Disparity" : ks.status === "warning" ? "Warning" : "Compliant"}
-                                </Badge>
+                              <td className="py-2.5 text-center">
+                                {isVulnerable ? (
+                                  <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 text-[0.55rem] font-bold">VULNERABLE</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 text-[0.55rem] font-bold">STABLE</Badge>
+                                )}
                               </td>
                             </tr>
                           )
@@ -492,112 +645,7 @@ export function ThreatAnalysisPage() {
                     </table>
                   </div>
                 </div>
-              </Card>
-
-              {/* Manipulation Alerts */}
-              <Card className="border-border/60 shadow-sm">
-                <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
-                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Fairwashing Manipulation Alerts</p>
-                    <p className="text-[0.68rem] text-muted-foreground">Identified label flipping patterns indicating compliance manipulation</p>
-                  </div>
-                </div>
-                <div className="space-y-3 p-4">
-                  {auditState.alerts.filter(a => !a.resolved).map(alert => {
-                    return (
-                      <div key={alert.id} className="p-3 rounded-lg border border-red-200 bg-red-50/50 space-y-2 text-xs text-slate-900 dark:bg-red-950/20 dark:text-slate-200">
-                        <div className="flex items-center justify-between font-bold">
-                          <span className="text-red-700 dark:text-red-400">{alert.ruleName}</span>
-                          <Badge variant="destructive" className="text-[0.55rem] font-bold">CRITICAL</Badge>
-                        </div>
-                        <p className="text-[0.7rem] text-slate-600 dark:text-slate-300 leading-relaxed">{alert.description}</p>
-                        <div className="flex justify-between items-center pt-1 border-t border-red-100">
-                          <span className="text-[0.65rem] text-slate-500 font-mono">Flip Rate: {alert.labelFlipRate}%</span>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-5 p-0 text-[0.65rem] font-extrabold text-primary hover:no-underline"
-                            onClick={() => handleResolveAlert(alert.id)}
-                          >
-                            Resolve Alert
-                          </Button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {auditState.alerts.filter(a => !a.resolved).length === 0 && (
-                    <div className="rounded-lg border border-dashed border-border/60 py-10 text-center text-[0.72rem] text-muted-foreground">
-                      No active manipulation alerts. Compliance verified.
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </div>
-
-            {/* Row 3: PGD & FGSM Adversarial Robustness Table */}
-            <Card className="border-border/60 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Demographic Adversarial Robustness Disparity (PGD / FGSM)</p>
-                  <p className="text-[0.68rem] text-muted-foreground">Validates model stability under adversarial perturbations by demographic class</p>
-                </div>
-                <Badge variant="outline" className="border-primary/30 text-[0.65rem] text-primary">Adversarial Defense Active</Badge>
-              </div>
-              <div className="p-4">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="pb-2 text-left text-xs font-semibold text-slate-500">Demographic Group</th>
-                        <th className="pb-2 text-center text-xs font-semibold text-slate-500">Clean Accuracy</th>
-                        <th className="pb-2 text-center text-xs font-semibold text-slate-500">FGSM Attack Accuracy</th>
-                        <th className="pb-2 text-center text-xs font-semibold text-slate-500">PGD Attack Accuracy</th>
-                        <th className="pb-2 text-center text-xs font-semibold text-slate-500">Robustness Disparity Index</th>
-                        <th className="pb-2 text-center text-xs font-semibold text-slate-500">Vulnerability Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditState.robustness.map(rob => {
-                        const isVulnerable = rob.robustnessDisparityIndex > 0.2
-                        return (
-                          <tr key={rob.groupName} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                            <td className="py-2.5 text-xs font-semibold text-foreground">{rob.groupName}</td>
-                            <td className="py-2.5 text-center font-mono text-xs">{rob.cleanAccuracy}%</td>
-                            <td className="py-2.5 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <Progress value={rob.fgsmAccuracy} className="h-1.5 w-16" />
-                                <span className="font-mono text-xs text-foreground">{rob.fgsmAccuracy}%</span>
-                              </div>
-                            </td>
-                            <td className="py-2.5 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <Progress value={rob.pgdAccuracy} className="h-1.5 w-16" />
-                                <span className="font-mono text-xs text-foreground">{rob.pgdAccuracy}%</span>
-                              </div>
-                            </td>
-                            <td className="py-2.5 text-center">
-                              <span className={cn(
-                                "font-mono text-xs font-bold",
-                                isVulnerable ? "text-destructive" : "text-emerald-600"
-                              )}>
-                                {rob.robustnessDisparityIndex.toFixed(2)}
-                              </span>
-                            </td>
-                            <td className="py-2.5 text-center">
-                              {isVulnerable ? (
-                                <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 text-[0.55rem] font-bold">VULNERABLE</Badge>
-                              ) : (
-                                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 text-[0.55rem] font-bold">STABLE</Badge>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              )}
             </Card>
 
           </div>

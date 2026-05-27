@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { 
   Select,
   SelectContent,
@@ -120,6 +128,7 @@ export default function AdverseActionReviewPage() {
   const [search, setSearch] = useState("")
   const [overrideReason, setOverrideReason] = useState("")
   const [customNarrative, setCustomNarrative] = useState("")
+  const [isOverrideDialogOpen, setIsOverrideDialogOpen] = useState(false)
 
   const allReviews = useLiveData(() => adverseActionService.getAllReviews(), ["adverseAction"])
 
@@ -189,11 +198,11 @@ export default function AdverseActionReviewPage() {
         </div>
       </div>
 
-      <div className="flex flex-1 gap-4 overflow-hidden p-4">
+      <div className="flex flex-1 gap-4 overflow-hidden p-4 min-h-0">
       {/* Left Panel - Queue */}
-      <div className="flex w-72 flex-col gap-3">
+      <div className="flex w-72 flex-col gap-3 min-h-0 overflow-hidden">
         {/* Filters */}
-        <Card className="border-border/60">
+        <Card className="border-border/60 shrink-0">
           <div className="space-y-2 p-3">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -216,11 +225,11 @@ export default function AdverseActionReviewPage() {
         </Card>
 
         {/* Queue List */}
-        <Card className="flex-1 overflow-hidden border-border/60">
-          <div className="border-b border-border/40 px-3 py-2">
+        <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-border/60">
+          <div className="border-b border-border/40 px-3 py-2 shrink-0">
             <p className="text-xs font-semibold text-foreground">Review Queue ({filteredReviews.length})</p>
           </div>
-          <div className="h-full overflow-y-auto p-3">
+          <div className="flex-1 overflow-y-auto p-3 min-h-0">
             <div className="space-y-2">
               {filteredReviews.map((review) => (
                 <ReviewQueueItem
@@ -236,10 +245,10 @@ export default function AdverseActionReviewPage() {
       </div>
 
       {/* Right Panel - Detail */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {selectedReview ? (
-          <Card className="flex h-full flex-col border-border/60">
-            <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+          <Card className="flex h-full flex-col border-border/60 overflow-hidden min-h-0">
+            <div className="flex items-center justify-between border-b border-border/40 px-5 py-3 shrink-0">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <div>
@@ -248,7 +257,7 @@ export default function AdverseActionReviewPage() {
                 </div>
               </div>
               <span className={cn(
-                "rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold capitalize",
+                "rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold capitalize shrink-0",
                 selectedReview.status === "approved" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
                 selectedReview.status === "overridden" && "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400",
                 selectedReview.status === "sent" && "border-primary/30 bg-primary/10 text-primary",
@@ -258,7 +267,7 @@ export default function AdverseActionReviewPage() {
               </span>
             </div>
 
-            <div className="flex-1 space-y-6 overflow-y-auto p-5">
+            <div className="flex-1 space-y-6 overflow-y-auto p-5 min-h-0">
               <Tabs defaultValue="side-by-side" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="side-by-side">Side-by-Side</TabsTrigger>
@@ -323,25 +332,6 @@ export default function AdverseActionReviewPage() {
                 </TabsContent>
               </Tabs>
 
-              {/* Override Section */}
-              {selectedReview.status === "pending_review" && (
-                <div className="border-t pt-4 space-y-4">
-                  <h4 className="text-sm font-semibold">Override Narrative (Optional)</h4>
-                  <Textarea
-                    placeholder="Enter custom adverse action narrative..."
-                    value={customNarrative}
-                    onChange={(e) => setCustomNarrative(e.target.value)}
-                    className="min-h-[100px]"
-                  />
-                  <Textarea
-                    placeholder="Reason for override (required, min 10 chars)..."
-                    value={overrideReason}
-                    onChange={(e) => setOverrideReason(e.target.value)}
-                    className="min-h-[60px]"
-                  />
-                </div>
-              )}
-
               {/* Override History */}
               {selectedReview.overrideReason && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
@@ -355,7 +345,7 @@ export default function AdverseActionReviewPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between border-t border-border/40 p-4">
+            <div className="flex items-center justify-between border-t border-border/40 p-4 shrink-0">
               <div className="flex items-center gap-2">
                 {selectedReview.status === "pending_review" && (
                   <>
@@ -368,12 +358,15 @@ export default function AdverseActionReviewPage() {
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={handleOverride}
-                      disabled={!customNarrative || overrideReason.length < 10}
+                      onClick={() => {
+                        setCustomNarrative(selectedReview.finalNarrative || selectedReview.narrative.summary)
+                        setOverrideReason("")
+                        setIsOverrideDialogOpen(true)
+                      }}
                       className="gap-2"
                     >
                       <TrendingDown className="h-4 w-4" />
-                      Override
+                      Override Notice
                     </Button>
                   </>
                 )}
@@ -400,6 +393,60 @@ export default function AdverseActionReviewPage() {
           </Card>
         )}
       </div>
+
+      {/* Override Notice Dialog */}
+      <Dialog open={isOverrideDialogOpen} onOpenChange={setIsOverrideDialogOpen}>
+        <DialogContent className="max-w-lg bg-background border border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground font-semibold">
+              <TrendingDown className="h-5 w-5 text-orange-600" />
+              Override Adverse Action Notice
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs">
+              Provide a custom narrative explanation for the applicant and state the legal regulatory justification for this decision override.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground">Custom Narrative (Explanation for Applicant)</label>
+              <Textarea
+                placeholder="Enter custom adverse action narrative..."
+                value={customNarrative}
+                onChange={(e) => setCustomNarrative(e.target.value)}
+                className="min-h-[120px] text-sm bg-card border-border/60"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground">Justification/Reason for Override (Required)</label>
+              <Textarea
+                placeholder="State the compliance or model justification (min 10 characters)..."
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+                className="min-h-[80px] text-sm bg-card border-border/60"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsOverrideDialogOpen(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                handleOverride()
+                setIsOverrideDialogOpen(false)
+              }}
+              disabled={!customNarrative || overrideReason.trim().length < 10}
+              className="text-xs bg-primary text-primary-foreground"
+            >
+              Confirm Override
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   )

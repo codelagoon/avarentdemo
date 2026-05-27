@@ -349,7 +349,7 @@ export default function NextApp() {
           onNavigate={setActivePage}
           onLogout={handleLogout}
         />
-        <main className="flex-1 overflow-auto" data-testid="main-content">
+        <main className="flex-1 overflow-hidden" data-testid="main-content">
           {activePage === "dashboard"        && <DashboardPage />}
           {activePage === "threats"          && <ThreatAnalysisPage />}
           {activePage === "ledger"           && <EvidenceLedgerPage />}

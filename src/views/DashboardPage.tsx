@@ -1069,7 +1069,7 @@ export function DashboardPage() {
         </div>
 
         {/* ── Fairness wave + mini-stats row ── */}
-        <div className="border-b border-border/60 bg-card px-5 py-3">
+        <div className="border-b border-border/60 bg-card px-5 py-3 shrink-0">
           <div className="flex items-center gap-4">
             {/* Metric tiles */}
             <div className="flex flex-col gap-1.5 shrink-0">
@@ -1156,7 +1156,7 @@ export function DashboardPage() {
         </div>
 
         {/* ── Causal Graph Section ── */}
-        <div className="border-b border-border/60 bg-card px-5 py-3 transition-all">
+        <div className="border-b border-border/60 bg-card px-5 py-3 transition-all shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Hash className="h-3 w-3 text-indigo-500" />
