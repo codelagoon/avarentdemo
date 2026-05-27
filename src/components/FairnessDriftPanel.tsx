@@ -247,7 +247,7 @@ export function FairnessDriftPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-48">
+            <div className="h-48" style={{ minHeight: 192 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 10, right: 30, bottom: 10, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />

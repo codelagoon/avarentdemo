@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { subscribe } from "@/lib/sync"
 
 /**
@@ -10,24 +10,38 @@ import { subscribe } from "@/lib/sync"
  *
  * Example:
  *   const entries = useLiveData(() => ledgerService.getAll(), ["ledger"])
+ *
+ * IMPORTANT: Pass a stable `getter` reference (defined outside render or wrapped in
+ * useCallback) and a stable `channels` array (e.g. a module-level const) to prevent
+ * infinite re-render loops.
  */
 export function useLiveData<T>(getter: () => T, channels: string[]): T {
   const [value, setValue] = useState<T>(getter)
 
+  // Stable ref to the latest getter so we never need getter in dependency arrays
+  const getterRef = useRef(getter)
+  useEffect(() => {
+    getterRef.current = getter
+  })
+
+  // Stable ref to channels string so we only re-subscribe when the channel list
+  // actually changes (compares by serialized value, not array identity)
+  const channelsKey = channels.join(",")
+
   const refresh = useCallback(() => {
-    setValue(getter())
-  }, [getter])
+    setValue(getterRef.current())
+  }, []) // intentionally empty — uses ref
 
   useEffect(() => {
     // Initial load
     refresh()
 
     // Subscribe to all specified channels
-    const unsubs = channels.map((ch) => subscribe(ch, refresh))
+    const chList = channelsKey ? channelsKey.split(",") : []
+    const unsubs = chList.map((ch) => subscribe(ch, refresh))
 
     // Also listen for localStorage changes from other tabs
     const handleStorage = () => {
-      // Any localStorage change refreshes everything since multiple services share storage
       refresh()
     }
     window.addEventListener("storage", handleStorage)
@@ -36,7 +50,7 @@ export function useLiveData<T>(getter: () => T, channels: string[]): T {
       unsubs.forEach((u) => u())
       window.removeEventListener("storage", handleStorage)
     }
-  }, [refresh, channels])
+  }, [refresh, channelsKey]) // channelsKey is a primitive — stable
 
   return value
 }

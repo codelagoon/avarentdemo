@@ -66,6 +66,8 @@ export interface ApplicationData {
 // Primary: OpenRouter with free models
 async function callOpenRouter(app: ApplicationData, model: string = "google/gemma-2-9b-it:free"): Promise<ModelResponse | null> {
   const startTime = Date.now()
+  const key = getOpenRouterKey()
+  if (!key) return null  // No key configured — skip silently
 
   const prompt = buildCreditDecisionPrompt(app)
 
@@ -147,6 +149,8 @@ Consider:
 // Fallback: NVIDIA NIM
 async function callNVIDIA(app: ApplicationData, model: string = "meta/llama-3.1-8b-instruct"): Promise<ModelResponse | null> {
   const startTime = Date.now()
+  const nvidiaKey = getNVIDIAKey()
+  if (!nvidiaKey) return null  // No key configured — skip silently
 
   const prompt = buildCreditDecisionPrompt(app)
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { useLiveData } from "@/hooks/useLiveData"
 import {
   Play, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle,
@@ -13,9 +13,6 @@ import {
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
@@ -397,6 +394,10 @@ function ComplianceControlsPanel({
   const [profileOpen,      setProfileOpen]        = useState(true)
   const [controlsOpen,     setControlsOpen]       = useState(true)
 
+  const handleProxyScanChange = useCallback((val: boolean) => setEnableProxyScan(val), [])
+  const handleDoCalcChange = useCallback((val: boolean) => setEnableDoCalc(val), [])
+  const handleHashChainChange = useCallback((val: boolean) => setEnableHashChain(val), [])
+
   return (
     <div className="flex h-full flex-col overflow-y-auto" data-testid="red-team-console">
       {/* Panel header */}
@@ -574,83 +575,74 @@ function ComplianceControlsPanel({
             </div>
             {/* Toggles */}
             <div className="space-y-2">
-              {[
-                { 
-                  label: "Proxy Variable Scanning", 
-                  value: enableProxyScan,  
-                  set: (val: boolean) => {
-                    setEnableProxyScan(val)
-                    if (!val) {
-                      toast.warning("Warning: Real-time proxy variable scanning disabled. This immediately elevates disparate impact risk.")
-                    }
-                  },  
-                  testId: "toggle-proxy-scan" 
-                },
-                { 
-                  label: "Do-Calculus Intervention", 
-                  value: enableDoCalc,    
-                  set: (val: boolean) => {
-                    setEnableDoCalc(val)
-                    if (!val) {
-                      toast.warning("Warning: Causal path intervention disabled. Proxies will act directly on decisioning models.")
-                    }
-                  },     
-                  testId: "toggle-do-calc" 
-                },
-                { 
-                  label: "Hash-Chain Ledger Signing", 
-                  value: enableHashChain, 
-                  set: (val: boolean) => {
-                    setEnableHashChain(val)
-                    if (!val) {
-                      toast.warning("Warning: Ledger signing disabled. Decision events will not be cryptographically recorded.")
-                    }
-                  },  
-                  testId: "toggle-hash-chain" 
-                },
-              ].map(item => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <Label className="cursor-pointer text-[0.7rem] text-slate-600 dark:text-slate-300" htmlFor={item.testId}>
-                    {item.label}
-                  </Label>
-                  <Switch
-                    id={item.testId}
-                    checked={item.value}
-                    onCheckedChange={item.set}
-                    data-testid={item.testId}
-                    size="sm"
-                  />
-                </div>
-              ))}
+              <div className="flex items-center justify-between">
+                <Label className="cursor-pointer text-[0.7rem] text-slate-600 dark:text-slate-300" htmlFor="toggle-proxy-scan">
+                  Proxy Variable Scanning
+                </Label>
+                <input
+                  id="toggle-proxy-scan"
+                  type="checkbox"
+                  checked={enableProxyScan}
+                  onChange={(e) => handleProxyScanChange(e.target.checked)}
+                  data-testid="toggle-proxy-scan"
+                  className="h-4 w-4"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="cursor-pointer text-[0.7rem] text-slate-600 dark:text-slate-300" htmlFor="toggle-do-calc">
+                  Do-Calculus Intervention
+                </Label>
+                <input
+                  id="toggle-do-calc"
+                  type="checkbox"
+                  checked={enableDoCalc}
+                  onChange={(e) => handleDoCalcChange(e.target.checked)}
+                  data-testid="toggle-do-calc"
+                  className="h-4 w-4"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="cursor-pointer text-[0.7rem] text-slate-600 dark:text-slate-300" htmlFor="toggle-hash-chain">
+                  Hash-Chain Ledger Signing
+                </Label>
+                <input
+                  id="toggle-hash-chain"
+                  type="checkbox"
+                  checked={enableHashChain}
+                  onChange={(e) => handleHashChainChange(e.target.checked)}
+                  data-testid="toggle-hash-chain"
+                  className="h-4 w-4"
+                />
+              </div>
             </div>
             {/* Selectors */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="mb-1 block text-[0.6rem] text-slate-400 tracking-wide">Loan Type</Label>
-                <Select value={loanType} onValueChange={setLoanType}>
-                  <SelectTrigger className="h-7 text-xs" data-testid="select-loan-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mortgage">Mortgage</SelectItem>
-                    <SelectItem value="auto">Auto Loan</SelectItem>
-                    <SelectItem value="personal">Personal</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={loanType}
+                  onChange={(e) => setLoanType(e.target.value)}
+                  data-testid="select-loan-type"
+                  className="h-7 w-full text-xs rounded border border-border bg-background px-2"
+                >
+                  <option value="mortgage">Mortgage</option>
+                  <option value="auto">Auto Loan</option>
+                  <option value="personal">Personal</option>
+                  <option value="business">Business</option>
+                </select>
               </div>
               <div>
                 <Label className="mb-1 block text-[0.6rem] text-slate-400 tracking-wide">Sensitivity</Label>
-                <Select value={modelSensitivity} onValueChange={setModelSensitivity}>
-                  <SelectTrigger className="h-7 text-xs" data-testid="select-sensitivity">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="strict">Strict</SelectItem>
-                    <SelectItem value="balanced">Balanced</SelectItem>
-                    <SelectItem value="lenient">Lenient</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={modelSensitivity}
+                  onChange={(e) => setModelSensitivity(e.target.value)}
+                  data-testid="select-sensitivity"
+                  className="h-7 w-full text-xs rounded border border-border bg-background px-2"
+                >
+                  <option value="strict">Strict</option>
+                  <option value="balanced">Balanced</option>
+                  <option value="lenient">Lenient</option>
+                </select>
               </div>
             </div>
           </div>
@@ -726,18 +718,18 @@ type TabFilter = "all" | "approved" | "escalated" | "under_review"
 function ApplicantTable({ activeScenario }: { activeScenario: ScenarioConfig | null }) {
   const [tab, setTab] = useState<TabFilter>("all")
   const filtered = RECENT_DECISIONS.filter(d => tab === "all" || d.decision === tab)
-  const counts = {
+  const counts = useMemo(() => ({
     all:          RECENT_DECISIONS.length,
     approved:     RECENT_DECISIONS.filter(d => d.decision === "approved").length,
     escalated:    RECENT_DECISIONS.filter(d => d.decision === "escalated").length,
     under_review: RECENT_DECISIONS.filter(d => d.decision === "under_review").length,
-  }
-  const tabs: { id: TabFilter; label: string; count: number }[] = [
-    { id: "all",          label: "All applications", count: counts.all },
-    { id: "approved",     label: "Approved",          count: counts.approved },
-    { id: "escalated",    label: "Escalated",         count: counts.escalated },
-    { id: "under_review", label: "Under Review",      count: counts.under_review },
-  ]
+  }), [])
+  const tabs = useMemo(() => [
+    { id: "all" as TabFilter,          label: "All applications", count: counts.all },
+    { id: "approved" as TabFilter,     label: "Approved",          count: counts.approved },
+    { id: "escalated" as TabFilter,    label: "Escalated",         count: counts.escalated },
+    { id: "under_review" as TabFilter, label: "Under Review",      count: counts.under_review },
+  ], [counts])
   return (
     <div className="flex flex-col h-full">
       {/* Tabs */}
@@ -865,27 +857,56 @@ function InsightsPanel({ entries, severedEdges, activeScenario, running }: {
 
       {/* KPI tiles row */}
       <div className="grid grid-cols-2 gap-2">
-        {[
-          { label: "Models Active",    value: DAILY_STATS.modelsInProduction, icon: Boxes,    accent: false },
-          { label: "24h Audits",       value: DAILY_STATS.auditsLast24h,      icon: BarChart2, accent: false },
-          { label: "Features",         value: DATA_VOLUME.featuresPerDecision, icon: Database, accent: true },
-          { label: "Open Alerts",      value: DAILY_STATS.openIncidents,       icon: AlertTriangle, accent: DAILY_STATS.openIncidents > 0 },
-        ].map(({ label, value, icon: Icon, accent }) => (
-          <div key={label} className={cn(
-            "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
-            accent
-              ? "border-indigo-100 bg-indigo-50 dark:border-indigo-900/50 dark:bg-indigo-950/30"
-              : "border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900/60"
-          )}>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">{label}</p>
-              <Icon className={cn("h-3 w-3", accent ? "text-indigo-500" : "text-slate-400")} />
-            </div>
-            <p className={cn("text-xl font-black tabular-nums", accent ? "text-indigo-700 dark:text-indigo-300" : "text-slate-800 dark:text-slate-200")}>
-              {value}
-            </p>
+        <div className={cn(
+          "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
+          "border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900/60"
+        )}>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">Models Active</p>
+            <Boxes className="h-3 w-3 text-slate-400" />
           </div>
-        ))}
+          <p className="text-xl font-black tabular-nums text-slate-800 dark:text-slate-200">
+            {DAILY_STATS.modelsInProduction}
+          </p>
+        </div>
+        <div className={cn(
+          "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
+          "border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900/60"
+        )}>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">24h Audits</p>
+            <BarChart2 className="h-3 w-3 text-slate-400" />
+          </div>
+          <p className="text-xl font-black tabular-nums text-slate-800 dark:text-slate-200">
+            {DAILY_STATS.auditsLast24h}
+          </p>
+        </div>
+        <div className={cn(
+          "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
+          "border-indigo-100 bg-indigo-50 dark:border-indigo-900/50 dark:bg-indigo-950/30"
+        )}>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">Features</p>
+            <Database className="h-3 w-3 text-indigo-500" />
+          </div>
+          <p className="text-xl font-black tabular-nums text-indigo-700 dark:text-indigo-300">
+            {DATA_VOLUME.featuresPerDecision}
+          </p>
+        </div>
+        <div className={cn(
+          "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
+          DAILY_STATS.openIncidents > 0
+            ? "border-indigo-100 bg-indigo-50 dark:border-indigo-900/50 dark:bg-indigo-950/30"
+            : "border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900/60"
+        )}>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">Open Alerts</p>
+            <AlertTriangle className={cn("h-3 w-3", DAILY_STATS.openIncidents > 0 ? "text-indigo-500" : "text-slate-400")} />
+          </div>
+          <p className={cn("text-xl font-black tabular-nums", DAILY_STATS.openIncidents > 0 ? "text-indigo-700 dark:text-indigo-300" : "text-slate-800 dark:text-slate-200")}>
+            {DAILY_STATS.openIncidents}
+          </p>
+        </div>
       </div>
 
       {/* Fairness score summary */}
@@ -893,31 +914,17 @@ function InsightsPanel({ entries, severedEdges, activeScenario, running }: {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-4">
             <div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-[0.58rem] font-bold text-slate-400 cursor-help border-b border-dashed border-slate-300 dark:border-slate-750">
-                    AIR
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-xs">
-                  Adverse Impact Ratio: Selection rate of protected class / selection rate of control class. CFPB minimum is 0.80.
-                </TooltipContent>
-              </Tooltip>
+              <span className="text-[0.58rem] font-bold text-slate-400">
+                AIR
+              </span>
               <p className="text-sm font-black text-slate-700 dark:text-slate-300 font-mono mt-0.5">
                 {avgFairness.toFixed(2)}
               </p>
             </div>
             <div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-[0.58rem] font-bold text-slate-400 cursor-help border-b border-dashed border-slate-300 dark:border-slate-750">
-                    SPD
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-xs">
-                  Statistical Parity Difference: Difference in selection rates between control and protected classes. Target is &le; 0.10.
-                </TooltipContent>
-              </Tooltip>
+              <span className="text-[0.58rem] font-bold text-slate-400">
+                SPD
+              </span>
               <p className="text-sm font-black text-slate-700 dark:text-slate-300 font-mono mt-0.5">
                 {Math.max(0, 1 - avgFairness).toFixed(2)}
               </p>
@@ -957,14 +964,9 @@ function InsightsPanel({ entries, severedEdges, activeScenario, running }: {
             <span className="text-[0.6rem] font-bold tracking-widest text-slate-500 dark:text-slate-400">Evidence Ledger</span>
           </div>
           <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition-colors">
-                  <Download className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Export ledger</TooltipContent>
-            </Tooltip>
+            <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition-colors">
+              <Download className="h-3 w-3" />
+            </button>
             <Badge variant="secondary" className="text-[0.58rem] h-4 px-1.5">
               {entries.length} events
             </Badge>
@@ -1062,47 +1064,38 @@ export function DashboardPage() {
           <div className="flex items-center gap-4">
             {/* Metric tiles */}
             <div className="flex flex-col gap-1.5 shrink-0">
-              {[
-                {
-                  label: "Scenarios",
-                  value: Object.keys(DEMO_SCENARIOS).length,
-                  icon: <Activity className="h-3 w-3" />,
-                  trend: <TrendingUp className="h-2.5 w-2.5 text-emerald-500" />,
-                  accent: "#6366f1",
-                },
-                {
-                  label: "Interventions",
-                  value: severedEdges.length,
-                  icon: <Zap className="h-3 w-3" />,
-                  trend: severedEdges.length > 0
-                    ? <TrendingDown className="h-2.5 w-2.5 text-rose-500" />
-                    : <Minus className="h-2.5 w-2.5 text-slate-400" />,
-                  accent: severedEdges.length > 0 ? "#ef4444" : "#6366f1",
-                },
-                {
-                  label: "AIR",
-                  value: DAILY_STATS.fairnessScore.toFixed(2),
-                  icon: <Scale className="h-3 w-3" />,
-                  trend: <TrendingUp className="h-2.5 w-2.5 text-emerald-500" />,
-                  accent: "#10b981",
-                },
-                {
-                  label: "SPD",
-                  value: Math.max(0, 1 - DAILY_STATS.fairnessScore).toFixed(2),
-                  icon: <Scale className="h-3 w-3" />,
-                  trend: <TrendingDown className="h-2.5 w-2.5 text-emerald-500" />,
-                  accent: "#0ea5e9",
-                },
-              ].map(({ label, value, icon, trend, accent }) => (
-                <div key={label} className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
-                  <span style={{ color: accent }}>{icon}</span>
-                  <div>
-                    <p className="text-sm font-black tabular-nums leading-none" style={{ color: accent }}>{value}</p>
-                    <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">{label}</p>
-                  </div>
-                  <span className="ml-1">{trend}</span>
+              <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
+                <span style={{ color: "#6366f1" }}><Activity className="h-3 w-3" /></span>
+                <div>
+                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: "#6366f1" }}>{Object.keys(DEMO_SCENARIOS).length}</p>
+                  <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">Scenarios</p>
                 </div>
-              ))}
+                <span className="ml-1"><TrendingUp className="h-2.5 w-2.5 text-emerald-500" /></span>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
+                <span style={{ color: severedEdges.length > 0 ? "#ef4444" : "#6366f1" }}><Zap className="h-3 w-3" /></span>
+                <div>
+                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: severedEdges.length > 0 ? "#ef4444" : "#6366f1" }}>{severedEdges.length}</p>
+                  <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">Interventions</p>
+                </div>
+                <span className="ml-1">{severedEdges.length > 0 ? <TrendingDown className="h-2.5 w-2.5 text-rose-500" /> : <Minus className="h-2.5 w-2.5 text-slate-400" />}</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
+                <span style={{ color: "#10b981" }}><Scale className="h-3 w-3" /></span>
+                <div>
+                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: "#10b981" }}>{DAILY_STATS.fairnessScore.toFixed(2)}</p>
+                  <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">AIR</p>
+                </div>
+                <span className="ml-1"><TrendingUp className="h-2.5 w-2.5 text-emerald-500" /></span>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
+                <span style={{ color: "#0ea5e9" }}><Scale className="h-3 w-3" /></span>
+                <div>
+                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: "#0ea5e9" }}>{Math.max(0, 1 - DAILY_STATS.fairnessScore).toFixed(2)}</p>
+                  <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">SPD</p>
+                </div>
+                <span className="ml-1"><TrendingDown className="h-2.5 w-2.5 text-emerald-500" /></span>
+              </div>
             </div>
 
             {/* Fairness wave chart */}
@@ -1132,17 +1125,12 @@ export function DashboardPage() {
                       {severedEdges.length} severed
                     </Badge>
                   )}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => { setSeveredEdges([]); setActiveScenario(null); setTestResult(null) }}
-                        className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition-colors"
-                      >
-                        <RefreshCw className="h-3 w-3" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Reset</TooltipContent>
-                  </Tooltip>
+                  <button
+                    onClick={() => { setSeveredEdges([]); setActiveScenario(null); setTestResult(null) }}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </button>
                   <button
                     onClick={() => setGraphVisible(v => !v)}
                     className="rounded border border-slate-200 px-2 py-0.5 text-[0.6rem] font-semibold text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 transition-colors"
@@ -1169,18 +1157,9 @@ export function DashboardPage() {
                   : "Feature Dependency Graph — 82 variables mapped"}
               </span>
               {graphVisible && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className="border-indigo-200 text-indigo-600 dark:border-indigo-900 dark:text-indigo-400 text-[0.58rem] cursor-help">
-                      {DATA_VOLUME.featuresRange.min}–{DATA_VOLUME.featuresRange.max} range
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-[0.65rem]">
-                      {DATA_VOLUME.featuresPerDecision} features is the optimal sweet spot—enough for high accuracy while maintaining explainability and minimizing proxy risk.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+                <Badge variant="outline" className="border-indigo-200 text-indigo-600 dark:border-indigo-900 dark:text-indigo-400 text-[0.58rem]">
+                  {DATA_VOLUME.featuresRange.min}–{DATA_VOLUME.featuresRange.max} range
+                </Badge>
               )}
             </div>
             <button

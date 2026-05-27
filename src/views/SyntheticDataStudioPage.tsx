@@ -283,7 +283,7 @@ export function SyntheticDataStudioPage() {
               </div>
             </div>
             <div className="p-4">
-              <ChartContainer config={chartConfig} className="h-[240px] w-full">
+              <ChartContainer config={chartConfig} className="h-[240px] w-full" style={{ minHeight: 240 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barChartData} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
                     <CartesianGrid vertical={false} stroke="oklch(0.91 0.008 247)" />
@@ -311,7 +311,7 @@ export function SyntheticDataStudioPage() {
             <div className="space-y-4 p-4">
               <div className="grid grid-cols-2 gap-3.5">
                 <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-900/50 space-y-1">
-                  <p className="text-[0.625rem] font-bold text-muted-foreground">Wasserstein Dist</p>
+                  <p className="text-[0.625rem] font-bold text-muted-foreground">Wasserstein Distance:</p>
                   <p className="font-mono text-xs font-bold text-foreground leading-normal">{state.ganMetrics.wassersteinDistance} (synthetic data is statistically indistinguishable from source)</p>
                   <Badge className="text-[0.55rem] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 border-emerald-300">Optimal</Badge>
                 </div>

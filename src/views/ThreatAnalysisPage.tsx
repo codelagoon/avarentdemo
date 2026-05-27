@@ -382,8 +382,8 @@ export function ThreatAnalysisPage() {
                     Disparity Detected (D = 0.28)
                   </span>
                 </div>
-                <div className="p-4">
-                  <div className="h-[220px] w-full">
+                  <div className="p-4">
+                  <div className="h-[220px] w-full" style={{ minHeight: 220 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={KS_DISTRIBUTION_DATA} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
                         <CartesianGrid vertical={false} stroke="oklch(0.91 0.008 247)" />
