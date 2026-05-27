@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Users, Shield, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, Search, UserPlus, Key } from "lucide-react"
+import { Users, Shield, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, Search, UserPlus, Key, ChevronDown, ChevronUp } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -48,6 +48,11 @@ const ROLE_COLORS: Record<string, string> = {
 export function AccessControlPage() {
   const [search, setSearch] = useState("")
   const [users] = useState(USER_ROLES)
+
+  // Accordion states
+  const [isMatrixExpanded, setIsMatrixExpanded] = useState(true)
+  const [isAccessLogExpanded, setIsAccessLogExpanded] = useState(true)
+  const [isUserDirectoryExpanded, setIsUserDirectoryExpanded] = useState(true)
 
   const filtered = users.filter(u =>
     !search ||
@@ -110,10 +115,16 @@ export function AccessControlPage() {
         {/* Role Matrix + Access Log */}
         <div className="mb-5 grid grid-cols-3 gap-4">
           <Card className="col-span-1 border-border/60 shadow-sm">
-            <div className="border-b border-border/40 px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setIsMatrixExpanded(!isMatrixExpanded)}
+              className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+            >
               <p className="text-sm font-semibold text-foreground">Role Permissions Matrix</p>
-            </div>
-            <div className="p-4">
+              {isMatrixExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {isMatrixExpanded && (
+              <div className="p-4">
               {[
                 { role: "Chief Compliance", perms: ["admin", "all read/write", "export", "manage users"] },
                 { role: "AI Fairness Dir.", perms: ["model read/write", "export", "config"] },
@@ -131,14 +142,23 @@ export function AccessControlPage() {
                 </div>
               ))}
             </div>
+            )}
           </Card>
 
           <Card className="col-span-2 border-border/60 shadow-sm">
-            <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setIsAccessLogExpanded(!isAccessLogExpanded)}
+              className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+            >
               <p className="text-sm font-semibold text-foreground">Recent Access Log</p>
-              <Badge variant="secondary" className="text-[0.65rem]">Last 24h</Badge>
-            </div>
-            <div className="p-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-[0.65rem]">Last 24h</Badge>
+                {isAccessLogExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </button>
+            {isAccessLogExpanded && (
+              <div className="p-4">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/60">
@@ -174,13 +194,21 @@ export function AccessControlPage() {
                 </tbody>
               </table>
             </div>
+            )}
           </Card>
         </div>
 
         {/* Users Table */}
         <Card className="border-border/60 shadow-sm">
-          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
-            <p className="text-sm font-semibold text-foreground">User Directory</p>
+          <div className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setIsUserDirectoryExpanded(!isUserDirectoryExpanded)}
+              className="flex items-center gap-2 text-left hover:text-foreground/80 transition-colors duration-100"
+            >
+              <p className="text-sm font-semibold text-foreground">User Directory</p>
+              {isUserDirectoryExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -192,7 +220,9 @@ export function AccessControlPage() {
               />
             </div>
           </div>
-          <Table data-testid="users-table">
+          {isUserDirectoryExpanded && (
+            <div className="max-h-[300px] overflow-y-auto">
+              <Table data-testid="users-table">
             <TableHeader>
               <TableRow className="border-border/40 hover:bg-transparent">
                 <TableHead className="pl-5 text-[0.68rem] font-semibold uppercase tracking-wider">Name</TableHead>
@@ -268,6 +298,8 @@ export function AccessControlPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
+          )}
         </Card>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useLiveData } from "@/hooks/useLiveData"
-import { Database, Cpu, ShieldAlert, Sparkles, Sliders, RefreshCw, BarChart3, CheckCircle2, HelpCircle, Download, FileSpreadsheet } from "lucide-react"
+import { Database, Cpu, ShieldAlert, Sparkles, Sliders, RefreshCw, BarChart3, CheckCircle2, HelpCircle, Download, FileSpreadsheet, ChevronDown, ChevronUp } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -20,6 +20,11 @@ export function SyntheticDataStudioPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationProgress, setGenerationProgress] = useState(0)
   const [activeCategory, setActiveCategory] = useState<"Race" | "Gender" | "Age">("Race")
+  
+  // Accordion / progressive disclosure states
+  const [isBalancerExpanded, setIsBalancerExpanded] = useState(true)
+  const [isChartExpanded, setIsChartExpanded] = useState(true)
+  const [isSanitizerExpanded, setIsSanitizerExpanded] = useState(true)
 
   const filteredGroups = state.groups.filter(g => g.category === activeCategory)
 
@@ -96,16 +101,22 @@ export function SyntheticDataStudioPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Class Imbalance Panel */}
-          <Card className="lg:col-span-2 border-border/60 shadow-sm">
-            <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+          <Card className="lg:col-span-2 border-border/60 shadow-sm flex flex-col min-h-0">
+            <div 
+              className="flex items-center justify-between border-b border-border/40 px-5 py-3 cursor-pointer hover:bg-muted/20 select-none shrink-0"
+              onClick={() => setIsBalancerExpanded(!isBalancerExpanded)}
+            >
               <div className="flex items-center gap-2">
                 <Sliders className="h-3.5 w-3.5 text-primary" />
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Minority Representation Balancer</p>
+                  <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                    Minority Representation Balancer
+                    {isBalancerExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                  </p>
                   <p className="text-[0.68rem] text-muted-foreground">Adjust target demographics to calibrate GAN synthesis ratios</p>
                 </div>
               </div>
-              <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/60 p-0.5">
+              <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/60 p-0.5 shrink-0" onClick={e => e.stopPropagation()}>
                 {(["Race", "Gender", "Age"] as const).map(cat => (
                   <button key={cat} onClick={() => setActiveCategory(cat)} className={cn("rounded-md px-2.5 py-1 text-xs font-semibold transition-all", activeCategory === cat ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
                     {cat}
@@ -113,55 +124,57 @@ export function SyntheticDataStudioPage() {
                 ))}
               </div>
             </div>
-            <div className="space-y-3 p-4">
-              <div className="space-y-3">
-                {filteredGroups.map(group => {
-                  const severity = group.representationRatio < 15 ? "critical" : group.representationRatio < 30 ? "moderate" : "nominal"
-                  return (
-                    <div key={group.id} className="p-3.5 rounded-lg border bg-card/60 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <p className="text-xs font-semibold text-foreground">{group.group}</p>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[0.65rem] text-muted-foreground font-mono">
-                              Current: {group.currentCount} ({group.representationRatio}%)
-                            </span>
-                            <span className="text-[0.65rem] text-muted-foreground">•</span>
-                            <span className="text-[0.65rem] font-bold text-primary font-mono">
-                              Target: {group.targetCount} ({group.targetRatio}%)
-                            </span>
+            {isBalancerExpanded && (
+              <div className="space-y-3 p-4 overflow-y-auto max-h-[350px]">
+                <div className="space-y-3">
+                  {filteredGroups.map(group => {
+                    const severity = group.representationRatio < 15 ? "critical" : group.representationRatio < 30 ? "moderate" : "nominal"
+                    return (
+                      <div key={group.id} className="p-3.5 rounded-lg border bg-card/60 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-semibold text-foreground">{group.group}</p>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[0.65rem] text-muted-foreground font-mono">
+                                Current: {group.currentCount} ({group.representationRatio}%)
+                              </span>
+                              <span className="text-[0.65rem] text-muted-foreground">•</span>
+                              <span className="text-[0.65rem] font-bold text-primary font-mono">
+                                Target: {group.targetCount} ({group.targetRatio}%)
+                              </span>
+                            </div>
                           </div>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[0.6rem] tracking-wider font-bold",
+                              severity === "critical"
+                                ? "border-destructive/20 bg-destructive/5 text-destructive"
+                                : severity === "moderate"
+                                ? "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/20"
+                                : "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20"
+                            )}
+                          >
+                            {severity === "critical" ? "Severe Imbalance" : severity === "moderate" ? "Moderate Bias" : "Balanced"}
+                          </Badge>
                         </div>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[0.6rem] tracking-wider font-bold",
-                            severity === "critical"
-                              ? "border-destructive/20 bg-destructive/5 text-destructive"
-                              : severity === "moderate"
-                              ? "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/20"
-                              : "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20"
-                          )}
-                        >
-                          {severity === "critical" ? "Severe Imbalance" : severity === "moderate" ? "Moderate Bias" : "Balanced"}
-                        </Badge>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="range"
+                            min="100"
+                            max="2000"
+                            step="20"
+                            value={group.targetCount}
+                            onChange={(e) => handleSliderChange(group.id, parseInt(e.target.value))}
+                            className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="100"
-                          max="2000"
-                          step="20"
-                          value={group.targetCount}
-                          onChange={(e) => handleSliderChange(group.id, parseInt(e.target.value))}
-                          className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </Card>
 
           {/* GAN Synthesizer Engine controls */}
@@ -345,100 +358,108 @@ export function SyntheticDataStudioPage() {
         </div>
 
         {/* Row 3: Proxy Sanitization Panel */}
-        <Card className="border-border/60 shadow-sm">
-          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+        <Card className="border-border/60 shadow-sm flex flex-col min-h-0">
+          <div 
+            className="flex items-center justify-between border-b border-border/40 px-5 py-3 cursor-pointer hover:bg-muted/20 select-none shrink-0"
+            onClick={() => setIsSanitizerExpanded(!isSanitizerExpanded)}
+          >
             <div className="flex items-center gap-2">
-              <ShieldAlert className="h-3.5 w-3.5 text-primary" />
+              <ShieldAlert className="h-3.5 w-3.5 text-primary shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-foreground">Disparate Impact & Proxy Variable Sanitizer</p>
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  Disparate Impact & Proxy Variable Sanitizer
+                  {isSanitizerExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                </p>
                 <p className="text-[0.68rem] text-muted-foreground">Strip latent correlations between standard variables and protected classes</p>
               </div>
             </div>
-            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[0.62rem] font-semibold text-emerald-600 dark:text-emerald-400">Remover Active</span>
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[0.62rem] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">Remover Active</span>
           </div>
-          <div className="p-4">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="pb-2 text-left text-xs font-semibold text-slate-500">Variable Name</th>
-                    <th className="pb-2 text-left text-xs font-semibold text-slate-500">Suspected Protected Proxy</th>
-                    <th className="pb-2 text-center text-xs font-semibold text-slate-500">Risk Score</th>
-                    <th className="pb-2 text-center text-xs font-semibold text-slate-500">Original Correlation</th>
-                    <th className="pb-2 text-center text-xs font-semibold text-slate-500">Sanitized Correlation</th>
-                    <th className="pb-2 text-center text-xs font-semibold text-slate-500">Disparate Impact Lift</th>
-                    <th className="pb-2 text-center text-xs font-semibold text-slate-500">Regulatory Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.features.map(feat => {
-                    return (
-                      <tr key={feat.id} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                        <td className="py-3 text-xs font-semibold font-mono text-foreground">{feat.name}</td>
-                        <td className="py-3 text-xs text-muted-foreground">{feat.protectedAttribute}</td>
-                        <td className="py-3 text-center">
-                          <span className={cn(
-                            "rounded-full px-2 py-0.5 text-[0.6rem] font-bold",
-                            feat.riskScore >= 70
-                              ? "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400 border border-red-200"
-                              : feat.riskScore >= 40
-                              ? "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-200"
-                              : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200"
-                          )}>
-                            {feat.riskScore}/100
-                          </span>
-                        </td>
-                        <td className="py-3 text-center font-mono text-xs text-slate-500">{feat.originalCorrelation.toFixed(2)}</td>
-                        <td className="py-3 text-center font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
-                          {feat.sanitizedCorrelation.toFixed(2)}
-                        </td>
-                        <td className="py-3 text-center font-mono text-xs font-semibold text-emerald-600">
-                          +{feat.impactPercentage}%
-                        </td>
-                        <td className="py-3 text-center">
-                          <div className="flex justify-center gap-1.5">
-                            <button
-                              onClick={() => handleToggleFeature(feat.id, "active")}
-                              className={cn(
-                                "rounded-md px-2 py-1 text-[0.625rem] font-bold transition-all border",
-                                feat.status === "active"
-                                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                                  : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300"
-                              )}
-                            >
-                              Allow
-                            </button>
-                            <button
-                              onClick={() => handleToggleFeature(feat.id, "sanitized")}
-                              className={cn(
-                                "rounded-md px-2 py-1 text-[0.625rem] font-bold transition-all border",
-                                feat.status === "sanitized"
-                                  ? "bg-primary text-white border-primary"
-                                  : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300"
-                              )}
-                            >
-                              Sanitize
-                            </button>
-                            <button
-                              onClick={() => handleToggleFeature(feat.id, "quarantined")}
-                              className={cn(
-                                "rounded-md px-2 py-1 text-[0.625rem] font-bold transition-all border",
-                                feat.status === "quarantined"
-                                  ? "bg-destructive text-white border-destructive"
-                                  : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300"
-                              )}
-                            >
-                              Quarantine
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+          {isSanitizerExpanded && (
+            <div className="p-4 overflow-y-auto max-h-[300px]">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="pb-2 text-left text-xs font-semibold text-slate-500">Variable Name</th>
+                      <th className="pb-2 text-left text-xs font-semibold text-slate-500">Suspected Protected Proxy</th>
+                      <th className="pb-2 text-center text-xs font-semibold text-slate-500">Risk Score</th>
+                      <th className="pb-2 text-center text-xs font-semibold text-slate-500">Original Correlation</th>
+                      <th className="pb-2 text-center text-xs font-semibold text-slate-500">Sanitized Correlation</th>
+                      <th className="pb-2 text-center text-xs font-semibold text-slate-500">Disparate Impact Lift</th>
+                      <th className="pb-2 text-center text-xs font-semibold text-slate-500">Regulatory Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.features.map(feat => {
+                      return (
+                        <tr key={feat.id} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                          <td className="py-3 text-xs font-semibold font-mono text-foreground">{feat.name}</td>
+                          <td className="py-3 text-xs text-muted-foreground">{feat.protectedAttribute}</td>
+                          <td className="py-3 text-center">
+                            <span className={cn(
+                              "rounded-full px-2 py-0.5 text-[0.6rem] font-bold",
+                              feat.riskScore >= 70
+                                ? "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400 border border-red-200"
+                                : feat.riskScore >= 40
+                                ? "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-200"
+                                : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200"
+                            )}>
+                              {feat.riskScore}/100
+                            </span>
+                          </td>
+                          <td className="py-3 text-center font-mono text-xs text-slate-500">{feat.originalCorrelation.toFixed(2)}</td>
+                          <td className="py-3 text-center font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
+                            {feat.sanitizedCorrelation.toFixed(2)}
+                          </td>
+                          <td className="py-3 text-center font-mono text-xs font-semibold text-emerald-600">
+                            +{feat.impactPercentage}%
+                          </td>
+                          <td className="py-3 text-center">
+                            <div className="flex justify-center gap-1.5">
+                              <button
+                                onClick={() => handleToggleFeature(feat.id, "active")}
+                                className={cn(
+                                  "rounded-md px-2 py-1 text-[0.625rem] font-bold transition-all border",
+                                  feat.status === "active"
+                                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                    : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300"
+                                )}
+                              >
+                                Allow
+                              </button>
+                              <button
+                                onClick={() => handleToggleFeature(feat.id, "sanitized")}
+                                className={cn(
+                                  "rounded-md px-2 py-1 text-[0.625rem] font-bold transition-all border",
+                                  feat.status === "sanitized"
+                                    ? "bg-primary text-white border-primary"
+                                    : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300"
+                                )}
+                              >
+                                Sanitize
+                              </button>
+                              <button
+                                onClick={() => handleToggleFeature(feat.id, "quarantined")}
+                                className={cn(
+                                  "rounded-md px-2 py-1 text-[0.625rem] font-bold transition-all border",
+                                  feat.status === "quarantined"
+                                    ? "bg-destructive text-white border-destructive"
+                                    : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300"
+                                )}
+                              >
+                                Quarantine
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </Card>
 
       </div>

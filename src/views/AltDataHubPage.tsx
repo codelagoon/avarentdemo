@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { useLiveData } from "@/hooks/useLiveData"
-import { Network, Link2, Link2Off, BadgePercent, Cpu, CheckCircle2, AlertTriangle, Plus, Layers, TrendingUp, Info } from "lucide-react"
+import { Network, Link2, Link2Off, BadgePercent, Cpu, CheckCircle2, AlertTriangle, Plus, Layers, TrendingUp, Info, ChevronDown, ChevronUp } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +21,12 @@ export function AltDataHubPage() {
   const [isScreening, setIsScreening] = useState(false)
   const [screeningProgress, setScreeningProgress] = useState(0)
   const [recentScreened, setRecentScreened] = useState<AltFeature | null>(null)
+
+  // Accordion states
+  const [isConnectorsExpanded, setIsConnectorsExpanded] = useState(true)
+  const [isScreenerExpanded, setIsScreenerExpanded] = useState(true)
+  const [isLibraryExpanded, setIsLibraryExpanded] = useState(true)
+  const [isScorerExpanded, setIsScorerExpanded] = useState(true)
 
   const handleToggleConnector = (id: string) => {
     altDataService.toggleConnectorStatus(id)
@@ -105,14 +111,22 @@ export function AltDataHubPage() {
           {/* Connector Grid */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="border-border/60 shadow-sm">
-              <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
-                <Layers className="h-3.5 w-3.5 text-primary" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Regulated API Integrations</p>
-                  <p className="text-[0.68rem] text-muted-foreground">Connected Plaid, Finicity, RentTrack, and utility providers</p>
+              <button
+                type="button"
+                onClick={() => setIsConnectorsExpanded(!isConnectorsExpanded)}
+                className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+              >
+                <div className="flex items-center gap-2">
+                  <Layers className="h-3.5 w-3.5 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Regulated API Integrations</p>
+                    <p className="text-[0.68rem] text-muted-foreground">Connected Plaid, Finicity, RentTrack, and utility providers</p>
+                  </div>
                 </div>
-              </div>
-              <div className="p-4">
+                {isConnectorsExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              {isConnectorsExpanded && (
+                <div className="p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {state.connectors.map(c => {
                     const isConnected = c.status === "connected"
@@ -164,19 +178,28 @@ export function AltDataHubPage() {
                   })}
                 </div>
               </div>
+              )}
             </Card>
           </div>
 
           {/* Screening Input / Pipeline Simulation */}
           <Card className="border-primary/20 bg-primary/[0.02] shadow-sm">
-            <div className="flex items-center gap-2 border-b border-primary/10 px-5 py-3">
-              <Cpu className="h-3.5 w-3.5 text-primary" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Dynamic Proxy Screener</p>
-                <p className="text-[0.68rem] text-muted-foreground">Scan new cash-flow variables for Disparate Impact correlations</p>
+            <button
+              type="button"
+              onClick={() => setIsScreenerExpanded(!isScreenerExpanded)}
+              className="flex w-full items-center justify-between border-b border-primary/10 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+            >
+              <div className="flex items-center gap-2">
+                <Cpu className="h-3.5 w-3.5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Dynamic Proxy Screener</p>
+                  <p className="text-[0.68rem] text-muted-foreground">Scan new cash-flow variables for Disparate Impact correlations</p>
+                </div>
               </div>
-            </div>
-            <div className="space-y-4 p-4">
+              {isScreenerExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {isScreenerExpanded && (
+              <div className="space-y-4 p-4">
               <form onSubmit={handleScreenVariable} className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-[0.65rem] font-bold text-muted-foreground">Variable Name</label>
@@ -284,6 +307,7 @@ export function AltDataHubPage() {
                 </div>
               )}
             </div>
+            )}
           </Card>
         </div>
 
@@ -292,15 +316,26 @@ export function AltDataHubPage() {
           
           {/* Variable Explorer Table */}
           <Card className="lg:col-span-2 border-border/60 shadow-sm">
-            <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Extracted Cash-Flow Feature Library</p>
-                <p className="text-[0.68rem] text-muted-foreground">All alternative data variables and their statistical risk tags</p>
+            <button
+              type="button"
+              onClick={() => setIsLibraryExpanded(!isLibraryExpanded)}
+              className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+            >
+              <div className="flex items-center gap-2">
+                <Layers className="h-3.5 w-3.5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Extracted Cash-Flow Feature Library</p>
+                  <p className="text-[0.68rem] text-muted-foreground">All alternative data variables and their statistical risk tags</p>
+                </div>
               </div>
-              <Badge variant="outline" className="font-mono text-[0.62rem]">HMDA/ECOA Pre-screened</Badge>
-            </div>
-            <div className="p-4">
-              <div className="overflow-x-auto">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="font-mono text-[0.62rem]">HMDA/ECOA Pre-screened</Badge>
+                {isLibraryExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </button>
+            {isLibraryExpanded && (
+              <div className="p-4">
+                <div className="max-h-[280px] overflow-y-auto overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
@@ -392,18 +427,27 @@ export function AltDataHubPage() {
                 </table>
               </div>
             </div>
+            )}
           </Card>
 
           {/* Credit Invisible Scorer Panel */}
           <Card className="border-border/60 shadow-sm">
-            <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
-              <BadgePercent className="h-3.5 w-3.5 text-primary" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Credit Invisible Scorer</p>
-                <p className="text-[0.68rem] text-muted-foreground">Thin-file applicant scored using alt cash-flow features</p>
+            <button
+              type="button"
+              onClick={() => setIsScorerExpanded(!isScorerExpanded)}
+              className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+            >
+              <div className="flex items-center gap-2">
+                <BadgePercent className="h-3.5 w-3.5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Credit Invisible Scorer</p>
+                  <p className="text-[0.68rem] text-muted-foreground">Thin-file applicant scored using alt cash-flow features</p>
+                </div>
               </div>
-            </div>
-            <div className="space-y-4 p-4">
+              {isScorerExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {isScorerExpanded && (
+              <div className="space-y-4 p-4">
               <div className="p-3.5 rounded-lg border bg-slate-50 dark:bg-slate-900/50 space-y-1">
                 <span className="text-[0.65rem] font-bold text-muted-foreground">Applicant Profile</span>
                 <p className="text-sm font-extrabold text-foreground">{state.applicantDemo.name}</p>
@@ -448,6 +492,7 @@ export function AltDataHubPage() {
                 </p>
               </div>
             </div>
+            )}
           </Card>
         </div>
 

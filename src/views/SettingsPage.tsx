@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Settings, Shield, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Save, RefreshCw, FileText, Download } from "lucide-react"
+import { Settings, Shield, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Save, RefreshCw, FileText, Download, ChevronDown, ChevronUp } from "lucide-react"
 import { toast } from "sonner"
 import { useTheme } from "@/components/theme-provider"
 import { auditPacketService } from "@/services/auditPacketService"
@@ -65,6 +65,16 @@ function ComplianceStatusRow({ label, status, detail }: { label: string; status:
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme()
+
+  // Accordion states
+  const [isDetectionExpanded, setIsDetectionExpanded] = useState(true)
+  const [isReportingExpanded, setIsReportingExpanded] = useState(true)
+  const [isModelConfigExpanded, setIsModelConfigExpanded] = useState(true)
+  const [isThemeExpanded, setIsThemeExpanded] = useState(true)
+  const [isStatusExpanded, setIsStatusExpanded] = useState(true)
+  const [isSystemInfoExpanded, setIsSystemInfoExpanded] = useState(true)
+  const [isRegulatoryContactExpanded, setIsRegulatoryContactExpanded] = useState(true)
+  const [isAuditPackageExpanded, setIsAuditPackageExpanded] = useState(true)
   const [detection, setDetection] = useState<ToggleSetting[]>([
     { id: "proxy-scan", label: "Real-Time Proxy Variable Scanning", description: "Continuously scan incoming features for protected-class proxy correlations", value: true, critical: true },
     { id: "do-calculus", label: "Do-Calculus Causal Intervention", description: "Automatically severs feature pathways that function as protected class proxies", value: true, critical: true },
@@ -133,35 +143,59 @@ export function SettingsPage() {
           <div className="col-span-2 space-y-4">
             {/* Detection Settings */}
             <Card className="border-border/60 shadow-sm">
-              <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
-                <Shield className="h-3.5 w-3.5 text-primary" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Detection & Intervention Controls</p>
-                  <p className="text-[0.68rem] text-muted-foreground">Core fairness enforcement — disabling critical settings may violate ECOA/HMDA</p>
+              <button
+                type="button"
+                onClick={() => setIsDetectionExpanded(!isDetectionExpanded)}
+                className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="h-3.5 w-3.5 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Detection & Intervention Controls</p>
+                    <p className="text-[0.68rem] text-muted-foreground">Core fairness enforcement — disabling critical settings may violate ECOA/HMDA</p>
+                  </div>
                 </div>
-              </div>
-              <div className="divide-y divide-border/40 px-5">
+                {isDetectionExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              {isDetectionExpanded && (
+                <div className="divide-y divide-border/40 px-5">
                 {detection.map(s => <SettingToggle key={s.id} setting={s} onChange={v => toggleDetection(s.id, v)} />)}
               </div>
+              )}
             </Card>
 
             {/* Reporting Settings */}
             <Card className="border-border/60 shadow-sm">
-              <div className="border-b border-border/40 px-5 py-3">
-                <p className="text-sm font-semibold text-foreground">Reporting & Compliance Export</p>
-                <p className="text-[0.68rem] text-muted-foreground">Regulatory reporting and data retention configuration</p>
-              </div>
-              <div className="divide-y divide-border/40 px-5">
+              <button
+                type="button"
+                onClick={() => setIsReportingExpanded(!isReportingExpanded)}
+                className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Reporting & Compliance Export</p>
+                  <p className="text-[0.68rem] text-muted-foreground">Regulatory reporting and data retention configuration</p>
+                </div>
+                {isReportingExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              {isReportingExpanded && (
+                <div className="divide-y divide-border/40 px-5">
                 {reporting.map(s => <SettingToggle key={s.id} setting={s} onChange={v => toggleReporting(s.id, v)} />)}
               </div>
+              )}
             </Card>
 
             {/* Model Config */}
             <Card className="border-border/60 shadow-sm">
-              <div className="border-b border-border/40 px-5 py-3">
+              <button
+                type="button"
+                onClick={() => setIsModelConfigExpanded(!isModelConfigExpanded)}
+                className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+              >
                 <p className="text-sm font-semibold text-foreground">Model Configuration</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4 p-5">
+                {isModelConfigExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              {isModelConfigExpanded && (
+                <div className="grid grid-cols-2 gap-4 p-5">
                 <div>
                   <Label className="mb-1.5 block text-[0.72rem] font-semibold uppercase tracking-wider text-muted-foreground">Active Model Version</Label>
                   <Select value={modelVersion} onValueChange={setModelVersion}>
@@ -196,6 +230,7 @@ export function SettingsPage() {
                   </Select>
                 </div>
               </div>
+              )}
             </Card>
           </div>
 
@@ -203,11 +238,19 @@ export function SettingsPage() {
           <div className="space-y-4">
             {/* Theme & Appearance picker */}
             <Card className="border-border/60 shadow-sm">
-              <div className="border-b border-border/40 px-4 py-3">
-                <p className="text-sm font-semibold text-foreground">Theme & Appearance</p>
-                <p className="text-[0.65rem] text-muted-foreground font-sans">Select the preferred interface visual theme</p>
-              </div>
-              <div className="grid grid-cols-3 gap-2 p-4">
+              <button
+                type="button"
+                onClick={() => setIsThemeExpanded(!isThemeExpanded)}
+                className="flex w-full items-center justify-between border-b border-border/40 px-4 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Theme & Appearance</p>
+                  <p className="text-[0.65rem] text-muted-foreground font-sans">Select the preferred interface visual theme</p>
+                </div>
+                {isThemeExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              {isThemeExpanded && (
+                <div className="grid grid-cols-3 gap-2 p-4">
                 <Button
                   variant={theme === "light" ? "default" : "outline"}
                   onClick={() => setTheme("light")}
@@ -233,14 +276,23 @@ export function SettingsPage() {
                   System
                 </Button>
               </div>
+              )}
             </Card>
 
             <Card className="border-border/60 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setIsStatusExpanded(!isStatusExpanded)}
+                className="flex w-full items-center justify-between border-b border-border/40 px-4 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+              >
                 <p className="text-sm font-semibold text-foreground">Compliance Status</p>
-                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[0.62rem] font-semibold text-emerald-600 dark:text-emerald-400">All Pass</span>
-              </div>
-              <div className="px-4 py-1">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[0.62rem] font-semibold text-emerald-600 dark:text-emerald-400">All Pass</span>
+                  {isStatusExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </div>
+              </button>
+              {isStatusExpanded && (
+                <div className="px-4 py-1">
                 <ComplianceStatusRow label="ECOA / Reg B" status="pass" detail="DI Ratio ≥ 0.80" />
                 <ComplianceStatusRow label="HMDA / Reg C" status="pass" detail="LAR filed 2026-Q1" />
                 <ComplianceStatusRow label="CFPB 4/5ths Rule" status="pass" detail="Min DI: 0.91" />
@@ -249,13 +301,20 @@ export function SettingsPage() {
                 <ComplianceStatusRow label="FRB Consumer Prot." status="pass" detail="Annual review" />
                 <ComplianceStatusRow label="State CRA (CA/NY)" status="pass" detail="Current" />
               </div>
+              )}
             </Card>
 
             <Card className="border-border/60 shadow-sm">
-              <div className="border-b border-border/40 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setIsSystemInfoExpanded(!isSystemInfoExpanded)}
+                className="flex w-full items-center justify-between border-b border-border/40 px-4 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+              >
                 <p className="text-sm font-semibold text-foreground">System Information</p>
-              </div>
-              <div className="space-y-2 px-4 py-3">
+                {isSystemInfoExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              {isSystemInfoExpanded && (
+                <div className="space-y-2 px-4 py-3">
                 {[
                   { label: "Meridian Version", value: "2.4.1" },
                   { label: "Model Engine", value: DAILY_STATS.modelVersion },
@@ -272,30 +331,46 @@ export function SettingsPage() {
                   </div>
                 ))}
               </div>
+              )}
             </Card>
 
             <Card className="border-border/60 shadow-sm">
-              <div className="border-b border-border/40 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setIsRegulatoryContactExpanded(!isRegulatoryContactExpanded)}
+                className="flex w-full items-center justify-between border-b border-border/40 px-4 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+              >
                 <div className="flex items-center gap-1.5">
                   <Shield className="h-3.5 w-3.5 text-primary" />
                   <p className="text-sm font-semibold text-foreground">Regulatory Contact</p>
                 </div>
-              </div>
-              <div className="space-y-1.5 px-4 py-3">
+                {isRegulatoryContactExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              {isRegulatoryContactExpanded && (
+                <div className="space-y-1.5 px-4 py-3">
                 <p className="text-[0.72rem] text-muted-foreground">OCC Examiner: Thomas B. Okafor</p>
                 <p className="text-[0.72rem] text-muted-foreground">CFPB Contact: fairlending@cfpb.gov</p>
                 <p className="text-[0.72rem] text-muted-foreground">Internal Counsel: legal@firstnationalbank.com</p>
                 <Separator className="my-2" />
                 <p className="text-[0.65rem] text-muted-foreground/60">Next OCC examination: 2026-07-15</p>
               </div>
+              )}
             </Card>
 
             <Card className="border-primary/20 bg-primary/5 shadow-sm">
-              <div className="flex items-center gap-2 border-b border-primary/10 px-4 py-3">
-                <FileText className="h-3.5 w-3.5 text-primary" />
-                <p className="text-sm font-semibold text-foreground">Regulatory Audit Package</p>
-              </div>
-              <div className="p-4">
+              <button
+                type="button"
+                onClick={() => setIsAuditPackageExpanded(!isAuditPackageExpanded)}
+                className="flex w-full items-center justify-between border-b border-primary/10 px-4 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="h-3.5 w-3.5 text-primary" />
+                  <p className="text-sm font-semibold text-foreground">Regulatory Audit Package</p>
+                </div>
+                {isAuditPackageExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              {isAuditPackageExpanded && (
+                <div className="p-4">
                 <p className="mb-3 text-[0.72rem] text-muted-foreground">
                   Generate a comprehensive audit package including bias logs, BIFSG methodology, and validation reports.
                 </p>
@@ -306,6 +381,7 @@ export function SettingsPage() {
                   <Download className="h-4 w-4" />Generate Exam Package
                 </Button>
               </div>
+              )}
             </Card>
           </div>
         </div>

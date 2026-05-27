@@ -1,4 +1,5 @@
-import { ChartBar as BarChart3, TrendingUp, Users, CircleAlert as AlertCircle, Info, Database } from "lucide-react"
+import { useState } from "react"
+import { ChartBar as BarChart3, TrendingUp, Users, CircleAlert as AlertCircle, Info, Database, ChevronDown, ChevronUp } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -75,6 +76,13 @@ export function AnalyticsPage() {
   const overallDI = FAIRNESS_METRICS.reduce((min, m) => Math.min(min, m.disparateImpact), 1)
   const avgApproval = FAIRNESS_METRICS.reduce((s, m) => s + m.approvalRate, 0) / FAIRNESS_METRICS.length
 
+  // Accordion states
+  const [isGaugesExpanded, setIsGaugesExpanded] = useState(true)
+  const [isLiftExpanded, setIsLiftExpanded] = useState(true)
+  const [isProxyExpanded, setIsProxyExpanded] = useState(true)
+  const [isVolumeExpanded, setIsVolumeExpanded] = useState(true)
+  const [isTableExpanded, setIsTableExpanded] = useState(true)
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
@@ -101,21 +109,27 @@ export function AnalyticsPage() {
       <div className="flex-1 overflow-auto p-5">
         {/* Gauge row */}
         <Card className="mb-5 border-border/60 shadow-sm">
-          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
-            <div className="flex items-center gap-2">
+          <div className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setIsGaugesExpanded(!isGaugesExpanded)}
+              className="flex items-center gap-2 text-left hover:text-foreground/80 transition-colors duration-100"
+            >
               <p className="text-sm font-semibold text-foreground">Regulatory Compliance Gauges</p>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
+                  <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" onClick={(e) => e.stopPropagation()} />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs text-xs">
                   CFPB 4/5ths rule requires disparate impact ratio ≥ 0.80. All metrics post-Meridian intervention.
                 </TooltipContent>
               </Tooltip>
-            </div>
+              {isGaugesExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
             <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-semibold text-emerald-600 dark:text-emerald-400">6/6 Passing</span>
           </div>
-          <div className="flex items-center justify-around px-4 py-5">
+          {isGaugesExpanded && (
+            <div className="flex items-center justify-around px-4 py-5">
             <MetricGauge value={0.923} label="AIR" threshold={0.8} isDecimal={true} />
             <div className="h-12 w-px bg-border/60" />
             <MetricGauge value={0.077} label="SPD" threshold={0.1} isDecimal={true} reverse={true} />
@@ -128,16 +142,25 @@ export function AnalyticsPage() {
             <div className="h-12 w-px bg-border/60" />
             <MetricGauge value={0.94} label="Model Stability" threshold={0.85} />
           </div>
+          )}
         </Card>
 
         <div className="mb-5 grid grid-cols-2 gap-5">
           {/* Approval Lift Chart */}
           <Card className="border-border/60 shadow-sm">
-            <div className="border-b border-border/40 px-5 py-3">
-              <p className="text-sm font-semibold text-foreground">Approval Rate Lift</p>
-              <p className="text-[0.68rem] text-muted-foreground">Before vs. After Meridian — protected groups, last 7 months</p>
-            </div>
-            <div className="p-4">
+            <button
+              type="button"
+              onClick={() => setIsLiftExpanded(!isLiftExpanded)}
+              className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+            >
+              <div>
+                <p className="text-sm font-semibold text-foreground">Approval Rate Lift</p>
+                <p className="text-[0.68rem] text-muted-foreground">Before vs. After Meridian — protected groups, last 7 months</p>
+              </div>
+              {isLiftExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {isLiftExpanded && (
+              <div className="p-4">
               <ChartContainer config={liftConfig} className="h-[200px] w-full">
                 <AreaChart data={APPROVAL_LIFT_DATA} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
                   <CartesianGrid vertical={false} className="stroke-border/40" />
@@ -149,15 +172,24 @@ export function AnalyticsPage() {
                 </AreaChart>
               </ChartContainer>
             </div>
+            )}
           </Card>
 
           {/* Proxy Detection Weekly */}
           <Card className="border-border/60 shadow-sm">
-            <div className="border-b border-border/40 px-5 py-3">
-              <p className="text-sm font-semibold text-foreground">Weekly Proxy Detection Volume</p>
-              <p className="text-[0.68rem] text-muted-foreground">Applications screened per week</p>
-            </div>
-            <div className="p-4">
+            <button
+              type="button"
+              onClick={() => setIsProxyExpanded(!isProxyExpanded)}
+              className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3 text-left hover:bg-muted/20 transition-colors duration-100"
+            >
+              <div>
+                <p className="text-sm font-semibold text-foreground">Weekly Proxy Detection Volume</p>
+                <p className="text-[0.68rem] text-muted-foreground">Applications screened per week</p>
+              </div>
+              {isProxyExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {isProxyExpanded && (
+              <div className="p-4">
               <ChartContainer config={proxyConfig} className="h-[200px] w-full">
                 <BarChart data={PROXY_DETECTION_DATA} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
                   <CartesianGrid vertical={false} className="stroke-border/40" />
@@ -170,19 +202,24 @@ export function AnalyticsPage() {
                 </BarChart>
               </ChartContainer>
             </div>
+            )}
           </Card>
         </div>
 
-        {/* Data Volume chart */}
         <Card className="mb-5 border-border/60 shadow-sm">
-          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
-            <div className="flex items-center gap-2">
+          <div className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setIsVolumeExpanded(!isVolumeExpanded)}
+              className="flex items-center gap-2 text-left hover:text-foreground/80 transition-colors duration-100"
+            >
               <Database className="h-3.5 w-3.5 text-primary" />
               <p className="text-sm font-semibold text-foreground">Data Volume vs Accuracy & Fairness</p>
-            </div>
+              {isVolumeExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="cursor-help rounded-full border border-primary/30 bg-primary/5 px-2.5 py-0.5 text-[0.65rem] font-semibold text-primary">
+                <span className="cursor-help rounded-full border border-primary/30 bg-primary/5 px-2.5 py-0.5 text-[0.65rem] font-semibold text-primary" onClick={(e) => e.stopPropagation()}>
                   {DATA_VOLUME.featuresPerDecision} optimal
                 </span>
               </TooltipTrigger>
@@ -191,7 +228,9 @@ export function AnalyticsPage() {
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="px-5 pb-1 pt-2">
+          {isVolumeExpanded && (
+            <>
+              <div className="px-5 pb-1 pt-2">
             <p className="text-[0.68rem] text-muted-foreground">
               Optimal range: {DATA_VOLUME.featuresRange.min}–{DATA_VOLUME.featuresRange.max} features · Trained on {(DATA_VOLUME.trainingRecords / 1000000).toFixed(1)}M records
             </p>
@@ -209,18 +248,27 @@ export function AnalyticsPage() {
               </LineChart>
             </ChartContainer>
           </div>
+          </>
+          )}
         </Card>
 
         {/* Fairness Metrics Table */}
         <Card className="border-border/60 shadow-sm">
-          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
-            <div className="flex items-center gap-2">
+          <div className="flex w-full items-center justify-between border-b border-border/40 px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setIsTableExpanded(!isTableExpanded)}
+              className="flex items-center gap-2 text-left hover:text-foreground/80 transition-colors duration-100"
+            >
               <Users className="h-3.5 w-3.5 text-primary" />
               <p className="text-sm font-semibold text-foreground">Disparate Impact by Protected Group</p>
-            </div>
+              {isTableExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
             <Badge variant="outline" className="text-[0.65rem]">HMDA 2026</Badge>
           </div>
-          <div className="px-5 pb-1 pt-2">
+          {isTableExpanded && (
+            <>
+              <div className="px-5 pb-1 pt-2">
             <p className="text-[0.68rem] text-muted-foreground">Reference group: White/Non-Hispanic · Threshold: ≥ 0.80 per CFPB guidance</p>
           </div>
           <div className="overflow-x-auto px-5 pb-4">
@@ -281,6 +329,8 @@ export function AnalyticsPage() {
               </tbody>
             </table>
           </div>
+          </>
+          )}
         </Card>
       </div>
     </div>
