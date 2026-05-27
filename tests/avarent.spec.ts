@@ -112,12 +112,11 @@ test.describe("Avarent Platform End-to-End Compliance Suite", () => {
     await page.fill("[data-testid='password-input']", "197704")
     await page.click("[data-testid='login-submit']")
 
-    // Find and click topbar Theme Toggle button
-    const themeBtn = page.locator("button:has-text('Toggle theme')")
-    await themeBtn.click()
+    // Click Settings tab to open settings panel
+    await page.click("[data-testid='nav-settings']")
 
-    // Click 'Dark' from drop down menu
-    await page.click("text=Dark")
+    // Click Dark Mode picker button inside Settings
+    await page.click("[data-testid='theme-dark-button']")
 
     // Verify dark class is applied to HTML/body tag
     const isDark = await page.evaluate(() => document.documentElement.classList.contains("dark"))

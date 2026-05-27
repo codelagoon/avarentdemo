@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Settings, Shield, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Save, RefreshCw, FileText, Download } from "lucide-react"
 import { toast } from "sonner"
+import { useTheme } from "@/components/theme-provider"
 import { auditPacketService } from "@/services/auditPacketService"
 import { Button } from "@/components/ui/button"
 import { ApiKeyDialog } from "@/components/ApiKeyDialog"
@@ -63,6 +64,7 @@ function ComplianceStatusRow({ label, status, detail }: { label: string; status:
 }
 
 export function SettingsPage() {
+  const { theme, setTheme } = useTheme()
   const [detection, setDetection] = useState<ToggleSetting[]>([
     { id: "proxy-scan", label: "Real-Time Proxy Variable Scanning", description: "Continuously scan incoming features for protected-class proxy correlations", value: true, critical: true },
     { id: "do-calculus", label: "Do-Calculus Causal Intervention", description: "Automatically severs feature pathways that function as protected class proxies", value: true, critical: true },
@@ -199,6 +201,40 @@ export function SettingsPage() {
 
           {/* Right column */}
           <div className="space-y-4">
+            {/* Theme & Appearance picker */}
+            <Card className="border-border/60 shadow-sm">
+              <div className="border-b border-border/40 px-4 py-3">
+                <p className="text-sm font-semibold text-foreground">Theme & Appearance</p>
+                <p className="text-[0.65rem] text-muted-foreground font-sans">Select the preferred interface visual theme</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 p-4">
+                <Button
+                  variant={theme === "light" ? "default" : "outline"}
+                  onClick={() => setTheme("light")}
+                  className="h-8 text-xs font-semibold"
+                  data-testid="theme-light-button"
+                >
+                  Light Mode
+                </Button>
+                <Button
+                  variant={theme === "dark" ? "default" : "outline"}
+                  onClick={() => setTheme("dark")}
+                  className="h-8 text-xs font-semibold"
+                  data-testid="theme-dark-button"
+                >
+                  Dark Mode
+                </Button>
+                <Button
+                  variant={theme === "system" ? "default" : "outline"}
+                  onClick={() => setTheme("system")}
+                  className="h-8 text-xs font-semibold"
+                  data-testid="theme-system-button"
+                >
+                  System
+                </Button>
+              </div>
+            </Card>
+
             <Card className="border-border/60 shadow-sm">
               <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
                 <p className="text-sm font-semibold text-foreground">Compliance Status</p>
