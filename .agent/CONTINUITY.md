@@ -3,7 +3,7 @@
 ---
 
 ## [PLANS]
-- No active plans. Pure client-side SPA migration completed and verified.
+- No active plans. Viewport-locked SPA dashboard refactoring successfully completed, E2E validated, committed, and pushed.
 
 ## [DECISIONS]
 - 2026-05-27T03:17Z [CODE] useLiveData stabilized via getterRef + channelsKey string primitive. This is the canonical pattern for all future live-data hooks in this codebase.
@@ -18,6 +18,8 @@
 - 2026-05-27T15:54Z [CODE] Restored Next.js dev server architecture (running next dev / next build) per user instruction, maintaining standard SPA client routing.
 - 2026-05-27T15:56Z [CODE] Removed the brand signature display text "Fairness is not a feature." from the Dashboard center header layout per user request.
 - 2026-05-27T16:00Z [CODE] Migrated visual theme and aesthetic globally to match Avarent's geometric brand orange logo (hex #ea580c / #f97316), replacing OCC Cobalt blue as the primary theme accent.
+- 2026-05-27T16:09Z [CODE] AdverseActionReviewPage override panel moved to a clean, overlay shadcn Dialog to eliminate vertical layout shift and prevent scrollbar creation.
+- 2026-05-27T16:09Z [CODE] ThreatAnalysisPage feed and anti-fairwashing panels equipped with Chevron-toggled stateful collapsible accordions with standard local-scrolling bounds.
 
 ## [PROGRESS]
 - 2026-05-27T15:40Z [CODE] Received user instructions to apply the Meridian Design Scheme v1.0 globally. Configured custom font-families in tailwind.config.js.
@@ -29,12 +31,15 @@
 - 2026-05-27T15:54Z [CODE] Reverted package.json build/dev scripts to next.js per user clarification.
 - 2026-05-27T15:56Z [CODE] Removed 'Fairness is not a feature.' text from DashboardPage.tsx center layout header.
 - 2026-05-27T15:58Z [CODE] Designed and implemented high-fidelity geometric AvarentLogo component, integrated it across login, onboarding, and dashboard overlay layers.
+- 2026-05-27T16:09Z [CODE] Completed full EvidenceLedgerPage strict pagination toolbar, AdverseActionReviewPage Dialog overlay, and ThreatAnalysisPage accordions.
 
 ## [DISCOVERIES]
 - 2026-05-27T03:12Z [CODE] Root cause of infinite loop: inline channel arrays (`["ledger"]`) create new object references every render, destabilizing useEffect dependency arrays. Fix: serialize to string.
 - 2026-05-27T03:15Z [CODE] OpenRouter/NVIDIA 401 errors were noise — BYOK keys not set in demo env. No functional impact since scenarioService falls back to local deterministic logic.
 - 2026-05-27T15:46Z [CODE] Vite browser runtime throws strict uncaught errors on unused/missing exports from third party modules (such as Github and Chrome in some lucide-react builds) while Next.js bundle compiles through them. Fix: eliminate unused imports.
+- 2026-05-27T16:09Z [CODE] Placing shrink-0 on upper flex elements within a 100vh locked main view prevents flex compression on smaller viewports, ensuring scrollable child list views always retain their full height.
 
 ## [OUTCOMES]
 - 2026-05-27T15:55Z [CODE] Fully restored the platform to Next.js framework running as a client-side SPA. Clean TypeScript build and all 6 Playwright E2E verification tests passing (20.5s) with zero console warnings.
 - 2026-05-27T16:00Z [CODE] Rebranded entire visual system around Avarent's geometric brand orange logo, introducing custom AvarentLogo components and cohesive orange highlight accent themes. All typechecks and E2E tests remain green.
+- 2026-05-27T16:09Z [CODE] Fully achieved desktop-grade viewport-locked SPA layout. 100% typecheck-clean and all 6 Playwright E2E verification tests passing perfectly in 17.6s with zero errors.
