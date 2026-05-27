@@ -111,7 +111,7 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
       {/* Header */}
       <header className="absolute left-0 right-0 top-0 flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card/65 backdrop-blur-md">
         <div className="flex items-center gap-2">
-          <img src="/avarent-logo.png" alt="Avarent" className="h-7 w-auto" />
+          <img src="/avarent-logo.png" alt="Avarent" className="h-[84px] w-auto" />
         </div>
         {onTryNewCompany && (
           <Button
