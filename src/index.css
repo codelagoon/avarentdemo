@@ -1,97 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Apple HIG semantic color system */
+/* Meridian Design Scheme v1.0 — Warm Academic System */
 :root {
   /* Geometry */
-  --radius: 0.625rem; /* 10px — Apple's standard rounded rectangle */
+  --radius: 0.5rem; /* Sharp rested outline borders */
 
-  /* Backgrounds — Apple systemGroupedBackground / systemBackground */
-  --background: 240 17% 96%;       /* #F2F2F7 grouped background */
-  --foreground: 240 3% 12%;        /* #1D1D1F primary label */
+  /* Backgrounds — Warm Ivory */
+  --background: 52 47% 97%;       /* #fbfaf3 */
+  --foreground: 240 5.9% 10%;     /* #18181b */
 
-  /* Elevated surfaces — white cards over gray background */
-  --card: 0 0% 100%;
-  --card-foreground: 240 3% 12%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 3% 12%;
+  /* Elevated surfaces — Warm Off-White cards */
+  --card: 60 25% 99%;             /* #fdfdfb */
+  --card-foreground: 240 5.9% 10%;
+  --popover: 60 25% 99%;
+  --popover-foreground: 240 5.9% 10%;
 
-  /* Apple systemBlue — #007AFF */
-  --primary: 211 100% 50%;
+  /* Primary Control — OCC Cobalt / Royal Blue */
+  --primary: 221.2 83.2% 53.3%;   /* #2563eb */
   --primary-foreground: 0 0% 100%;
 
-  /* Tertiary background — slightly darker than grouped bg */
-  --secondary: 240 9% 92%;
-  --secondary-foreground: 240 3% 12%;
-  --muted: 240 9% 92%;
-  --muted-foreground: 240 3% 57%;   /* #8E8E93 secondaryLabel */
+  /* Tertiary surfaces — Warm Muted Gray-Cream */
+  --secondary: 45 15% 93%;        /* #f0efeb */
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 45 15% 93%;
+  --muted-foreground: 240 5.3% 34%; /* #52525b */
 
-  /* Tinted accent surface */
-  --accent: 240 9% 92%;
-  --accent-foreground: 240 3% 12%;
+  /* Accent Highlight */
+  --accent: 45 15% 93%;
+  --accent-foreground: 240 5.9% 10%;
 
-  /* Apple systemRed — #FF3B30 */
-  --destructive: 3 100% 59%;
+  /* Destructive decline actions */
+  --destructive: 0 72.2% 41.6%;   /* #b91c1c */
   --destructive-foreground: 0 0% 100%;
 
-  /* Separator — very subtle hairline */
-  --border: 240 7% 89%;            /* #E5E5EA */
-  --input: 240 9% 92%;
-  --ring: 211 100% 50%;
+  /* Outline Border separators */
+  --border: 45 10% 86%;           /* #e4e2d9 */
+  --input: 45 15% 93%;
+  --ring: 221.2 83.2% 53.3%;
 
-  /* Sidebar tokens — kept for compatibility */
-  --sidebar: 240 3% 12%;
-  --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 211 100% 50%;
+  /* Sidebar compatibility tokens */
+  --sidebar: 60 25% 99%;
+  --sidebar-foreground: 240 5.9% 10%;
+  --sidebar-primary: 221.2 83.2% 53.3%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 3% 20%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 240 4% 22%;
-  --sidebar-ring: 211 100% 50%;
+  --sidebar-accent: 45 15% 93%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 45 10% 86%;
+  --sidebar-ring: 221.2 83.2% 53.3%;
 }
 
 .dark {
-  /* Apple systemBackground — #1C1C1E */
-  --background: 240 4% 11%;
-  --foreground: 0 0% 98%;          /* near-white label */
+  /* Background — Near Black */
+  --background: 60 5% 7%;         /* #111110 */
+  --foreground: 240 4.8% 95.9%;   /* #f4f4f5 */
 
-  /* Elevated surface — #2C2C2E secondarySystemBackground */
-  --card: 240 2% 18%;
-  --card-foreground: 0 0% 98%;
-  --popover: 240 2% 21%;
-  --popover-foreground: 0 0% 98%;
+  /* Elevated surfaces — Dark Charcoal Slate */
+  --card: 60 3% 9%;               /* #181817 */
+  --card-foreground: 240 4.8% 95.9%;
+  --popover: 60 3% 9%;
+  --popover-foreground: 240 4.8% 95.9%;
 
-  /* Apple systemBlue dark — #0A84FF */
-  --primary: 210 100% 52%;
-  --primary-foreground: 0 0% 100%;
+  /* Primary Control — Light Cobalt Blue */
+  --primary: 217.2 91.2% 67.8%;   /* #60a5fa */
+  --primary-foreground: 60 5% 7%;
 
-  /* Tertiary surface — #3A3A3C */
-  --secondary: 240 2% 23%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 2% 23%;
-  --muted-foreground: 240 4% 62%;  /* secondaryLabel dark */
+  /* Tertiary surfaces — Warm Elevated Charcoal */
+  --secondary: 60 2% 13%;         /* #222221 */
+  --secondary-foreground: 240 4.8% 95.9%;
+  --muted: 60 2% 13%;
+  --muted-foreground: 240 5% 65%; /* #a1a1aa */
 
-  --accent: 240 2% 23%;
-  --accent-foreground: 0 0% 98%;
+  --accent: 60 2% 13%;
+  --accent-foreground: 240 4.8% 95.9%;
 
-  /* Apple systemRed dark — #FF453A */
-  --destructive: 3 100% 61%;
-  --destructive-foreground: 0 0% 100%;
+  /* Destructive decline actions dark */
+  --destructive: 0 93.3% 70.4%;   /* #f87171 */
+  --destructive-foreground: 60 5% 7%;
 
-  /* Separator dark — rgba(84,84,88,0.65) equivalent */
-  --border: 240 3% 27%;
-  --input: 240 2% 23%;
-  --ring: 210 100% 52%;
+  /* Outline borders dark */
+  --border: 60 2% 20%;            /* #2a2a29 */
+  --input: 60 2% 13%;
+  --ring: 217.2 91.2% 67.8%;
 
-  --sidebar: 240 4% 8%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-primary: 210 100% 52%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 2% 18%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-border: 240 3% 22%;
-  --sidebar-ring: 210 100% 52%;
+  --sidebar: 60 3% 9%;
+  --sidebar-foreground: 240 4.8% 95.9%;
+  --sidebar-primary: 217.2 91.2% 67.8%;
+  --sidebar-primary-foreground: 60 5% 7%;
+  --sidebar-accent: 60 2% 13%;
+  --sidebar-accent-foreground: 240 4.8% 95.9%;
+  --sidebar-border: 60 2% 20%;
+  --sidebar-ring: 217.2 91.2% 67.8%;
 }
 
 @layer base {
@@ -100,7 +102,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, system-ui, sans-serif;
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -157,7 +159,10 @@
 
   /* sign-in page animations */
   .font-sf {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, system-ui, sans-serif;
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, system-ui, sans-serif;
+  }
+  .font-serif-display {
+    font-family: "Playfair Display", Georgia, Times New Roman, serif;
   }
   .animate-element {
     opacity: 0;

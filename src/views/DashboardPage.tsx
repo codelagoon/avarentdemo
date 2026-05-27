@@ -1059,6 +1059,17 @@ export function DashboardPage() {
 
       {/* ── Center Column: Analytics ──────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-visible lg:overflow-hidden">
+        {/* ── Brand Signature Display ── */}
+        <div className="bg-card px-5 py-4 border-b border-border/40 flex items-center justify-between shrink-0">
+          <div className="space-y-0.5">
+            <h2 className="text-base font-bold tracking-tight text-foreground">Disparate Impact Analysis</h2>
+            <p className="text-[0.65rem] text-muted-foreground font-mono uppercase tracking-wider">Adverse Impact Ratio — Operational Dashboard</p>
+          </div>
+          <div className="font-serif-display text-base md:text-lg italic text-primary pr-2 select-none tracking-wide">
+            Fairness is not a feature.
+          </div>
+        </div>
+
         {/* ── Fairness wave + mini-stats row ── */}
         <div className="border-b border-border/60 bg-card px-5 py-3">
           <div className="flex items-center gap-4">
