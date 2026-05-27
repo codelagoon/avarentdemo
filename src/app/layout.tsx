@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/sonner"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "AVARENT Meridian",
+  title: "Meridian",
   description: "Fair Lending Compliance & Risk Management Platform",
 }
 

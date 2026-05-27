@@ -78,7 +78,7 @@ async function callOpenRouter(app: ApplicationData, model: string = "google/gemm
         "Authorization": `Bearer ${getOpenRouterKey()}`,
         "Content-Type": "application/json",
         "HTTP-Referer": window.location.origin,
-        "X-Title": "AVARENT Meridian",
+        "X-Title": "Meridian",
       },
       body: JSON.stringify({
         model: model,

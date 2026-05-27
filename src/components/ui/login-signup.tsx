@@ -218,7 +218,7 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
           </CardContent>
         </form>
         <CardFooter className="flex justify-center text-xs text-muted-foreground">
-          {mode === "signin" ? "New to AVARENT Meridian?" : "Already configured?"}
+          {mode === "signin" ? "New to Meridian?" : "Already configured?"}
           <button
             onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setErrorMsg(null); }}
             className="ml-1 text-primary hover:underline font-bold"

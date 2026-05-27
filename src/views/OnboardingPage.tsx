@@ -125,7 +125,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
       // Mark onboarding complete
       companyService.setOnboardingComplete(true)
 
-      toast.success(`Welcome, ${data.companyName}! Your AVARENT Meridian dashboard is ready.`)
+      toast.success(`Welcome, ${data.companyName}! Your Meridian dashboard is ready.`)
       onComplete()
     } catch (error) {
       toast.error("Failed to complete onboarding. Please try again.")

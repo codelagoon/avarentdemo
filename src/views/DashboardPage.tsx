@@ -1215,9 +1215,9 @@ export function DashboardPage() {
             
             {tourStep === 0 && (
               <div>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Welcome to AVARENT Meridian</h3>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Welcome to Meridian</h3>
                 <p className="mt-2 text-[0.7rem] leading-relaxed text-slate-500 dark:text-slate-400">
-                  AVARENT Meridian is a high-density, authoritative console designed for real-time model risk management and fair lending auditing. Let's take a quick 4-step tour to get familiar with the 3-column operational layout.
+                  Meridian is a high-density, authoritative console designed for real-time model risk management and fair lending auditing. Let's take a quick 4-step tour to get familiar with the 3-column operational layout.
                 </p>
               </div>
             )}
