@@ -40,6 +40,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { DAILY_STATS } from "@/data/mockData"
 import { ModeToggle } from "@/components/mode-toggle"
+import { supabase } from "@/lib/supabaseClient"
+import LoginCardSection from "@/components/ui/login-signup"
 
 import { DashboardPage } from "@/views/DashboardPage"
 import { ThreatAnalysisPage } from "@/views/ThreatAnalysisPage"
@@ -277,95 +279,27 @@ function TopBar({ activePage, onNavigate, onLogout }: {
   )
 }
 
-function LoginScreen({ onLogin, onTryNewCompany }: { onLogin: () => void; onTryNewCompany: () => void }) {
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState(false)
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (password === PASSWORD) {
-      onLogin()
-    } else {
-      setError(true)
-      setTimeout(() => setError(false), 2000)
-    }
-  }
-
-  return (
-    <div className="flex h-screen w-full items-center justify-center bg-background p-6" data-testid="login-screen">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
-      <div className="relative w-full max-w-sm space-y-3">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-xl shadow-primary/30">
-            <Shield className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">AVARENT Meridian</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Compliance & Risk Management Platform</p>
-        </div>
-        <Card className="border-border/60 shadow-2xl">
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <Lock className="h-3 w-3" /> Access Code
-                </label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••"
-                  data-testid="password-input"
-                  className={cn("h-11 text-base tracking-widest", error && "border-destructive focus-visible:ring-destructive")}
-                  autoFocus
-                />
-                {error && (
-                  <p className="flex items-center gap-1 text-xs text-destructive">
-                    <span className="inline-block h-1 w-1 rounded-full bg-destructive" />Incorrect access code
-                  </p>
-                )}
-              </div>
-              <Button type="submit" className="h-11 w-full text-sm font-semibold" data-testid="login-submit">
-                Access Dashboard <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Button>
-            </form>
-            <div className="mt-5 flex items-center justify-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <div className="flex items-center gap-1.5">
-                <span className="h-1 w-1 rounded-full bg-emerald-500" />
-                <span className="text-[0.6rem] font-medium uppercase tracking-wider text-muted-foreground">CFPB · OCC · SOC 2</span>
-              </div>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-          </CardContent>
-        </Card>
-        <button
-          onClick={onTryNewCompany}
-          data-testid="onboarding-button"
-          className="group flex w-full items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/40"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Building2 className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">New to AVARENT?</p>
-              <p className="text-xs text-muted-foreground">Request a demo account</p>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export default function NextApp() {
   const [mounted, setMounted] = useState(false)
   const [activePage, setActivePage] = useState<Page>("dashboard")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+
+    // Check active session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session)
+    })
+
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
@@ -378,6 +312,11 @@ export default function NextApp() {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [handleKeyDown])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setIsAuthenticated(false)
+  }
 
   if (!mounted) {
     return (
@@ -393,7 +332,7 @@ export default function NextApp() {
 
   if (!isAuthenticated) {
     return (
-      <LoginScreen
+      <LoginCardSection
         onLogin={() => setIsAuthenticated(true)}
         onTryNewCompany={() => setShowOnboarding(true)}
       />
@@ -408,7 +347,7 @@ export default function NextApp() {
         <TopBar
           activePage={activePage}
           onNavigate={setActivePage}
-          onLogout={() => setIsAuthenticated(false)}
+          onLogout={handleLogout}
         />
         <main className="flex-1 overflow-auto" data-testid="main-content">
           {activePage === "dashboard"        && <DashboardPage />}
