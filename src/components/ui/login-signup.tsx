@@ -24,6 +24,7 @@ import {
   Shield,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { AvarentLogo } from "@/components/AvarentLogo";
 
 interface LoginCardSectionProps {
   onLogin: () => void;
@@ -77,7 +78,7 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
           p.v = Math.random() * 0.25 + 0.05;
           p.o = Math.random() * 0.35 + 0.15;
         }
-        ctx.fillStyle = `rgba(59, 130, 246, ${p.o * 0.35})`; // brand-cohesive Cobalt particles
+        ctx.fillStyle = `rgba(234, 88, 12, ${p.o * 0.4})`; // brand-cohesive dynamic Avarent Orange particles
         ctx.fillRect(p.x, p.y, 0.8, 2.5);
       });
       raf = requestAnimationFrame(draw);
@@ -157,7 +158,7 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
         .vline:nth-child(4){left:22%;animation-delay:.42s}
         .vline:nth-child(5){left:50%;animation-delay:.54s}
         .vline:nth-child(6){left:78%;animation-delay:.66s}
-        .hline::after,.vline::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(59, 130, 246, 0.12),transparent);opacity:0;animation:shimmer .9s ease-out forwards}
+        .hline::after,.vline::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(234, 88, 12, 0.15),transparent);opacity:0;animation:shimmer .9s ease-out forwards}
         .hline:nth-child(1)::after{animation-delay:.12s}
         .hline:nth-child(2)::after{animation-delay:.22s}
         .hline:nth-child(3)::after{animation-delay:.32s}
@@ -183,7 +184,7 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
       `}</style>
 
       {/* Subtle vignette */}
-      <div className="absolute inset-0 pointer-events-none [background:radial-gradient(80%_60%_at_50%_30%,rgba(59,130,246,0.04),transparent_60%)]" />
+      <div className="absolute inset-0 pointer-events-none [background:radial-gradient(80%_60%_at_50%_30%,rgba(234, 88, 12, 0.06),transparent_60%)]" />
 
       {/* Animated accent lines */}
       <div className="accent-lines">
@@ -204,8 +205,8 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
       {/* Header */}
       <header className="absolute left-0 right-0 top-0 flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card/65 backdrop-blur-md">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary shadow-lg shadow-primary/20">
-            <Shield className="h-4 w-4 text-primary-foreground" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 shadow-lg shadow-primary/5">
+            <AvarentLogo className="h-5 w-5 text-primary" />
           </div>
           <span className="text-[0.75rem] font-bold tracking-[0.18em] uppercase text-foreground font-mono">
             AVARENT MERIDIAN

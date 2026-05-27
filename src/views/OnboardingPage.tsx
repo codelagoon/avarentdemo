@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { Building2, CheckCircle, ChevronRight, ChevronLeft, Shield, Users, Settings, Sparkles, FileCheck, Landmark, Briefcase, BarChart3 } from "lucide-react"
+import { Building2, CheckCircle, ChevronRight, ChevronLeft, Users, Settings, Sparkles, FileCheck, Landmark, Briefcase, BarChart3 } from "lucide-react"
+import { AvarentLogo } from "@/components/AvarentLogo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -140,7 +141,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
         <Card className="w-full max-w-2xl shadow-xl">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <Shield className="h-8 w-8 text-primary" />
+              <AvarentLogo className="h-8 w-8" />
             </div>
             <CardTitle className="text-2xl font-bold">Welcome to AVARENT Meridian</CardTitle>
             <CardDescription className="text-base mt-2">
@@ -150,7 +151,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
           <CardContent className="space-y-6">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div className="rounded-lg bg-secondary/50 p-4">
-                <Shield className="mx-auto h-6 w-6 text-primary mb-2" />
+                <AvarentLogo className="mx-auto h-6 w-6 mb-2" />
                 <p className="text-sm font-medium">Proxy Detection</p>
                 <p className="text-xs text-muted-foreground">Causal AI severing</p>
               </div>
@@ -369,7 +370,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
         <Card className="w-full max-w-2xl shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
-              <Shield className="h-5 w-5 text-primary" />
+              <AvarentLogo className="h-5 w-5" />
               <span className="text-xs font-medium text-muted-foreground">Step 3 of 5</span>
             </div>
             <CardTitle>Compliance Configuration</CardTitle>

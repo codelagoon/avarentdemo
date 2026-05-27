@@ -11,6 +11,7 @@ import {
   CartesianGrid
 } from "recharts"
 import { toast } from "sonner"
+import { AvarentLogo } from "@/components/AvarentLogo"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
@@ -1206,7 +1207,7 @@ export function DashboardPage() {
           <div className="w-full max-w-sm rounded-xl border border-slate-100 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/95 animate-fade-slide-up">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
+                <AvarentLogo className="h-4 w-4" />
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Meridian Tour</span>
               </div>
               <span className="text-[0.65rem] font-bold text-slate-400">Step {tourStep + 1} of 4</span>
