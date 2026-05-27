@@ -37,6 +37,7 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -104,6 +105,9 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
 
     // E2E Test Suite Bypass / Demo Check
     if (password === "197704") {
+      if (rememberMe) {
+        localStorage.setItem("avarent_auth", "demo")
+      }
       onLogin();
       return;
     }
@@ -297,6 +301,8 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="remember"
+                    checked={rememberMe}
+                    onCheckedChange={(v) => setRememberMe(v === true)}
                     className="border-border data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary"
                   />
                   <Label htmlFor="remember" className="text-muted-foreground cursor-pointer font-sans select-none">

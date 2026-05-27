@@ -286,9 +286,13 @@ export default function App() {
   useEffect(() => {
     setMounted(true)
 
-    // Check active session on mount
+    // Check active session on mount (Supabase real auth or demo bypass)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session)
+      if (session) {
+        setIsAuthenticated(true)
+      } else if (typeof window !== "undefined" && localStorage.getItem("avarent_auth") === "demo") {
+        setIsAuthenticated(true)
+      }
     })
 
     // Listen for changes
@@ -313,6 +317,9 @@ export default function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("avarent_auth")
+    }
     setIsAuthenticated(false)
   }
 
