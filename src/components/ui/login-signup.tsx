@@ -95,9 +95,6 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
       <header className="absolute left-0 right-0 top-0 flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card/65 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <img src="/avarent-logo.png" alt="Avarent" className="h-7 w-auto" />
-          <span className="text-[0.75rem] font-bold tracking-[0.18em] uppercase text-foreground font-mono">
-            AVARENT MERIDIAN
-          </span>
         </div>
         {onTryNewCompany && (
           <Button
