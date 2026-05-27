@@ -2,7 +2,7 @@
 
 ---
 ## [PLANS]
-- No active plans. Standardized and refactored all remaining dashboard views (Alt Data Hub, Access Control, and Analytics) for viewport-locking and state-driven collapsible accordions. E2E verified and committed.
+- 2026-05-27T16:21Z [USER] Refactor and compact Settings, Threats, Analytics, Alt Data, and Access Control views into fully viewport-locked high-density sub-tabbed structures to completely eliminate vertical scrolling.
 
 ## [DECISIONS]
 - 2026-05-27T03:17Z [CODE] useLiveData stabilized via getterRef + channelsKey string primitive. This is the canonical pattern for all future live-data hooks in this codebase.
