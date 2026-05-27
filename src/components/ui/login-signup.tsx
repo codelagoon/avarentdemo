@@ -60,12 +60,16 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
     e.preventDefault();
     setErrorMsg(null);
 
-    // E2E Test Suite Bypass / Demo Check
+    // E2E Test Suite Bypass / Demo Check — triggers onboarding instead of direct login
     if (password === "197704") {
       if (rememberMe) {
         localStorage.setItem("avarent_auth", "demo")
       }
-      onLogin();
+      if (onTryNewCompany) {
+        onTryNewCompany();
+      } else {
+        onLogin();
+      }
       return;
     }
 
