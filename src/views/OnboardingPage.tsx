@@ -143,7 +143,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <AvarentLogo className="h-8 w-8" />
             </div>
-            <CardTitle className="text-2xl font-bold">Welcome to AVARENT Meridian</CardTitle>
+            <CardTitle className="text-2xl font-bold">Welcome to Meridian</CardTitle>
             <CardDescription className="text-base mt-2">
               Fair Lending Compliance & Risk Management Platform
             </CardDescription>
