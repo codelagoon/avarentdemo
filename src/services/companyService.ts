@@ -21,6 +21,8 @@ export interface Company {
   }
 }
 
+import { emit } from "@/lib/sync"
+
 const STORAGE_KEY = "avarent_company"
 const ONBOARDING_KEY = "avarent_onboarding_complete"
 
@@ -55,10 +57,12 @@ export class CompanyService {
     if (typeof window === "undefined") return
     if (this.company) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.company))
+      emit("company")
     }
   }
 
   get(): Company | null {
+    this.company = this.loadFromStorage()
     return this.company
   }
 

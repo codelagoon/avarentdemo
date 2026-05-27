@@ -1,3 +1,5 @@
+import { emit } from "@/lib/sync"
+
 const STORAGE_KEY = "avarent_synthetic_studio"
 
 export interface DemographicGroupStats {
@@ -234,9 +236,11 @@ export class SyntheticDataService {
   private saveToStorage() {
     if (typeof window === "undefined") return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state))
+    emit("syntheticStudio")
   }
 
   getState(): SyntheticStudioState {
+    this.state = this.loadFromStorage()
     return { ...this.state }
   }
 

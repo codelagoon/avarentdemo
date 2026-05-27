@@ -1,3 +1,5 @@
+import { emit } from "@/lib/sync"
+
 const STORAGE_KEY = "avarent_anti_fairwashing"
 
 export interface KSTestResult {
@@ -179,9 +181,11 @@ export class AntiFairwashingService {
   private saveToStorage() {
     if (typeof window === "undefined") return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state))
+    emit("antiFairwashing")
   }
 
   getState(): AntiFairwashingState {
+    this.state = this.loadFromStorage()
     return { ...this.state }
   }
 

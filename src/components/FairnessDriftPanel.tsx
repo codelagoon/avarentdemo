@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useLiveData } from "@/hooks/useLiveData"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -26,7 +27,7 @@ import {
   ReferenceLine,
   ReferenceDot
 } from "recharts"
-import { fairnessDriftService, type DriftAlert, type ParityMonitor } from "@/services/fairnessDriftService"
+import { fairnessDriftService, type DriftAlert } from "@/services/fairnessDriftService"
 import { cn } from "@/lib/utils"
 
 // Gauge Chart Component for DPD
@@ -132,29 +133,10 @@ function AlertItem({ alert, onAcknowledge }: { alert: DriftAlert; onAcknowledge:
 
 // Main Fairness Drift Panel
 export function FairnessDriftPanel() {
-  const [isMonitoring, setIsMonitoring] = useState(false)
-  const [monitor, setMonitor] = useState<ParityMonitor | null>(null)
-  const [alerts, setAlerts] = useState<DriftAlert[]>([])
-  const [scatterData, setScatterData] = useState<{ x: number; y: number; label: string }[]>([])
-
-  useEffect(() => {
-    // Initial load
-    setMonitor(fairnessDriftService.getParityMonitor())
-    setAlerts(fairnessDriftService.getActiveAlerts())
-    setScatterData(fairnessDriftService.getAccuracyFairnessData())
-    
-    // Check monitoring status
-    setIsMonitoring(fairnessDriftService.isActive())
-    
-    // Refresh interval
-    const interval = setInterval(() => {
-      setMonitor(fairnessDriftService.getParityMonitor())
-      setAlerts(fairnessDriftService.getActiveAlerts())
-      setScatterData(fairnessDriftService.getAccuracyFairnessData())
-    }, 5000)
-    
-    return () => clearInterval(interval)
-  }, [])
+  const [isMonitoring, setIsMonitoring] = useState(() => fairnessDriftService.isActive())
+  const monitor = useLiveData(() => fairnessDriftService.getParityMonitor(), ["fairnessDrift"])
+  const alerts = useLiveData(() => fairnessDriftService.getActiveAlerts(), ["fairnessDrift"])
+  const scatterData = useLiveData(() => fairnessDriftService.getAccuracyFairnessData(), ["fairnessDrift"])
 
   const toggleMonitoring = () => {
     if (isMonitoring) {
@@ -167,7 +149,6 @@ export function FairnessDriftPanel() {
 
   const handleAcknowledge = (id: string) => {
     fairnessDriftService.acknowledgeAlert(id)
-    setAlerts(fairnessDriftService.getActiveAlerts())
   }
 
   const exportReport = () => {

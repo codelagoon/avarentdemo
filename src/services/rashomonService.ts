@@ -1,4 +1,7 @@
 import { toast } from "sonner"
+import { emit } from "@/lib/sync"
+
+const STORAGE_KEY = "avarent_rashomon"
 
 export interface RashomonModel {
   id: string
@@ -43,6 +46,30 @@ class RashomonService {
   private currentModel: RashomonModel | null = null
   private rashomonCache: RashomonModel[] = []
 
+  constructor() {
+    this.loadFromStorage()
+  }
+
+  private loadFromStorage() {
+    if (typeof window === "undefined") return
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        this.currentModel = parsed.currentModel || null
+        this.rashomonCache = parsed.rashomonCache || []
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  private saveToStorage() {
+    if (typeof window === "undefined") return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentModel: this.currentModel, rashomonCache: this.rashomonCache }))
+    emit("rashomon")
+  }
+
   /**
    * Search for Less Discriminatory Alternative (LDA)
    * Per ECOA and fair lending regulations
@@ -60,9 +87,11 @@ class RashomonService {
     // Find all models within 0.5% performance of current model
     const rashomonSet = await this.generateRashomonSet(currentModel)
     this.rashomonCache = rashomonSet
+    this.saveToStorage()
 
     // Step 2: Find fairest model in Rashomon set
     const fairestModel = this.findFairestModel(rashomonSet)
+    this.saveToStorage()
 
     // Step 3: Compare current model to fairest
     const accuracyGap = currentModel.accuracy - (fairestModel?.accuracy || currentModel.accuracy)

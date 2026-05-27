@@ -1,3 +1,5 @@
+import { emit } from "@/lib/sync"
+
 const STORAGE_KEY = "avarent_alt_data_hub"
 
 export interface AltConnector {
@@ -192,9 +194,11 @@ export class AltDataService {
   private saveToStorage() {
     if (typeof window === "undefined") return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state))
+    emit("altData")
   }
 
   getState(): AltDataState {
+    this.state = this.loadFromStorage()
     return { ...this.state }
   }
 

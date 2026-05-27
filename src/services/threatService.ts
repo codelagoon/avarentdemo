@@ -1,5 +1,6 @@
 import type { ThreatEvent } from "@/data/mockData"
 import { THREAT_EVENTS } from "@/data/mockData"
+import { emit } from "@/lib/sync"
 
 const STORAGE_KEY = "avarent_threat_events"
 
@@ -26,9 +27,11 @@ export class ThreatService {
   private saveToStorage() {
     if (typeof window === "undefined") return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.events))
+    emit("threat")
   }
 
   getAll(): ThreatEvent[] {
+    this.events = this.loadFromStorage()
     return [...this.events].sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )

@@ -1,8 +1,9 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
+import { useLiveData } from "@/hooks/useLiveData"
 import { ShieldAlert, TrendingUp, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Search, Download, Info, ShieldCheck, Fingerprint, Shield, RefreshCw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -11,10 +12,9 @@ import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts"
 import { cn } from "@/lib/utils"
-import { type ThreatSeverity, type ThreatEvent } from "@/data/mockData"
+import { type ThreatSeverity } from "@/data/mockData"
 import { threatService } from "@/services/threatService"
 import { antiFairwashingService } from "@/services/antiFairwashingService"
-import type { AntiFairwashingState } from "@/services/antiFairwashingService"
 
 function SeverityBadge({ severity }: { severity: ThreatSeverity }) {
   const map: Record<ThreatSeverity, string> = {
@@ -72,16 +72,11 @@ export function ThreatAnalysisPage() {
   const [search, setSearch] = useState("")
   const [severityFilter, setSeverityFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [threats, setThreats] = useState<ThreatEvent[]>([])
-  
-  // Anti-fairwashing state
-  const [auditState, setAuditState] = useState<AntiFairwashingState>(() => antiFairwashingService.getState())
-  const [isAuditing, setIsAuditing] = useState(false)
+  const threats = useLiveData(() => threatService.getAll(), ["threat"])
 
-  // Load threats on mount
-  useEffect(() => {
-    setThreats(threatService.getAll())
-  }, [])
+  // Anti-fairwashing state
+  const auditState = useLiveData(() => antiFairwashingService.getState(), ["antiFairwashing"])
+  const [isAuditing, setIsAuditing] = useState(false)
 
   const filtered = useMemo(() => {
     return threats.filter(t => {
@@ -108,18 +103,16 @@ export function ThreatAnalysisPage() {
   const maxHeat = Math.max(...HEATMAP_DATA.flatMap(r => DAY_KEYS.map(d => r[d])))
 
   const handleResolveAlert = (id: string) => {
-    const updated = antiFairwashingService.resolveAlert(id)
-    setAuditState(updated)
+    antiFairwashingService.resolveAlert(id)
     toast.success("Regulatory alert resolved. Mitigation recorded in blockchain evidence ledger.")
   }
 
   const handleRunAudit = () => {
     setIsAuditing(true)
     toast.loading("Running Kolomogorov-Smirnov two-sample testing & robustness metrics...")
-    
+
     setTimeout(() => {
-      const updated = antiFairwashingService.runAdversarialAudit()
-      setAuditState(updated)
+      antiFairwashingService.runAdversarialAudit()
       setIsAuditing(false)
       toast.dismiss()
       toast.success("Adversarial regulatory audit completed. KS & KL metrics updated.")
@@ -127,51 +120,29 @@ export function ThreatAnalysisPage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950/20">
-      
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b bg-card px-6 py-4">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between border-b border-border/30 bg-card px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+            <ShieldAlert className="h-4 w-4 text-primary" />
+          </div>
           <div>
-            <h1 className="flex items-center gap-2 text-lg font-bold text-foreground">
-              <ShieldAlert className="h-5 w-5 text-primary" />
-              Threat Analysis & Fairwashing Auditor
-            </h1>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Module 4: Real-time adversarial proxy screening & mathematical fairwashing auditing pipelines.
-            </p>
+            <h1 className="text-base font-semibold text-foreground">Threat Analysis & Fairwashing Auditor</h1>
+            <p className="text-[0.7rem] text-muted-foreground">Real-time adversarial proxy screening & mathematical fairwashing audit pipelines</p>
           </div>
         </div>
-
-        {/* Tab Switchers */}
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-lg border bg-slate-100 p-0.5 dark:bg-slate-900">
-            <button
-              onClick={() => setActiveTab("feed")}
-              className={cn(
-                "rounded-md px-3 py-1 text-xs font-semibold transition-all",
-                activeTab === "feed"
-                  ? "bg-white text-slate-900 shadow dark:bg-slate-800 dark:text-slate-100"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
-              )}
-            >
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-border/60 bg-muted/60 p-0.5">
+            <button onClick={() => setActiveTab("feed")} className={cn("rounded-md px-3 py-1 text-xs font-semibold transition-all", activeTab === "feed" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               Adversarial Feed
             </button>
-            <button
-              onClick={() => setActiveTab("fairwashing")}
-              className={cn(
-                "rounded-md px-3 py-1 text-xs font-semibold transition-all",
-                activeTab === "fairwashing"
-                  ? "bg-white text-slate-900 shadow dark:bg-slate-800 dark:text-slate-100"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
-              )}
-            >
+            <button onClick={() => setActiveTab("fairwashing")} className={cn("rounded-md px-3 py-1 text-xs font-semibold transition-all", activeTab === "fairwashing" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               Anti-Fairwashing Auditor
             </button>
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-            <Download className="h-3.5 w-3.5" />
-            Export Report
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+            <Download className="h-3.5 w-3.5" />Export Report
           </Button>
         </div>
       </div>
@@ -181,51 +152,44 @@ export function ThreatAnalysisPage() {
         {activeTab === "feed" ? (
           <>
             {/* Stat cards */}
-            <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="mb-5 grid grid-cols-5 gap-3">
               {[
-                { label: "Critical", value: counts.critical, color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/20", icon: ShieldAlert },
-                { label: "High", value: counts.high, color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", icon: AlertCircle },
-                { label: "Medium", value: counts.medium, color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-200", icon: AlertCircle },
-                { label: "Low", value: counts.low, color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", icon: CheckCircle },
-                { label: "Blocked", value: counts.blocked, color: "text-primary", bg: "bg-primary/10", border: "border-primary/20", icon: TrendingUp },
-              ].map(s => {
-                return (
-                  <Card key={s.label} className={cn("border shadow-sm", s.border, s.bg)}>
-                    <CardContent className="px-4 py-4">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[0.7rem] font-semibold tracking-wider text-muted-foreground truncate">{s.label}</p>
-                        <p className={cn("mt-1 text-3xl font-bold tracking-tight tabular-nums", s.color)}>{s.value}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+                { label: "Critical", value: counts.critical, color: "text-destructive", bg: "bg-destructive/10", icon: ShieldAlert },
+                { label: "High", value: counts.high, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10", icon: AlertCircle },
+                { label: "Medium", value: counts.medium, color: "text-yellow-600 dark:text-yellow-400", bg: "bg-yellow-500/10", icon: AlertCircle },
+                { label: "Low", value: counts.low, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10", icon: CheckCircle },
+                { label: "Blocked", value: counts.blocked, color: "text-primary", bg: "bg-primary/10", icon: TrendingUp },
+              ].map(s => (
+                <Card key={s.label} className="border-border/60 shadow-sm">
+                  <div className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</p>
+                      <p className={cn("mt-1.5 text-2xl font-bold tabular-nums", s.color)}>{s.value}</p>
+                    </div>
+                    <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", s.bg)}>
+                      <s.icon className={cn("h-4 w-4", s.color)} />
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Threat Feed Table */}
               <div className="lg:col-span-2">
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-3">
+                <Card className="border-border/60 shadow-sm">
+                  <div className="flex flex-col gap-2 border-b border-border/40 px-5 py-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-semibold">Live Threat Feed</CardTitle>
+                      <p className="text-sm font-semibold text-foreground">Live Threat Feed</p>
                       <Badge variant="secondary" className="text-[0.65rem]">{filtered.length} events</Badge>
                     </div>
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2">
                       <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          placeholder="Search applicant, vector..."
-                          value={search}
-                          onChange={e => setSearch(e.target.value)}
-                          className="h-8 pl-8 text-xs"
-                          data-testid="threat-search"
-                        />
+                        <Input placeholder="Search applicant, vector…" value={search} onChange={e => setSearch(e.target.value)} className="h-7 pl-8 text-xs" data-testid="threat-search" />
                       </div>
                       <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                        <SelectTrigger className="h-8 w-28 text-xs" data-testid="threat-severity-filter">
-                          <SelectValue placeholder="Severity" />
-                        </SelectTrigger>
+                        <SelectTrigger className="h-7 w-28 text-xs" data-testid="threat-severity-filter"><SelectValue placeholder="Severity" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Severity</SelectItem>
                           <SelectItem value="critical">Critical</SelectItem>
@@ -235,9 +199,7 @@ export function ThreatAnalysisPage() {
                         </SelectContent>
                       </Select>
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-8 w-24 text-xs" data-testid="threat-status-filter">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
+                        <SelectTrigger className="h-7 w-24 text-xs" data-testid="threat-status-filter"><SelectValue placeholder="Status" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Status</SelectItem>
                           <SelectItem value="blocked">Blocked</SelectItem>
@@ -245,8 +207,8 @@ export function ThreatAnalysisPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </CardHeader>
-                  <CardContent className="px-0 pb-0">
+                  </div>
+                  <div>
                     <Table data-testid="threat-table">
                       <TableHeader>
                         <TableRow>
@@ -309,28 +271,22 @@ export function ThreatAnalysisPage() {
                         ))}
                       </TableBody>
                     </Table>
-                  </CardContent>
+                  </div>
                 </Card>
               </div>
 
               {/* Heatmap */}
               <div>
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
-                      Attack Heatmap
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>Threat events by hour and day of week (past 4 weeks)</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </CardTitle>
-                    <p className="text-[0.65rem] text-muted-foreground">Events by hour × day</p>
-                  </CardHeader>
-                  <CardContent>
+                <Card className="border-border/60 shadow-sm">
+                  <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
+                    <p className="text-sm font-semibold text-foreground">Attack Heatmap</p>
+                    <Tooltip>
+                      <TooltipTrigger asChild><Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" /></TooltipTrigger>
+                      <TooltipContent>Threat events by hour and day (past 4 weeks)</TooltipContent>
+                    </Tooltip>
+                    <span className="ml-auto text-[0.68rem] text-muted-foreground">hour × day</span>
+                  </div>
+                  <div className="p-4">
                     <div className="overflow-x-auto">
                       <div className="min-w-[220px]">
                         {/* Day headers */}
@@ -384,15 +340,15 @@ export function ThreatAnalysisPage() {
                         </div>
                       ))}
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
 
-                <Card className="mt-3 shadow-sm">
-                  <CardContent className="px-4 py-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-xs font-semibold">Model Score Distribution</span>
-                    </div>
+                <Card className="mt-3 border-border/60 shadow-sm">
+                  <div className="flex items-center gap-1.5 border-b border-border/40 px-4 py-3">
+                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">Model Score Distribution</span>
+                  </div>
+                  <div className="px-4 py-3">
                     {threats.map(t => (
                       <div key={t.id} className="mb-1.5 flex items-center gap-2">
                         <span className="w-14 truncate text-[0.6rem] text-muted-foreground">{t.applicantName.split(" ")[0]}</span>
@@ -400,7 +356,7 @@ export function ThreatAnalysisPage() {
                         <span className="font-mono text-[0.6rem] text-foreground w-6 text-right">{(t.modelScore * 100).toFixed(0)}</span>
                       </div>
                     ))}
-                  </CardContent>
+                  </div>
                 </Card>
               </div>
             </div>
@@ -413,24 +369,20 @@ export function ThreatAnalysisPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* KS distribution Overlay */}
-              <Card className="lg:col-span-2 shadow-sm">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
+              <Card className="lg:col-span-2 border-border/60 shadow-sm">
+                <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <Fingerprint className="h-3.5 w-3.5 text-primary" />
                     <div>
-                      <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                        <Fingerprint className="h-4 w-4 text-primary" />
-                        Kolmogorov-Smirnov Score Distribution Divergence
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Adversarial comparison of cumulative probability distributions (CDFs) across groups.
-                      </CardDescription>
+                      <p className="text-sm font-semibold text-foreground">Kolmogorov-Smirnov Score Distribution Divergence</p>
+                      <p className="text-[0.68rem] text-muted-foreground">Adversarial comparison of cumulative probability distributions (CDFs) across groups</p>
                     </div>
-                    <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 text-[0.6rem] font-bold font-mono dark:bg-red-950/20">
-                      Disparity Detected (D = 0.28)
-                    </Badge>
                   </div>
-                </CardHeader>
-                <CardContent>
+                  <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 font-mono text-[0.6rem] font-bold text-destructive">
+                    Disparity Detected (D = 0.28)
+                  </span>
+                </div>
+                <div className="p-4">
                   <div className="h-[220px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={KS_DISTRIBUTION_DATA} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
@@ -444,39 +396,31 @@ export function ThreatAnalysisPage() {
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
-                </CardContent>
+                </div>
               </Card>
 
               {/* Audit Controls & KL Divergence summary */}
-              <Card className="shadow-sm border-primary/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                    <Shield className="h-4 w-4 text-primary" />
-                    Adversarial Audit Panel
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Run mathematical validations to identify regulatory fairwashing.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-3.5 rounded-lg border bg-slate-50 dark:bg-slate-900/50 space-y-1">
-                    <p className="text-[0.625rem] font-bold text-muted-foreground">Drift Alert Status</p>
-                    <p className="text-sm font-extrabold text-red-700 dark:text-red-400">FAIRWASHING SUSPECTED</p>
-                    <p className="text-[0.65rem] text-slate-500 leading-relaxed">
-                      borderline minority profile approvals are highly concentrated around the boundary. Technical group-fairness is inflated.
+              <Card className="border-primary/20 bg-primary/[0.02] shadow-sm">
+                <div className="flex items-center gap-2 border-b border-primary/10 px-5 py-3">
+                  <Shield className="h-3.5 w-3.5 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Adversarial Audit Panel</p>
+                    <p className="text-[0.68rem] text-muted-foreground">Run mathematical validations to identify regulatory fairwashing</p>
+                  </div>
+                </div>
+                <div className="space-y-4 p-5">
+                  <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3.5">
+                    <p className="text-[0.62rem] font-bold uppercase tracking-wider text-muted-foreground">Drift Alert Status</p>
+                    <p className="mt-1 text-sm font-extrabold text-destructive">FAIRWASHING SUSPECTED</p>
+                    <p className="mt-1 text-[0.68rem] leading-relaxed text-muted-foreground">
+                      Borderline minority approvals concentrated at decision boundary. Technical group-fairness is inflated.
                     </p>
                   </div>
-
-                  <Button
-                    onClick={handleRunAudit}
-                    disabled={isAuditing}
-                    className="w-full gap-2 text-xs h-9"
-                    data-testid="run-audit-button"
-                  >
+                  <Button onClick={handleRunAudit} disabled={isAuditing} className="w-full gap-2 text-xs" data-testid="run-audit-button">
                     <RefreshCw className={cn("h-4 w-4", isAuditing && "animate-spin")} />
                     Run Advanced Adversarial Audit
                   </Button>
-                </CardContent>
+                </div>
               </Card>
             </div>
 
@@ -484,17 +428,15 @@ export function ThreatAnalysisPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* KS/KL metrics table */}
-              <Card className="lg:col-span-2 shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                    <span>KS Tests & KL Divergence Disparities</span>
-                    <Badge variant="outline" className="text-[0.65rem]">ECOA / HMDA Compliance</Badge>
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Compares claimed fairness with true latent distributions. Large divergence indicates fairwashing.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+              <Card className="lg:col-span-2 border-border/60 shadow-sm">
+                <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">KS Tests & KL Divergence Disparities</p>
+                    <p className="text-[0.68rem] text-muted-foreground">Compares claimed fairness with true latent distributions — large divergence indicates fairwashing</p>
+                  </div>
+                  <Badge variant="outline" className="text-[0.65rem]">ECOA / HMDA</Badge>
+                </div>
+                <div className="p-4">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -549,21 +491,19 @@ export function ThreatAnalysisPage() {
                       </tbody>
                     </table>
                   </div>
-                </CardContent>
+                </div>
               </Card>
 
               {/* Manipulation Alerts */}
-              <Card className="shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    Fairwashing Manipulation Alerts
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Identified label flipping patterns indicating compliance manipulation.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3.5">
+              <Card className="border-border/60 shadow-sm">
+                <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Fairwashing Manipulation Alerts</p>
+                    <p className="text-[0.68rem] text-muted-foreground">Identified label flipping patterns indicating compliance manipulation</p>
+                  </div>
+                </div>
+                <div className="space-y-3 p-4">
                   {auditState.alerts.filter(a => !a.resolved).map(alert => {
                     return (
                       <div key={alert.id} className="p-3 rounded-lg border border-red-200 bg-red-50/50 space-y-2 text-xs text-slate-900 dark:bg-red-950/20 dark:text-slate-200">
@@ -587,26 +527,24 @@ export function ThreatAnalysisPage() {
                     )
                   })}
                   {auditState.alerts.filter(a => !a.resolved).length === 0 && (
-                    <div className="p-4 rounded-lg border border-dashed text-center text-slate-400 text-xs py-10">
-                      No active manipulation alerts. System compliance structures are verified.
+                    <div className="rounded-lg border border-dashed border-border/60 py-10 text-center text-[0.72rem] text-muted-foreground">
+                      No active manipulation alerts. Compliance verified.
                     </div>
                   )}
-                </CardContent>
+                </div>
               </Card>
             </div>
 
             {/* Row 3: PGD & FGSM Adversarial Robustness Table */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                  <span>Demographic Adversarial Robustness Disparity (PGD / FGSM)</span>
-                  <Badge variant="outline" className="text-[0.65rem] border-primary/20 text-primary">Adversarial Defense Active</Badge>
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Validates model stability under adversarial perturbations (FGSM & PGD) by demographic class to identify hidden structural bias.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Card className="border-border/60 shadow-sm">
+              <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Demographic Adversarial Robustness Disparity (PGD / FGSM)</p>
+                  <p className="text-[0.68rem] text-muted-foreground">Validates model stability under adversarial perturbations by demographic class</p>
+                </div>
+                <Badge variant="outline" className="border-primary/30 text-[0.65rem] text-primary">Adversarial Defense Active</Badge>
+              </div>
+              <div className="p-4">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -659,7 +597,7 @@ export function ThreatAnalysisPage() {
                     </tbody>
                   </table>
                 </div>
-              </CardContent>
+              </div>
             </Card>
 
           </div>

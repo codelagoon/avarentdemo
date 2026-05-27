@@ -1,5 +1,6 @@
 import type { LedgerEntry } from "@/data/mockData"
 import { LEDGER_ENTRIES, generateHash } from "@/data/mockData"
+import { emit } from "@/lib/sync"
 
 const STORAGE_KEY = "avarent_ledger_entries"
 
@@ -26,9 +27,11 @@ export class LedgerService {
   private saveToStorage() {
     if (typeof window === "undefined") return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.entries))
+    emit("ledger")
   }
 
   getAll(): LedgerEntry[] {
+    this.entries = this.loadFromStorage()
     return [...this.entries].sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )

@@ -1,4 +1,7 @@
 import { toast } from "sonner"
+import { emit } from "@/lib/sync"
+
+const STORAGE_KEY = "avarent_fairness_drift"
 
 export interface FairnessDriftMetrics {
   timestamp: string
@@ -56,6 +59,30 @@ class FairnessDriftService {
   private isMonitoring = false
   private monitoringInterval: ReturnType<typeof setInterval> | null = null
 
+  constructor() {
+    this.loadFromStorage()
+  }
+
+  private loadFromStorage() {
+    if (typeof window === "undefined") return
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        this.metrics = parsed.metrics || []
+        this.alerts = parsed.alerts || []
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  private saveToStorage() {
+    if (typeof window === "undefined") return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ metrics: this.metrics, alerts: this.alerts }))
+    emit("fairnessDrift")
+  }
+
   /**
    * Start real-time monitoring
    */
@@ -102,6 +129,7 @@ class FairnessDriftService {
 
     // Check for drift
     this.evaluateDrift(fullMetrics)
+    this.saveToStorage()
 
     return fullMetrics
   }
@@ -178,6 +206,7 @@ class FairnessDriftService {
     }
 
     this.alerts.unshift(alert)
+    this.saveToStorage()
 
     // Show toast
     toast[alert.severity === "critical" ? "error" : alert.severity === "high" ? "warning" : "info"](
@@ -203,6 +232,7 @@ class FairnessDriftService {
    * Get current parity monitor status
    */
   getParityMonitor(): ParityMonitor {
+    this.loadFromStorage()
     if (this.metrics.length === 0) {
       return {
         currentDPD: 0,
@@ -247,6 +277,7 @@ class FairnessDriftService {
    * Get all unacknowledged alerts
    */
   getActiveAlerts(): DriftAlert[] {
+    this.loadFromStorage()
     return this.alerts.filter(a => !a.acknowledged)
   }
 
@@ -257,6 +288,7 @@ class FairnessDriftService {
     const alert = this.alerts.find(a => a.id === alertId)
     if (alert) {
       alert.acknowledged = true
+      this.saveToStorage()
       toast.success(`Alert ${alertId} acknowledged`)
       return true
     }
@@ -267,6 +299,7 @@ class FairnessDriftService {
    * Get metrics for scatter plot (Accuracy vs Fairness)
    */
   getAccuracyFairnessData(): { x: number; y: number; label: string }[] {
+    this.loadFromStorage()
     return this.metrics.flatMap(m =>
       m.accuracyFairnessPoints.map(p => ({
         x: p.accuracy,
@@ -280,6 +313,7 @@ class FairnessDriftService {
    * Get all historical metrics
    */
   getMetrics(): FairnessDriftMetrics[] {
+    this.loadFromStorage()
     return [...this.metrics]
   }
 
@@ -287,6 +321,7 @@ class FairnessDriftService {
    * Get latest cohort metrics
    */
   getLatestMetrics(): FairnessDriftMetrics | null {
+    this.loadFromStorage()
     return this.metrics[this.metrics.length - 1] || null
   }
 

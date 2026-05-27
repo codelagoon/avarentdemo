@@ -1,5 +1,5 @@
 {
-  "outputDirectory": "dist",
+  "outputDirectory": ".next",
   "rewrites": [
     { "source": "/(.*)", "destination": "/$1" }
   ]

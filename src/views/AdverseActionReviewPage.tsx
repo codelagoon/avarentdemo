@@ -1,11 +1,6 @@
 import { useState, useMemo } from "react"
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle,
-  CardDescription 
-} from "@/components/ui/card"
+import { useLiveData } from "@/hooks/useLiveData"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -126,26 +121,25 @@ export default function AdverseActionReviewPage() {
   const [overrideReason, setOverrideReason] = useState("")
   const [customNarrative, setCustomNarrative] = useState("")
 
-  const allReviews = useMemo(() => adverseActionService.getAllReviews(), [])
-  
+  const allReviews = useLiveData(() => adverseActionService.getAllReviews(), ["adverseAction"])
+
   const filteredReviews = useMemo(() => {
     return allReviews.filter(review => {
       const matchesFilter = filter === "all" || review.status === filter
-      const matchesSearch = 
+      const matchesSearch =
         review.applicantName.toLowerCase().includes(search.toLowerCase()) ||
         review.applicantId.toLowerCase().includes(search.toLowerCase())
       return matchesFilter && matchesSearch
     })
   }, [allReviews, filter, search])
 
-  const stats = useMemo(() => adverseActionService.getStats(), [])
+  const stats = useLiveData(() => adverseActionService.getStats(), ["adverseAction"])
 
   const handleApprove = () => {
     if (!selectedReview) return
     adverseActionService.approveReview(selectedReview.id, "Sarah Chen", "Approved as generated - CFPB compliant")
     toast.success("Review approved")
-    // Refresh
-    setSelectedReview(adverseActionService.getReview(selectedReview.id) || null)
+    setSelectedReview(prev => prev ? adverseActionService.getReview(prev.id) || null : null)
   }
 
   const handleOverride = () => {
@@ -157,63 +151,57 @@ export default function AdverseActionReviewPage() {
     toast.success("Review overridden")
     setOverrideReason("")
     setCustomNarrative("")
-    setSelectedReview(adverseActionService.getReview(selectedReview.id) || null)
+    setSelectedReview(prev => prev ? adverseActionService.getReview(prev.id) || null : null)
   }
 
   const handleSend = () => {
     if (!selectedReview) return
     adverseActionService.markAsSent(selectedReview.id)
     toast.success("Adverse Action Notice sent")
-    setSelectedReview(adverseActionService.getReview(selectedReview.id) || null)
+    setSelectedReview(prev => prev ? adverseActionService.getReview(prev.id) || null : null)
   }
 
   return (
-    <div className="flex h-full gap-4 p-4">
-      {/* Left Panel - Queue */}
-      <div className="w-80 flex flex-col gap-4">
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-2">
-          <Card>
-            <CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Pending</p>
-              <p className="text-2xl font-bold">{stats.pending}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Approved</p>
-              <p className="text-2xl font-bold">{stats.approved}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Overridden</p>
-              <p className="text-2xl font-bold">{stats.overridden}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Sent</p>
-              <p className="text-2xl font-bold">{stats.sent}</p>
-            </CardContent>
-          </Card>
+    <div className="flex h-full flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border/30 bg-card px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+            <Scale className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-base font-semibold text-foreground">Adverse Action Review</h1>
+            <p className="text-[0.7rem] text-muted-foreground">ECOA / CFPB adverse action notice review · SHAP-to-plain-language translation</p>
+          </div>
         </div>
+        <div className="flex items-center gap-2">
+          {[
+            { label: "Pending", value: stats.pending, color: "text-yellow-600 dark:text-yellow-400" },
+            { label: "Approved", value: stats.approved, color: "text-emerald-600 dark:text-emerald-400" },
+            { label: "Overridden", value: stats.overridden, color: "text-orange-600 dark:text-orange-400" },
+            { label: "Sent", value: stats.sent, color: "text-primary" },
+          ].map(s => (
+            <div key={s.label} className="flex flex-col items-center px-3">
+              <span className={`text-lg font-bold tabular-nums ${s.color}`}>{s.value}</span>
+              <span className="text-[0.62rem] text-muted-foreground">{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
+      <div className="flex flex-1 gap-4 overflow-hidden p-4">
+      {/* Left Panel - Queue */}
+      <div className="flex w-72 flex-col gap-3">
         {/* Filters */}
-        <Card>
-          <CardContent className="p-3 space-y-3">
+        <Card className="border-border/60">
+          <div className="space-y-2 p-3">
             <div className="relative">
-              <Search className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search applicants..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8"
-              />
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder="Search applicants…" value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
             </div>
             <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-              <SelectTrigger>
-                <Filter className="h-4 w-4 mr-2" />
+              <SelectTrigger className="h-8 text-xs">
+                <Filter className="h-3.5 w-3.5 mr-1.5" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -224,15 +212,15 @@ export default function AdverseActionReviewPage() {
                 <SelectItem value="sent">Sent</SelectItem>
               </SelectContent>
             </Select>
-          </CardContent>
+          </div>
         </Card>
 
         {/* Queue List */}
-        <Card className="flex-1 overflow-hidden">
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm">Review Queue ({filteredReviews.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 overflow-y-auto h-full">
+        <Card className="flex-1 overflow-hidden border-border/60">
+          <div className="border-b border-border/40 px-3 py-2">
+            <p className="text-xs font-semibold text-foreground">Review Queue ({filteredReviews.length})</p>
+          </div>
+          <div className="h-full overflow-y-auto p-3">
             <div className="space-y-2">
               {filteredReviews.map((review) => (
                 <ReviewQueueItem
@@ -243,40 +231,34 @@ export default function AdverseActionReviewPage() {
                 />
               ))}
             </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
 
       {/* Right Panel - Detail */}
       <div className="flex-1">
         {selectedReview ? (
-          <Card className="h-full flex flex-col">
-            <CardHeader>
-              <div className="flex items-start justify-between">
+          <Card className="flex h-full flex-col border-border/60">
+            <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    {selectedReview.applicantName}
-                  </CardTitle>
-                  <CardDescription>
-                    {selectedReview.applicantId} • Reviewed {selectedReview.reviewedAt 
-                      ? new Date(selectedReview.reviewedAt).toLocaleDateString()
-                      : "Pending"
-                    }
-                  </CardDescription>
+                  <p className="text-sm font-semibold text-foreground">{selectedReview.applicantName}</p>
+                  <p className="text-[0.68rem] text-muted-foreground">{selectedReview.applicantId} · {selectedReview.reviewedAt ? new Date(selectedReview.reviewedAt).toLocaleDateString() : "Pending"}</p>
                 </div>
-                <Badge className={cn(
-                  selectedReview.status === "approved" && "bg-green-100 text-green-800",
-                  selectedReview.status === "overridden" && "bg-orange-100 text-orange-800",
-                  selectedReview.status === "sent" && "bg-blue-100 text-blue-800",
-                  selectedReview.status === "pending_review" && "bg-yellow-100 text-yellow-800",
-                )}>
-                  {selectedReview.status.replace("_", " ")}
-                </Badge>
               </div>
-            </CardHeader>
+              <span className={cn(
+                "rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold capitalize",
+                selectedReview.status === "approved" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                selectedReview.status === "overridden" && "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400",
+                selectedReview.status === "sent" && "border-primary/30 bg-primary/10 text-primary",
+                selectedReview.status === "pending_review" && "border-yellow-500/30 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
+              )}>
+                {selectedReview.status.replace("_", " ")}
+              </span>
+            </div>
 
-            <CardContent className="flex-1 overflow-y-auto space-y-6">
+            <div className="flex-1 space-y-6 overflow-y-auto p-5">
               <Tabs defaultValue="side-by-side" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="side-by-side">Side-by-Side</TabsTrigger>
@@ -370,10 +352,10 @@ export default function AdverseActionReviewPage() {
                   </p>
                 </div>
               )}
-            </CardContent>
+            </div>
 
             {/* Actions */}
-            <div className="p-4 border-t flex items-center justify-between">
+            <div className="flex items-center justify-between border-t border-border/40 p-4">
               <div className="flex items-center gap-2">
                 {selectedReview.status === "pending_review" && (
                   <>
@@ -413,12 +395,11 @@ export default function AdverseActionReviewPage() {
             </div>
           </Card>
         ) : (
-          <Card className="h-full flex items-center justify-center border-dashed">
-            <div className="text-center text-muted-foreground p-8">
-              <p className="text-sm font-medium text-slate-400">Select a review from the queue</p>
-            </div>
+          <Card className="flex h-full items-center justify-center border-dashed border-border/60">
+            <p className="text-sm text-muted-foreground">Select a review from the queue</p>
           </Card>
         )}
+      </div>
       </div>
     </div>
   )

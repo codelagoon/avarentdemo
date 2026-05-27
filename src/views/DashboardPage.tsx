@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
+import { useLiveData } from "@/hooks/useLiveData"
 import {
   Play, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle,
-  Shield, Zap, ChevronDown, ChevronRight, Hash, Clock, Activity,
-  RefreshCw, Download, Info, Boxes, Scale, Database, TrendingUp,
+  Shield, Zap, ChevronDown, Hash, Activity,
+  RefreshCw, Download, Boxes, Scale, Database, TrendingUp,
   TrendingDown, Minus, Filter, BarChart2, Check, X, BookOpen
 } from "lucide-react"
 import {
@@ -199,7 +200,6 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
     severed: { fill: "#3f1010", stroke: "#ef4444" },
   }
 
-  const pulseR = running ? 5 + Math.sin(tick * 0.2) * 1.5 : 5
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-slate-200/60 bg-slate-50 dark:border-slate-800 dark:bg-[#0d1117]">
@@ -400,7 +400,7 @@ function ComplianceControlsPanel({
   return (
     <div className="flex h-full flex-col overflow-y-auto" data-testid="red-team-console">
       {/* Panel header */}
-      <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500/10">
           <Filter className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
         </div>
@@ -420,14 +420,14 @@ function ComplianceControlsPanel({
       </div>
 
       {/* Scenarios accordion */}
-      <div className="border-b border-slate-100 dark:border-slate-800" data-testid="demo-scenarios-bar">
+      <div className="border-b border-border/60" data-testid="demo-scenarios-bar">
         <button
           onClick={() => setScenariosOpen(o => !o)}
-          className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-muted/40 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <Activity className="h-3 w-3 text-slate-400" />
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Test Scenarios</span>
+            <Activity className="h-3 w-3 text-muted-foreground" />
+            <span className="text-xs font-semibold text-foreground">Test Scenarios</span>
             <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[0.6rem] font-bold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
               {Object.keys(DEMO_SCENARIOS).length}
             </span>
@@ -494,14 +494,14 @@ function ComplianceControlsPanel({
       </div>
 
       {/* Applicant profile accordion */}
-      <div className="border-b border-slate-100 dark:border-slate-800">
+      <div className="border-b border-border/60">
         <button
           onClick={() => setProfileOpen(o => !o)}
-          className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-muted/40 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <Hash className="h-3 w-3 text-slate-400" />
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Applicant Profile</span>
+            <Hash className="h-3 w-3 text-muted-foreground" />
+            <span className="text-xs font-semibold text-foreground">Applicant Profile</span>
           </div>
           <ChevronDown className={cn("h-3 w-3 text-slate-400 transition-transform", profileOpen && "rotate-180")} />
         </button>
@@ -741,7 +741,7 @@ function ApplicantTable({ activeScenario }: { activeScenario: ScenarioConfig | n
   return (
     <div className="flex flex-col h-full">
       {/* Tabs */}
-      <div className="flex items-center gap-0.5 border-b border-slate-100 dark:border-slate-800 px-1">
+      <div className="flex items-center gap-0.5 border-b border-border/60 px-1">
         {tabs.map(t => (
           <button
             key={t.id}
@@ -776,7 +776,7 @@ function ApplicantTable({ activeScenario }: { activeScenario: ScenarioConfig | n
         <span className="text-right">Trend</span>
       </div>
       {/* Rows */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/60">
+      <div className="flex-1 overflow-y-auto divide-y divide-border/40">
         {filtered.map((d, i) => {
           const isHighlighted = activeScenario?.applicantId?.includes(d.id.split("-")[1] ?? "")
           return (
@@ -981,15 +981,12 @@ export function DashboardPage() {
   const [activeScenario, setActiveScenario]   = useState<ScenarioConfig | null>(null)
   const [running,        setRunning]           = useState(false)
   const [severedEdges,   setSeveredEdges]      = useState<string[]>([])
-  const [ledgerEntries,  setLedgerEntries]     = useState<LedgerEntry[]>([])
+  const ledgerEntries = useLiveData(() => ledgerService.getRecent(6), ["ledger"])
   const [testResult,     setTestResult]        = useState<{ outcome: string; fairness: number } | null>(null)
   const [graphVisible,   setGraphVisible]      = useState(false)
   const [showTour,       setShowTour]          = useState(false)
   const [tourStep,       setTourStep]          = useState(0)
 
-  useEffect(() => {
-    setLedgerEntries(ledgerService.getRecent(6))
-  }, [])
 
   const runScenario = useCallback(async () => {
     if (!activeScenario) return
@@ -1015,7 +1012,6 @@ export function DashboardPage() {
     await new Promise(r => setTimeout(r, 700))
     try {
       const result = await scenarioService.runScenario(activeScenario.id)
-      setLedgerEntries(ledgerService.getRecent(6))
       setTestResult({ outcome: result.outcome, fairness: result.fairnessScore })
 
       if (result.outcome === "approved") {
@@ -1041,10 +1037,10 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-auto lg:h-full overflow-y-auto lg:overflow-hidden bg-slate-50/70 dark:bg-slate-950">
+    <div className="flex flex-col lg:flex-row h-auto lg:h-full overflow-y-auto lg:overflow-hidden">
 
       {/* ── Left Column: Controls ─────────────────────────────────────── */}
-      <div className="flex w-full lg:w-72 shrink-0 flex-col border-b lg:border-b-0 lg:border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex w-full lg:w-72 shrink-0 flex-col border-b lg:border-b-0 lg:border-r border-border/60 bg-muted/20">
         <ComplianceControlsPanel
           scenario={activeScenario}
           onRun={runScenario}
@@ -1062,10 +1058,10 @@ export function DashboardPage() {
       {/* ── Center Column: Analytics ──────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-visible lg:overflow-hidden">
         {/* ── Fairness wave + mini-stats row ── */}
-        <div className="border-b border-slate-200 bg-white px-5 py-3 dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-stretch gap-4">
+        <div className="border-b border-border/60 bg-card px-5 py-3">
+          <div className="flex items-center gap-4">
             {/* Metric tiles */}
-            <div className="flex gap-3 shrink-0">
+            <div className="flex flex-col gap-1.5 shrink-0">
               {[
                 {
                   label: "Scenarios",
@@ -1098,13 +1094,13 @@ export function DashboardPage() {
                   accent: "#0ea5e9",
                 },
               ].map(({ label, value, icon, trend, accent }) => (
-                <div key={label} className="flex flex-col justify-between rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-2.5 dark:border-slate-800 dark:bg-slate-800/40 min-w-[90px]">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-slate-400" style={{ color: accent + "99" }}>{icon}</span>
-                    {trend}
+                <div key={label} className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
+                  <span style={{ color: accent }}>{icon}</span>
+                  <div>
+                    <p className="text-sm font-black tabular-nums leading-none" style={{ color: accent }}>{value}</p>
+                    <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">{label}</p>
                   </div>
-                  <p className="text-xl font-black tabular-nums text-slate-800 dark:text-slate-100" style={{ color: accent }}>{value}</p>
-                  <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">{label}</p>
+                  <span className="ml-1">{trend}</span>
                 </div>
               ))}
             </div>
@@ -1163,7 +1159,7 @@ export function DashboardPage() {
         </div>
 
         {/* ── Causal Graph Section ── */}
-        <div className="border-b border-slate-200 px-5 py-3 dark:border-slate-800 transition-all">
+        <div className="border-b border-border/60 bg-card px-5 py-3 transition-all">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Hash className="h-3 w-3 text-indigo-500" />
@@ -1202,13 +1198,13 @@ export function DashboardPage() {
         </div>
 
         {/* ── Applicant Decisions Table ── */}
-        <div className="flex-1 overflow-hidden bg-white dark:bg-slate-900">
+        <div className="flex-1 overflow-hidden bg-card">
           <ApplicantTable activeScenario={activeScenario} />
         </div>
       </div>
 
       {/* ── Right Column: Insights ────────────────────────────────────── */}
-      <div className="flex w-full lg:w-72 shrink-0 flex-col border-t lg:border-t-0 lg:border-l border-slate-200 bg-slate-50/80 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/50">
+      <div className="flex w-full lg:w-72 shrink-0 flex-col border-t lg:border-t-0 lg:border-l border-border/60 bg-muted/20 px-3 py-3">
         <InsightsPanel
           entries={ledgerEntries}
           severedEdges={severedEdges}

@@ -58,8 +58,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
-        mono: ["IBM Plex Mono", "Courier New", "monospace"],
+        sans: ["-apple-system", "BlinkMacSystemFont", "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Arial", "system-ui", "sans-serif"],
+        mono: ["SF Mono", "Menlo", "Monaco", "Consolas", "Courier New", "monospace"],
       },
     },
   },

@@ -1,6 +1,7 @@
 import { useState } from "react"
+import { useLiveData } from "@/hooks/useLiveData"
 import { Database, Cpu, ShieldAlert, Sparkles, Sliders, RefreshCw, BarChart3, CheckCircle2, HelpCircle, Download, FileSpreadsheet } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
@@ -9,11 +10,10 @@ import { toast } from "sonner"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { syntheticDataService } from "@/services/syntheticDataService"
-import type { SyntheticStudioState } from "@/services/syntheticDataService"
 import { cn } from "@/lib/utils"
 
 export function SyntheticDataStudioPage() {
-  const [state, setState] = useState<SyntheticStudioState>(() => syntheticDataService.getState())
+  const state = useLiveData(() => syntheticDataService.getState(), ["syntheticStudio"])
   const [epochs, setEpochs] = useState(1500)
   const [privacyBudget, setPrivacyBudget] = useState(1.5)
   const [quality, setQuality] = useState(85)
@@ -38,13 +38,11 @@ export function SyntheticDataStudioPage() {
   }))
 
   const handleSliderChange = (id: string, value: number) => {
-    const updated = syntheticDataService.updateGroupTargetCount(id, value)
-    setState(updated)
+    syntheticDataService.updateGroupTargetCount(id, value)
   }
 
   const handleToggleFeature = (id: string, status: "active" | "quarantined" | "sanitized") => {
-    const updated = syntheticDataService.toggleFeatureStatus(id, status)
-    setState(updated)
+    syntheticDataService.toggleFeatureStatus(id, status)
     toast.success(`Feature updated to ${status}`)
   }
 
@@ -56,8 +54,7 @@ export function SyntheticDataStudioPage() {
       setGenerationProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval)
-          const updated = syntheticDataService.runGANSimulation(epochs, privacyBudget, quality)
-          setState(updated)
+          syntheticDataService.runGANSimulation(epochs, privacyBudget, quality)
           setIsGenerating(false)
           toast.success("Fairness-Constrained GAN generation complete! Minority profile representation corrected.")
           return 100
@@ -72,66 +69,51 @@ export function SyntheticDataStudioPage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950/20" data-testid="synthetic-data-studio">
-      {/* Top Banner */}
-      <div className="flex items-center justify-between border-b bg-card px-6 py-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-lg font-bold text-foreground">
-            <Database className="h-5 w-5 text-primary" />
-            Synthetic Data Studio
-          </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Module 3: Generate fairness-constrained synthetic data to remediate historical class imbalance.
-          </p>
+    <div className="flex h-full flex-col overflow-hidden" data-testid="synthetic-data-studio">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border/30 bg-card px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+            <Database className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-base font-semibold text-foreground">Synthetic Data Studio</h1>
+            <p className="text-[0.7rem] text-muted-foreground">Fairness-constrained GAN synthesis to remediate historical class imbalance</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary font-mono">
-            GAN v2.4-FC
-          </Badge>
-          <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-            Wasserstein Distance: {state.ganMetrics.wassersteinDistance} (synthetic data is statistically indistinguishable from source)
+          <Badge variant="outline" className="border-primary/30 bg-primary/5 font-mono text-[0.7rem] text-primary">GAN v2.4-FC</Badge>
+          <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-[0.7rem] text-emerald-600 dark:text-emerald-400">
+            W-Dist: {state.ganMetrics.wassersteinDistance}
           </Badge>
         </div>
       </div>
 
       {/* Main Grid */}
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="flex-1 overflow-auto p-5 space-y-5">
         
         {/* Row 1: Intro Cards & Imbalance Analyzer */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Class Imbalance Panel */}
-          <Card className="lg:col-span-2 shadow-sm">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
+          <Card className="lg:col-span-2 border-border/60 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+              <div className="flex items-center gap-2">
+                <Sliders className="h-3.5 w-3.5 text-primary" />
                 <div>
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Sliders className="h-4 w-4 text-primary" />
-                    Minority Representation Balancer
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Adjust target demographics to calibrate GAN synthesis ratios.
-                  </CardDescription>
-                </div>
-                <div className="flex gap-1.5 rounded-lg border bg-slate-50 p-0.5 dark:bg-slate-900">
-                  {(["Race", "Gender", "Age"] as const).map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setActiveCategory(cat)}
-                      className={cn(
-                        "rounded-md px-2.5 py-1 text-xs font-semibold transition-all",
-                        activeCategory === cat
-                          ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100"
-                          : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-                      )}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                  <p className="text-sm font-semibold text-foreground">Minority Representation Balancer</p>
+                  <p className="text-[0.68rem] text-muted-foreground">Adjust target demographics to calibrate GAN synthesis ratios</p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/60 p-0.5">
+                {(["Race", "Gender", "Age"] as const).map(cat => (
+                  <button key={cat} onClick={() => setActiveCategory(cat)} className={cn("rounded-md px-2.5 py-1 text-xs font-semibold transition-all", activeCategory === cat ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3 p-4">
               <div className="space-y-3">
                 {filteredGroups.map(group => {
                   const severity = group.representationRatio < 15 ? "critical" : group.representationRatio < 30 ? "moderate" : "nominal"
@@ -179,21 +161,19 @@ export function SyntheticDataStudioPage() {
                   )
                 })}
               </div>
-            </CardContent>
+            </div>
           </Card>
 
           {/* GAN Synthesizer Engine controls */}
-          <Card className="shadow-sm border-primary/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Cpu className="h-4 w-4 text-primary" />
-                Fairness GAN Synthesizer
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Configure constraints for the Generative Adversarial Network.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Card className="border-primary/20 bg-primary/[0.02] shadow-sm">
+            <div className="flex items-center gap-2 border-b border-primary/10 px-5 py-3">
+              <Cpu className="h-3.5 w-3.5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Fairness GAN Synthesizer</p>
+                <p className="text-[0.68rem] text-muted-foreground">Configure Generative Adversarial Network constraints</p>
+              </div>
+            </div>
+            <div className="space-y-4 p-5">
               <div className="space-y-3.5">
                 {/* Epochs */}
                 <div className="space-y-1">
@@ -282,16 +262,11 @@ export function SyntheticDataStudioPage() {
                 </div>
               )}
 
-              <Button
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="w-full mt-2 gap-2"
-                data-testid="generate-gan-button"
-              >
+              <Button onClick={handleGenerate} disabled={isGenerating} className="w-full gap-2" data-testid="generate-gan-button">
                 <RefreshCw className={cn("h-4 w-4", isGenerating && "animate-spin")} />
                 Run GAN Debiasing
               </Button>
-            </CardContent>
+            </div>
           </Card>
         </div>
 
@@ -299,17 +274,15 @@ export function SyntheticDataStudioPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Bar Chart Comparison */}
-          <Card className="lg:col-span-2 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-primary" />
-                Debiasing Impact: Before vs. After GAN
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Simulated credit approval rate changes across demographic groups under fairness-constrained synthesis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <Card className="lg:col-span-2 border-border/60 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
+              <BarChart3 className="h-3.5 w-3.5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Debiasing Impact: Before vs. After GAN</p>
+                <p className="text-[0.68rem] text-muted-foreground">Credit approval rate changes across demographic groups under fairness-constrained synthesis</p>
+              </div>
+            </div>
+            <div className="p-4">
               <ChartContainer config={chartConfig} className="h-[240px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barChartData} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
@@ -323,21 +296,19 @@ export function SyntheticDataStudioPage() {
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
-            </CardContent>
+            </div>
           </Card>
 
           {/* GAN Metrics & Sanitization Info */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Synthesis Verification Metrics
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Statistical validity gauges of the generated synthetic datasets.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Card className="border-border/60 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Synthesis Verification Metrics</p>
+                <p className="text-[0.68rem] text-muted-foreground">Statistical validity gauges of the generated synthetic datasets</p>
+              </div>
+            </div>
+            <div className="space-y-4 p-4">
               <div className="grid grid-cols-2 gap-3.5">
                 <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-900/50 space-y-1">
                   <p className="text-[0.625rem] font-bold text-muted-foreground">Wasserstein Dist</p>
@@ -362,38 +333,30 @@ export function SyntheticDataStudioPage() {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" className="w-full gap-2 text-xs font-semibold" onClick={handleExport}>
-                  <Download className="h-3.5 w-3.5" />
-                  Export Metadata
+                <Button variant="outline" className="w-full gap-2 text-xs" onClick={handleExport}>
+                  <Download className="h-3.5 w-3.5" />Export Metadata
                 </Button>
-                <Button className="w-full gap-2 text-xs font-semibold" onClick={handleExport}>
-                  <FileSpreadsheet className="h-3.5 w-3.5" />
-                  Download CSV
+                <Button className="w-full gap-2 text-xs" onClick={handleExport}>
+                  <FileSpreadsheet className="h-3.5 w-3.5" />Download CSV
                 </Button>
               </div>
-            </CardContent>
+            </div>
           </Card>
         </div>
 
         {/* Row 3: Proxy Sanitization Panel */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+        <Card className="border-border/60 shadow-sm">
+          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-3.5 w-3.5 text-primary" />
               <div>
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <ShieldAlert className="h-4 w-4 text-primary" />
-                  Disparate Impact & Proxy Variable Sanitizer
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Strip latent correlations between standard variables and protected classes.
-                </CardDescription>
+                <p className="text-sm font-semibold text-foreground">Disparate Impact & Proxy Variable Sanitizer</p>
+                <p className="text-[0.68rem] text-muted-foreground">Strip latent correlations between standard variables and protected classes</p>
               </div>
-              <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 font-mono text-[0.65rem] dark:bg-emerald-950/20 dark:text-emerald-400">
-                Disparate Impact Remover Active
-              </Badge>
             </div>
-          </CardHeader>
-          <CardContent>
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[0.62rem] font-semibold text-emerald-600 dark:text-emerald-400">Remover Active</span>
+          </div>
+          <div className="p-4">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -475,7 +438,7 @@ export function SyntheticDataStudioPage() {
                 </tbody>
               </table>
             </div>
-          </CardContent>
+          </div>
         </Card>
 
       </div>

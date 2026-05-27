@@ -4,8 +4,7 @@ import { toast } from "sonner"
 import { auditPacketService } from "@/services/auditPacketService"
 import { Button } from "@/components/ui/button"
 import { ApiKeyDialog } from "@/components/ApiKeyDialog"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -24,49 +23,40 @@ interface ToggleSetting {
 
 function SettingToggle({ setting, onChange }: { setting: ToggleSetting; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between py-2.5">
-      <div className="flex-1 pr-6">
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="flex-1">
         <div className="flex items-center gap-1.5">
-          <Label htmlFor={setting.id} className="cursor-pointer text-sm font-medium text-foreground">
+          <Label htmlFor={setting.id} className="cursor-pointer text-[0.82rem] font-medium text-foreground">
             {setting.label}
           </Label>
           {setting.critical && (
-            <Badge variant="outline" className="border-destructive/30 text-[0.6rem] text-destructive">
-              Critical
-            </Badge>
+            <span className="rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.58rem] font-semibold text-destructive">Critical</span>
           )}
         </div>
-        <p className="mt-0.5 text-[0.65rem] text-muted-foreground">{setting.description}</p>
+        <p className="mt-0.5 text-[0.68rem] text-muted-foreground">{setting.description}</p>
       </div>
-      <Switch
-        id={setting.id}
-        checked={setting.value}
-        onCheckedChange={onChange}
-        data-testid={`setting-${setting.id}`}
-      />
+      <Switch id={setting.id} checked={setting.value} onCheckedChange={onChange} data-testid={`setting-${setting.id}`} />
     </div>
   )
 }
 
 function ComplianceStatusRow({ label, status, detail }: { label: string; status: "pass" | "fail" | "warn"; detail: string }) {
   return (
-    <div className="flex items-center justify-between border-b py-2.5 last:border-0">
+    <div className="flex items-center justify-between border-b border-border/30 py-2.5 last:border-0">
       <div className="flex items-center gap-2">
-        {status === "pass" && <CheckCircle className="h-4 w-4 text-emerald-600" />}
-        {status === "fail" && <AlertCircle className="h-4 w-4 text-destructive" />}
-        {status === "warn" && <AlertCircle className="h-4 w-4 text-amber-500" />}
-        <span className="text-sm font-medium text-foreground">{label}</span>
+        {status === "pass" && <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />}
+        {status === "fail" && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
+        {status === "warn" && <AlertCircle className="h-3.5 w-3.5 text-amber-500" />}
+        <span className="text-[0.82rem] font-medium text-foreground">{label}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">{detail}</span>
+        <span className="text-[0.72rem] text-muted-foreground">{detail}</span>
         <span className={cn(
-          "rounded-full border px-2 py-0.5 text-[0.65rem] font-bold uppercase",
-          status === "pass" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-          status === "fail" ? "bg-destructive/10 text-destructive border-destructive/20" :
-          "bg-amber-50 text-amber-700 border-amber-200"
-        )}>
-          {status}
-        </span>
+          "rounded-full border px-2 py-0.5 text-[0.6rem] font-bold uppercase",
+          status === "pass" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+          status === "fail" ? "border-destructive/30 bg-destructive/10 text-destructive" :
+          "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+        )}>{status}</span>
       </div>
     </div>
   )
@@ -112,147 +102,109 @@ export function SettingsPage() {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b bg-card px-6 py-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-lg font-bold text-foreground">
-            <Settings className="h-5 w-5 text-primary" />
-            Settings & Configuration
-          </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Meridian system configuration — {DAILY_STATS.modelVersion} · {DAILY_STATS.cfpbCompliant ? "CFPB Compliant" : "Non-Compliant"}
-          </p>
+      <div className="flex items-center justify-between border-b border-border/30 bg-card px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+            <Settings className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-base font-semibold text-foreground">Settings & Configuration</h1>
+            <p className="text-[0.7rem] text-muted-foreground">
+              {DAILY_STATS.modelVersion} · {DAILY_STATS.cfpbCompliant ? "CFPB Compliant" : "Non-Compliant"}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <ApiKeyDialog />
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleReset}>
-            <RefreshCw className="h-3.5 w-3.5" />
-            Reset Defaults
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleReset}>
+            <RefreshCw className="h-3.5 w-3.5" />Reset Defaults
           </Button>
-          <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave}>
-            <Save className="h-3.5 w-3.5" />
-            Save Configuration
+          <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSave}>
+            <Save className="h-3.5 w-3.5" />Save
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
-        <div className="grid grid-cols-3 gap-6">
+      <div className="flex-1 overflow-auto p-5">
+        <div className="grid grid-cols-3 gap-5">
           {/* Left column */}
-          <div className="col-span-2 space-y-5">
+          <div className="col-span-2 space-y-4">
             {/* Detection Settings */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
-                  <Shield className="h-4 w-4 text-primary" />
-                  Detection & Intervention Controls
-                </CardTitle>
-                <p className="text-[0.65rem] text-muted-foreground">
-                  Core fairness enforcement — disabling critical settings may violate ECOA/HMDA requirements
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="divide-y">
-                  {detection.map(s => (
-                    <SettingToggle key={s.id} setting={s} onChange={v => toggleDetection(s.id, v)} />
-                  ))}
+            <Card className="border-border/60 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
+                <Shield className="h-3.5 w-3.5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Detection & Intervention Controls</p>
+                  <p className="text-[0.68rem] text-muted-foreground">Core fairness enforcement — disabling critical settings may violate ECOA/HMDA</p>
                 </div>
-              </CardContent>
+              </div>
+              <div className="divide-y divide-border/40 px-5">
+                {detection.map(s => <SettingToggle key={s.id} setting={s} onChange={v => toggleDetection(s.id, v)} />)}
+              </div>
             </Card>
 
             {/* Reporting Settings */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Reporting & Compliance Export</CardTitle>
-                <p className="text-[0.65rem] text-muted-foreground">
-                  Regulatory reporting and data retention configuration
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="divide-y">
-                  {reporting.map(s => (
-                    <SettingToggle key={s.id} setting={s} onChange={v => toggleReporting(s.id, v)} />
-                  ))}
-                </div>
-              </CardContent>
+            <Card className="border-border/60 shadow-sm">
+              <div className="border-b border-border/40 px-5 py-3">
+                <p className="text-sm font-semibold text-foreground">Reporting & Compliance Export</p>
+                <p className="text-[0.68rem] text-muted-foreground">Regulatory reporting and data retention configuration</p>
+              </div>
+              <div className="divide-y divide-border/40 px-5">
+                {reporting.map(s => <SettingToggle key={s.id} setting={s} onChange={v => toggleReporting(s.id, v)} />)}
+              </div>
             </Card>
 
             {/* Model Config */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Model Configuration</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="mb-1 block text-xs">Active Model Version</Label>
-                    <Select value={modelVersion} onValueChange={setModelVersion}>
-                      <SelectTrigger className="h-8 text-xs" data-testid="setting-model-version">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="v4.2.1">FNB-FAIR-v4.2.1 (current)</SelectItem>
-                        <SelectItem value="v4.1.0">FNB-FAIR-v4.1.0 (previous)</SelectItem>
-                        <SelectItem value="v4.0.3">FNB-FAIR-v4.0.3 (archived)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="mt-0.5 text-[0.6rem] text-muted-foreground">Deployed: 2026-03-15</p>
-                  </div>
-
-                  <div>
-                    <Label className="mb-1 block text-xs">Fairness Threshold (DI Ratio Min.)</Label>
-                    <Input
-                      value={fairnessThreshold}
-                      onChange={e => setFairnessThreshold(e.target.value)}
-                      className="h-8 font-mono text-xs"
-                      data-testid="setting-fairness-threshold"
-                    />
-                    <p className="mt-0.5 text-[0.6rem] text-muted-foreground">CFPB minimum: 0.80</p>
-                  </div>
-
-                  <div>
-                    <Label className="mb-1 block text-xs">Alert Notification Email</Label>
-                    <Input
-                      value={alertEmail}
-                      onChange={e => setAlertEmail(e.target.value)}
-                      className="h-8 text-xs"
-                      data-testid="setting-alert-email"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="mb-1 block text-xs">Ledger Retention (years)</Label>
-                    <Select value={retentionPeriod} onValueChange={setRetentionPeriod}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3">3 years</SelectItem>
-                        <SelectItem value="5">5 years</SelectItem>
-                        <SelectItem value="7">7 years (OCC req.)</SelectItem>
-                        <SelectItem value="10">10 years</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <Card className="border-border/60 shadow-sm">
+              <div className="border-b border-border/40 px-5 py-3">
+                <p className="text-sm font-semibold text-foreground">Model Configuration</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 p-5">
+                <div>
+                  <Label className="mb-1.5 block text-[0.72rem] font-semibold uppercase tracking-wider text-muted-foreground">Active Model Version</Label>
+                  <Select value={modelVersion} onValueChange={setModelVersion}>
+                    <SelectTrigger className="h-8 text-xs" data-testid="setting-model-version"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="v4.2.1">FNB-FAIR-v4.2.1 (current)</SelectItem>
+                      <SelectItem value="v4.1.0">FNB-FAIR-v4.1.0 (previous)</SelectItem>
+                      <SelectItem value="v4.0.3">FNB-FAIR-v4.0.3 (archived)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-[0.62rem] text-muted-foreground">Deployed: 2026-03-15</p>
                 </div>
-              </CardContent>
+                <div>
+                  <Label className="mb-1.5 block text-[0.72rem] font-semibold uppercase tracking-wider text-muted-foreground">Fairness Threshold (DI Min.)</Label>
+                  <Input value={fairnessThreshold} onChange={e => setFairnessThreshold(e.target.value)} className="h-8 font-mono text-xs" data-testid="setting-fairness-threshold" />
+                  <p className="mt-1 text-[0.62rem] text-muted-foreground">CFPB minimum: 0.80</p>
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-[0.72rem] font-semibold uppercase tracking-wider text-muted-foreground">Alert Notification Email</Label>
+                  <Input value={alertEmail} onChange={e => setAlertEmail(e.target.value)} className="h-8 text-xs" data-testid="setting-alert-email" />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-[0.72rem] font-semibold uppercase tracking-wider text-muted-foreground">Ledger Retention</Label>
+                  <Select value={retentionPeriod} onValueChange={setRetentionPeriod}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 years</SelectItem>
+                      <SelectItem value="5">5 years</SelectItem>
+                      <SelectItem value="7">7 years (OCC req.)</SelectItem>
+                      <SelectItem value="10">10 years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </Card>
           </div>
 
-          {/* Right column: Compliance Status */}
-          <div className="space-y-5">
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold">Compliance Status</CardTitle>
-                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-xs text-emerald-700">
-                    All Systems Go
-                  </Badge>
-                </div>
-                <p className="text-[0.65rem] text-muted-foreground">
-                  Live regulatory compliance checks
-                </p>
-              </CardHeader>
-              <CardContent>
+          {/* Right column */}
+          <div className="space-y-4">
+            <Card className="border-border/60 shadow-sm">
+              <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+                <p className="text-sm font-semibold text-foreground">Compliance Status</p>
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[0.62rem] font-semibold text-emerald-600 dark:text-emerald-400">All Pass</span>
+              </div>
+              <div className="px-4 py-1">
                 <ComplianceStatusRow label="ECOA / Reg B" status="pass" detail="DI Ratio ≥ 0.80" />
                 <ComplianceStatusRow label="HMDA / Reg C" status="pass" detail="LAR filed 2026-Q1" />
                 <ComplianceStatusRow label="CFPB 4/5ths Rule" status="pass" detail="Min DI: 0.91" />
@@ -260,85 +212,65 @@ export function SettingsPage() {
                 <ComplianceStatusRow label="SR 11-7 Guidance" status="pass" detail="Validated" />
                 <ComplianceStatusRow label="FRB Consumer Prot." status="pass" detail="Annual review" />
                 <ComplianceStatusRow label="State CRA (CA/NY)" status="pass" detail="Current" />
-              </CardContent>
+              </div>
             </Card>
 
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">System Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {[
-                    { label: "Meridian Version", value: "2.4.1" },
-                    { label: "Model Engine", value: DAILY_STATS.modelVersion },
-                    { label: "Database", value: "PostgreSQL 16.2" },
-                    { label: "Last Audit", value: "2026-04-29 06:00 UTC" },
-                    { label: "Uptime", value: "99.97% (30d)" },
-                    { label: "API Latency", value: "42ms avg" },
-                    { label: "Ledger Entries", value: "127,384" },
-                    { label: "Audits Sealed", value: "119,201" },
-                  ].map(item => (
-                    <div key={item.label} className="flex items-center justify-between">
-                      <span className="text-[0.65rem] text-muted-foreground">{item.label}</span>
-                      <span className="font-mono text-[0.65rem] font-medium text-foreground">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
+            <Card className="border-border/60 shadow-sm">
+              <div className="border-b border-border/40 px-4 py-3">
+                <p className="text-sm font-semibold text-foreground">System Information</p>
+              </div>
+              <div className="space-y-2 px-4 py-3">
+                {[
+                  { label: "Meridian Version", value: "2.4.1" },
+                  { label: "Model Engine", value: DAILY_STATS.modelVersion },
+                  { label: "Database", value: "PostgreSQL 16.2" },
+                  { label: "Last Audit", value: "2026-04-29 06:00 UTC" },
+                  { label: "Uptime", value: "99.97% (30d)" },
+                  { label: "API Latency", value: "42ms avg" },
+                  { label: "Ledger Entries", value: "127,384" },
+                  { label: "Audits Sealed", value: "119,201" },
+                ].map(item => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-[0.7rem] text-muted-foreground">{item.label}</span>
+                    <span className="font-mono text-[0.7rem] font-medium tabular-nums text-foreground">{item.value}</span>
+                  </div>
+                ))}
+              </div>
             </Card>
 
-            <Card className="shadow-sm border-primary/20">
-              <CardContent className="px-4 py-3">
-                <div className="flex items-center gap-2 mb-2">
+            <Card className="border-border/60 shadow-sm">
+              <div className="border-b border-border/40 px-4 py-3">
+                <div className="flex items-center gap-1.5">
                   <Shield className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-xs font-semibold text-foreground">Regulatory Contact</span>
+                  <p className="text-sm font-semibold text-foreground">Regulatory Contact</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[0.65rem] text-muted-foreground">OCC Examiner: Thomas B. Okafor</p>
-                  <p className="text-[0.65rem] text-muted-foreground">CFPB Contact: fairlending@cfpb.gov</p>
-                  <p className="text-[0.65rem] text-muted-foreground">Internal Counsel: legal@firstnationalbank.com</p>
-                </div>
+              </div>
+              <div className="space-y-1.5 px-4 py-3">
+                <p className="text-[0.72rem] text-muted-foreground">OCC Examiner: Thomas B. Okafor</p>
+                <p className="text-[0.72rem] text-muted-foreground">CFPB Contact: fairlending@cfpb.gov</p>
+                <p className="text-[0.72rem] text-muted-foreground">Internal Counsel: legal@firstnationalbank.com</p>
                 <Separator className="my-2" />
-                <p className="text-[0.6rem] text-muted-foreground/60">
-                  Next scheduled OCC examination: 2026-07-15
-                </p>
-              </CardContent>
+                <p className="text-[0.65rem] text-muted-foreground/60">Next OCC examination: 2026-07-15</p>
+              </div>
             </Card>
 
-            {/* Audit Packet Generation */}
-            <Card className="shadow-sm bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  Regulatory Audit
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Generate a comprehensive audit package for regulators including bias logs, BIFSG methodology, and validation reports.
+            <Card className="border-primary/20 bg-primary/5 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-primary/10 px-4 py-3">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                <p className="text-sm font-semibold text-foreground">Regulatory Audit Package</p>
+              </div>
+              <div className="p-4">
+                <p className="mb-3 text-[0.72rem] text-muted-foreground">
+                  Generate a comprehensive audit package including bias logs, BIFSG methodology, and validation reports.
                 </p>
-                <Button 
-                  onClick={() => {
-                    const packet = auditPacketService.generatePacket("Sarah Chen - CCO")
-                    auditPacketService.downloadPacket(packet)
-                  }}
+                <Button
                   className="w-full gap-2"
+                  onClick={() => { const p = auditPacketService.generatePacket("Sarah Chen - CCO"); auditPacketService.downloadPacket(p) }}
                 >
-                  <Download className="h-4 w-4" />
-                  Generate Exam Package
+                  <Download className="h-4 w-4" />Generate Exam Package
                 </Button>
-              </CardContent>
+              </div>
             </Card>
-
-            <div className="flex items-center justify-center pt-4">
-              <Badge
-                variant="outline"
-                className="border-primary/30 bg-accent/60 text-xs font-semibold uppercase tracking-wider text-primary"
-              >
-                CFPB Compliant
-              </Badge>
-            </div>
           </div>
         </div>
       </div>

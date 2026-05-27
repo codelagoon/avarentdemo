@@ -1,6 +1,7 @@
 import React, { useState } from "react"
+import { useLiveData } from "@/hooks/useLiveData"
 import { Network, Link2, Link2Off, BadgePercent, Cpu, CheckCircle2, AlertTriangle, Plus, Layers, TrendingUp, Info } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -8,11 +9,11 @@ import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { altDataService } from "@/services/altDataService"
-import type { AltFeature, AltDataState } from "@/services/altDataService"
+import type { AltFeature } from "@/services/altDataService"
 import { cn } from "@/lib/utils"
 
 export function AltDataHubPage() {
-  const [state, setState] = useState<AltDataState>(() => altDataService.getState())
+  const state = useLiveData(() => altDataService.getState(), ["altData"])
   const [newVarName, setNewVarName] = useState("")
   const [newVarSource, setNewVarSource] = useState("Plaid")
   const [newVarCorrelation, setNewVarCorrelation] = useState("0.15")
@@ -22,17 +23,15 @@ export function AltDataHubPage() {
   const [recentScreened, setRecentScreened] = useState<AltFeature | null>(null)
 
   const handleToggleConnector = (id: string) => {
-    const updated = altDataService.toggleConnectorStatus(id)
-    setState(updated)
-    const conn = updated.connectors.find(c => c.id === id)
+    altDataService.toggleConnectorStatus(id)
+    const conn = state.connectors.find(c => c.id === id)
     if (conn) {
-      toast.success(`${conn.name} is now ${conn.status}`)
+      toast.success(`${conn.name} is now ${conn.status === "connected" ? "disconnected" : "connected"}`)
     }
   }
 
   const handleToggleQuarantine = (id: string, status: "approved" | "quarantined") => {
-    const updated = altDataService.toggleFeatureQuarantine(id, status)
-    setState(updated)
+    altDataService.toggleFeatureQuarantine(id, status)
     toast.success(`Variable successfully ${status === "quarantined" ? "quarantined" : "approved"}`)
   }
 
@@ -52,13 +51,12 @@ export function AltDataHubPage() {
           clearInterval(interval)
           const corr = parseFloat(newVarCorrelation)
           const iv = parseFloat(newVarIV)
-          const { state: updatedState, feature } = altDataService.screenNewFeature(
+          const { feature } = altDataService.screenNewFeature(
             newVarName.trim(),
             newVarSource,
             corr,
             iv
           )
-          setState(updatedState)
           setRecentScreened(feature)
           setIsScreening(false)
           setNewVarName("")
@@ -76,47 +74,45 @@ export function AltDataHubPage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950/20" data-testid="alt-data-hub">
+    <div className="flex h-full flex-col overflow-hidden" data-testid="alt-data-hub">
       {/* Header */}
-      <div className="flex items-center justify-between border-b bg-card px-6 py-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-lg font-bold text-foreground">
-            <Network className="h-5 w-5 text-primary" />
-            Alternative Data Integration Hub
-          </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Module 5: Secure integration of bank, asset, rent, and utility streams with dynamic proxy screening.
-          </p>
-        </div>
+      <div className="flex items-center justify-between border-b border-border/30 bg-card px-6 py-5">
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400 font-mono text-[0.65rem] font-bold">
-            {state.quarantineCount} QUARANTINED
-          </Badge>
-          <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 font-mono text-[0.65rem] font-bold animate-pulse">
-            SCREENER ONLINE
-          </Badge>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+            <Network className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-base font-semibold text-foreground">Alternative Data Integration Hub</h1>
+            <p className="text-[0.7rem] text-muted-foreground">Secure integration of bank, asset, rent, and utility streams with dynamic proxy screening</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 font-mono text-[0.65rem] font-bold text-destructive">
+            {state.quarantineCount} Quarantined
+          </span>
+          <span className="animate-pulse rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[0.65rem] font-bold text-emerald-600 dark:text-emerald-400">
+            Screener Online
+          </span>
         </div>
       </div>
 
       {/* Workspace Area */}
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="flex-1 overflow-auto p-5 space-y-5">
         
         {/* Row 1: Connected APIs Grid & Dynamic Screening Pipeline */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Connector Grid */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                  <Layers className="h-4 w-4 text-primary" />
-                  Regulated API Integrations
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Connected Plaid, Finicity, RentTrack, and utility providers for alternative data.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Card className="border-border/60 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
+                <Layers className="h-3.5 w-3.5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Regulated API Integrations</p>
+                  <p className="text-[0.68rem] text-muted-foreground">Connected Plaid, Finicity, RentTrack, and utility providers</p>
+                </div>
+              </div>
+              <div className="p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {state.connectors.map(c => {
                     const isConnected = c.status === "connected"
@@ -167,22 +163,20 @@ export function AltDataHubPage() {
                     )
                   })}
                 </div>
-              </CardContent>
+              </div>
             </Card>
           </div>
 
           {/* Screening Input / Pipeline Simulation */}
-          <Card className="shadow-sm border-primary/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                <Cpu className="h-4 w-4 text-primary" />
-                Dynamic Proxy Screener
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Scan new cash-flow variables for Disparate Impact correlations.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Card className="border-primary/20 bg-primary/[0.02] shadow-sm">
+            <div className="flex items-center gap-2 border-b border-primary/10 px-5 py-3">
+              <Cpu className="h-3.5 w-3.5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Dynamic Proxy Screener</p>
+                <p className="text-[0.68rem] text-muted-foreground">Scan new cash-flow variables for Disparate Impact correlations</p>
+              </div>
+            </div>
+            <div className="space-y-4 p-4">
               <form onSubmit={handleScreenVariable} className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-[0.65rem] font-bold text-muted-foreground">Variable Name</label>
@@ -289,7 +283,7 @@ export function AltDataHubPage() {
                   </p>
                 </div>
               )}
-            </CardContent>
+            </div>
           </Card>
         </div>
 
@@ -297,17 +291,15 @@ export function AltDataHubPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Variable Explorer Table */}
-          <Card className="lg:col-span-2 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                <span>Extracted Cash-Flow Feature Library</span>
-                <Badge variant="outline" className="font-mono text-[0.6rem]">HMDA/ECOA Pre-screened</Badge>
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Audit list of all alternative data variables and their respective statistical risk tags.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <Card className="lg:col-span-2 border-border/60 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Extracted Cash-Flow Feature Library</p>
+                <p className="text-[0.68rem] text-muted-foreground">All alternative data variables and their statistical risk tags</p>
+              </div>
+              <Badge variant="outline" className="font-mono text-[0.62rem]">HMDA/ECOA Pre-screened</Badge>
+            </div>
+            <div className="p-4">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -399,21 +391,19 @@ export function AltDataHubPage() {
                   </tbody>
                 </table>
               </div>
-            </CardContent>
+            </div>
           </Card>
 
           {/* Credit Invisible Scorer Panel */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                <BadgePercent className="h-4 w-4 text-primary" />
-                Credit Invisible Scorer
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Audit how a thin-file applicant gets scored using alternative cash-flow features.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Card className="border-border/60 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-border/40 px-5 py-3">
+              <BadgePercent className="h-3.5 w-3.5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Credit Invisible Scorer</p>
+                <p className="text-[0.68rem] text-muted-foreground">Thin-file applicant scored using alt cash-flow features</p>
+              </div>
+            </div>
+            <div className="space-y-4 p-4">
               <div className="p-3.5 rounded-lg border bg-slate-50 dark:bg-slate-900/50 space-y-1">
                 <span className="text-[0.65rem] font-bold text-muted-foreground">Applicant Profile</span>
                 <p className="text-sm font-extrabold text-foreground">{state.applicantDemo.name}</p>
@@ -457,7 +447,7 @@ export function AltDataHubPage() {
                   Alt-scoring models are dynamically screened. Marcus Robinson's cash-flow features do not act as proxies for protected groups, complying with ECOA Regulation B guidelines.
                 </p>
               </div>
-            </CardContent>
+            </div>
           </Card>
         </div>
 

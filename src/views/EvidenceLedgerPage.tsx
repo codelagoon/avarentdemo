@@ -1,15 +1,16 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
+import { useLiveData } from "@/hooks/useLiveData"
 import { BookOpen, Search, Download, Hash, ChevronDown, ChevronUp, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, FileText, Lock, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { DATA_VOLUME, type LedgerEntry, type LedgerEventType } from "@/data/mockData"
+import { DATA_VOLUME, type LedgerEventType } from "@/data/mockData"
 import { ledgerService } from "@/services/ledgerService"
 
 function EventTypeIcon({ type }: { type: LedgerEventType }) {
@@ -63,20 +64,16 @@ export function EvidenceLedgerPage() {
   const [typeFilter, setTypeFilter] = useState("all")
   const [sortField, setSortField] = useState<"timestamp" | "fairnessScore">("timestamp")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
-  const [entries, setEntries] = useState<LedgerEntry[]>([])
-  const [stats, setStats] = useState({ total: 0, proofs: 0, interventions: 0, avgFairness: 0 })
-
-  // Load entries and stats
-  useEffect(() => {
-    const all = ledgerService.getAll()
-    setEntries(all)
-    setStats({
+  const entries = useLiveData(() => ledgerService.getAll(), ["ledger"])
+  const stats = useMemo(() => {
+    const all = entries
+    return {
       total: all.length,
       proofs: all.filter(e => e.eventType === "proof_signed").length,
       interventions: all.filter(e => e.eventType === "intervention").length,
       avgFairness: all.length > 0 ? all.reduce((s, e) => s + e.fairnessScore, 0) / all.length : 0,
-    })
-  }, [])
+    }
+  }, [entries])
 
   const filtered = useMemo(() => {
     const arr = entries.filter(e => {
@@ -136,88 +133,81 @@ export function EvidenceLedgerPage() {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b bg-card px-6 py-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-lg font-bold text-foreground">
-            <BookOpen className="h-5 w-5 text-primary" />
-            Evidence Ledger
-          </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Immutable hash-chained audit log — {DATA_VOLUME.featuresPerDecision} features per decision • {(DATA_VOLUME.trainingRecords / 1000000).toFixed(1)}M records in training corpus
-          </p>
+      <div className="flex items-center justify-between border-b border-border/30 bg-card px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+            <BookOpen className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-base font-semibold text-foreground">Evidence Ledger</h1>
+            <p className="text-[0.7rem] text-muted-foreground">
+              Immutable hash-chained audit log · {DATA_VOLUME.featuresPerDecision} features/decision · {(DATA_VOLUME.trainingRecords / 1000000).toFixed(1)}M training records
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center gap-1.5 rounded-lg border bg-accent/40 px-3 py-1.5">
-                <Lock className="h-3 w-3 text-primary" />
-                <span className="text-xs font-semibold text-primary">SHA-256 Chained</span>
+              <div className="flex cursor-default items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5">
+                <Lock className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-[0.7rem] font-semibold text-emerald-600 dark:text-emerald-400">SHA-256 Chained</span>
               </div>
             </TooltipTrigger>
             <TooltipContent>Each entry is cryptographically linked to the previous entry</TooltipContent>
           </Tooltip>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
-            <Download className="h-3.5 w-3.5" />
-            Export CSV
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleExport}>
+            <Download className="h-3.5 w-3.5" />Export CSV
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-5">
         {/* Summary cards */}
         <div className="mb-5 grid grid-cols-4 gap-3">
           {[
-            { label: "Total Entries", value: stats.total, icon: Hash, sub: "all time", accent: false },
-            { label: "Audits Sealed", value: stats.proofs, icon: CheckCircle, sub: "cryptographic bundles", accent: true },
-            { label: "Interventions", value: stats.interventions, icon: AlertTriangle, sub: "proxy severings", accent: false },
-            { label: "Avg AIR / SPD", value: `${stats.avgFairness.toFixed(2)} / ${Math.max(0, 1 - stats.avgFairness).toFixed(2)}`, icon: FileText, sub: "across all decisions", accent: true },
+            { label: "Total Entries", value: stats.total, icon: Hash, color: "text-foreground", bg: "bg-muted/60" },
+            { label: "Audits Sealed", value: stats.proofs, icon: CheckCircle, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
+            { label: "Interventions", value: stats.interventions, icon: AlertTriangle, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10" },
+            { label: "Avg AIR / SPD", value: `${stats.avgFairness.toFixed(2)}`, icon: FileText, color: "text-primary", bg: "bg-primary/10" },
           ].map(s => {
             const Icon = s.icon
             return (
               <Card key={s.label} className="border-border/60 shadow-sm">
-                <CardContent className="px-4 py-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[0.7rem] font-semibold tracking-wider text-muted-foreground truncate">{s.label}</p>
-                      <p className={cn("mt-1 text-3xl font-bold tracking-tight tabular-nums", s.accent ? "text-primary" : "text-foreground")}>
-                        {s.value}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">{s.sub}</p>
-                    </div>
-                    <div className={cn("shrink-0 rounded-xl p-2.5", s.accent ? "bg-primary/10" : "bg-muted")}>
-                      <Icon className={cn("h-5 w-5", s.accent ? "text-primary" : "text-muted-foreground")} />
-                    </div>
+                <div className="flex items-center justify-between p-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</p>
+                    <p className={cn("mt-1.5 text-2xl font-bold tabular-nums tracking-tight", s.color)}>{s.value}</p>
                   </div>
-                </CardContent>
+                  <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", s.bg)}>
+                    <Icon className={cn("h-4 w-4", s.color)} />
+                  </div>
+                </div>
               </Card>
             )
           })}
         </div>
 
-        {/* Filters */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold">Ledger Entries</CardTitle>
-              <Badge variant="secondary" className="text-[0.65rem]">{filtered.length} records</Badge>
-            </div>
-            <div className="flex items-center gap-2 pt-1">
-              <div className="relative flex-1">
+        {/* Table card */}
+        <Card className="border-border/60 shadow-sm">
+          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+            <p className="text-sm font-semibold text-foreground">Ledger Entries</p>
+            <div className="flex items-center gap-2">
+              <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, ID, hash, message..."
+                  placeholder="Search name, ID, hash…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="h-8 pl-8 text-xs"
+                  className="h-7 w-56 pl-8 text-xs"
                   data-testid="ledger-search"
                 />
               </div>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-8 w-36 text-xs" data-testid="ledger-type-filter">
+                <SelectTrigger className="h-7 w-36 text-xs" data-testid="ledger-type-filter">
                   <SelectValue placeholder="Event Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Event Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="decision">Decision</SelectItem>
                   <SelectItem value="intervention">Intervention</SelectItem>
                   <SelectItem value="proof_signed">Audit Sealed</SelectItem>
@@ -225,82 +215,66 @@ export function EvidenceLedgerPage() {
                   <SelectItem value="audit">Audit</SelectItem>
                 </SelectContent>
               </Select>
+              <Badge variant="secondary" className="text-[0.65rem]">{filtered.length} records</Badge>
             </div>
-          </CardHeader>
-          <CardContent className="px-0 pb-0">
-            <Table data-testid="ledger-table">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4 w-8"></TableHead>
-                  <TableHead className="cursor-pointer text-xs" onClick={() => toggleSort("timestamp")}>
-                    Timestamp <SortIcon field="timestamp" />
-                  </TableHead>
-                  <TableHead className="text-xs">Event ID</TableHead>
-                  <TableHead className="text-xs">Applicant</TableHead>
-                  <TableHead className="text-xs">Type</TableHead>
-                  <TableHead className="text-xs">Decision</TableHead>
-                  <TableHead className="cursor-pointer text-xs" onClick={() => toggleSort("fairnessScore")}>
-                    AIR / SPD <SortIcon field="fairnessScore" />
-                  </TableHead>
-                  <TableHead className="text-xs pr-4">Hash (short)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(entry => (
-                  <TableRow
-                    key={entry.id}
-                    className="hover:bg-secondary/30"
-                    data-testid={`ledger-row-${entry.id}`}
-                  >
-                    <TableCell className="pl-4">
-                      <EventTypeIcon type={entry.eventType} />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <span className="font-mono text-[0.65rem] text-foreground">
-                          {new Date(entry.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+          </div>
+          <Table data-testid="ledger-table">
+            <TableHeader>
+              <TableRow className="border-border/40 hover:bg-transparent">
+                <TableHead className="w-8 pl-5" />
+                <TableHead className="cursor-pointer text-[0.68rem] font-semibold uppercase tracking-wider" onClick={() => toggleSort("timestamp")}>
+                  Timestamp <SortIcon field="timestamp" />
+                </TableHead>
+                <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Event ID</TableHead>
+                <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Applicant</TableHead>
+                <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Type</TableHead>
+                <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Decision</TableHead>
+                <TableHead className="cursor-pointer text-[0.68rem] font-semibold uppercase tracking-wider" onClick={() => toggleSort("fairnessScore")}>
+                  AIR / SPD <SortIcon field="fairnessScore" />
+                </TableHead>
+                <TableHead className="pr-5 text-[0.68rem] font-semibold uppercase tracking-wider">Hash</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(entry => (
+                <TableRow key={entry.id} className="border-border/30 transition-colors hover:bg-muted/30" data-testid={`ledger-row-${entry.id}`}>
+                  <TableCell className="pl-5"><EventTypeIcon type={entry.eventType} /></TableCell>
+                  <TableCell>
+                    <p className="font-mono text-[0.72rem] tabular-nums text-foreground">
+                      {new Date(entry.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+                    </p>
+                    <p className="font-mono text-[0.62rem] text-muted-foreground">
+                      {new Date(entry.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-mono text-[0.68rem] text-muted-foreground">{entry.id}</span>
+                  </TableCell>
+                  <TableCell>
+                    <p className="text-[0.8rem] font-medium text-foreground">{entry.applicantName}</p>
+                    <p className="font-mono text-[0.62rem] text-muted-foreground">{entry.applicantId}</p>
+                  </TableCell>
+                  <TableCell><EventTypeBadge type={entry.eventType} /></TableCell>
+                  <TableCell><DecisionBadge decision={entry.decision} /></TableCell>
+                  <TableCell>
+                    <span className={cn("font-mono text-[0.78rem] font-bold tabular-nums", entry.fairnessScore >= 0.8 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                      {entry.fairnessScore.toFixed(2)} / {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="pr-5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help rounded bg-muted/60 px-1.5 py-0.5 font-mono text-[0.62rem] text-muted-foreground">
+                          {entry.hash.slice(0, 12)}…
                         </span>
-                        <p className="font-mono text-[0.6rem] text-muted-foreground">
-                          {new Date(entry.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-[0.65rem] text-muted-foreground">{entry.id}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-xs font-medium text-foreground">{entry.applicantName}</p>
-                        <p className="font-mono text-[0.6rem] text-muted-foreground">{entry.applicantId}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell><EventTypeBadge type={entry.eventType} /></TableCell>
-                    <TableCell><DecisionBadge decision={entry.decision} /></TableCell>
-                    <TableCell>
-                      <span className={cn(
-                        "font-mono text-xs font-bold",
-                        entry.fairnessScore >= 0.8 ? "text-emerald-600" : "text-destructive"
-                      )}>
-                        {entry.fairnessScore.toFixed(2)} / {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="pr-4">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help font-mono text-[0.6rem] text-muted-foreground">
-                            {entry.hash.slice(0, 12)}...
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <span className="font-mono text-[0.65rem]">{entry.hash}</span>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
+                      </TooltipTrigger>
+                      <TooltipContent><span className="font-mono text-[0.65rem]">{entry.hash}</span></TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </Card>
       </div>
     </div>

@@ -1,6 +1,9 @@
 import { toast } from "sonner"
+import { emit } from "@/lib/sync"
 import type { SHAPFeature } from "./decisionGateway"
 import { narrativeTranslator, type AdverseActionNotice } from "./narrativeTranslator"
+
+const STORAGE_KEY = "avarent_adverse_actions"
 
 export interface AdverseActionReview {
   id: string
@@ -37,7 +40,26 @@ export interface AdverseActionReview {
 // Adverse Action Review Queue
 // Translator-only policy: UI shows raw SHAP alongside narrative
 class AdverseActionService {
-  private reviews: AdverseActionReview[] = []
+  private reviews: AdverseActionReview[] = this.loadFromStorage()
+
+  private loadFromStorage(): AdverseActionReview[] {
+    if (typeof window === "undefined") return []
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      try {
+        return JSON.parse(stored)
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+
+  private saveToStorage() {
+    if (typeof window === "undefined") return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.reviews))
+    emit("adverseAction")
+  }
 
   /**
    * Create new adverse action review
@@ -96,6 +118,7 @@ class AdverseActionService {
     }
 
     this.reviews.unshift(review)
+    this.saveToStorage()
     toast.info(`New Adverse Action Review: ${applicantName}`, {
       description: "Awaiting Compliance Officer approval",
     })
@@ -115,6 +138,7 @@ class AdverseActionService {
     review.reviewedAt = new Date().toISOString()
     review.reviewerNotes = notes || "Approved as generated"
     review.finalNarrative = review.narrative.summary
+    this.saveToStorage()
 
     toast.success(`Adverse Action Approved: ${review.applicantName}`)
     return true
@@ -143,6 +167,7 @@ class AdverseActionService {
     review.overrideReason = overrideReason
     review.finalNarrative = finalNarrative
     review.reviewerNotes = `OVERRIDE: ${overrideReason}`
+    this.saveToStorage()
 
     toast.warning(`Adverse Action Overridden: ${review.applicantName}`, {
       description: `Reason: ${overrideReason.substring(0, 50)}...`,
@@ -162,6 +187,7 @@ class AdverseActionService {
     }
 
     review.status = "sent"
+    this.saveToStorage()
     toast.success(`Adverse Action Notice sent to ${review.applicantName}`)
     return true
   }
@@ -170,6 +196,7 @@ class AdverseActionService {
    * Get pending reviews
    */
   getPendingReviews(): AdverseActionReview[] {
+    this.reviews = this.loadFromStorage()
     return this.reviews.filter(r => r.status === "pending_review")
   }
 
@@ -177,6 +204,7 @@ class AdverseActionService {
    * Get all reviews
    */
   getAllReviews(): AdverseActionReview[] {
+    this.reviews = this.loadFromStorage()
     return [...this.reviews]
   }
 
@@ -184,6 +212,7 @@ class AdverseActionService {
    * Get review by ID
    */
   getReview(id: string): AdverseActionReview | undefined {
+    this.reviews = this.loadFromStorage()
     return this.reviews.find(r => r.id === id)
   }
 
@@ -191,6 +220,7 @@ class AdverseActionService {
    * Get review statistics
    */
   getStats() {
+    this.reviews = this.loadFromStorage()
     return {
       total: this.reviews.length,
       pending: this.reviews.filter(r => r.status === "pending_review").length,
