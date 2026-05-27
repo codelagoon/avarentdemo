@@ -4,9 +4,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 5173",
-    "build": "tsc --noEmit && vite build",
-    "start": "vite preview --port 5173",
+    "dev": "next dev -p 5173",
+    "build": "next build",
+    "start": "next start -p 5173",
     "typecheck": "tsc --noEmit",
     "test": "playwright test"
   },
