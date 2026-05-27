@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+
+      /* Background video layer */
+      .bg-video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1920px;
+        height: 1080px;
+        object-fit: cover;
+        z-index: 0;
+      }
+
+      /* Dark overlay for text readability */
+      .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1920px;
+        height: 1080px;
+        background: linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.3) 0%,
+          rgba(0, 0, 0, 0.5) 100%
+        );
+        z-index: 1;
+      }
+
+      /* Title typography */
+      .title-wrap {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 10;
+        font-family: "Inter", Arial, sans-serif;
+      }
+
+      .main-title {
+        font-size: 120px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -3px;
+        line-height: 1.1;
+        text-shadow: 0 4px 40px rgba(0, 0, 0, 0.6);
+      }
+
+      .sub-title {
+        font-size: 36px;
+        font-weight: 300;
+        color: rgba(255, 255, 255, 0.85);
+        margin-top: 20px;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+      }
+
+      .brand-line {
+        width: 80px;
+        height: 4px;
+        background: #ea580c;
+        margin: 24px auto 0;
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="10"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Background Video (muted — audio handled by separate <audio> element) -->
+      <video
+        id="bg-video"
+        class="bg-video clip"
+        data-start="0"
+        data-duration="10"
+        data-track-index="0"
+        autoplay
+        muted
+        loop
+        playsinline
+        src="assets/background-video.mp4"
+      >
+        <!-- TODO: Replace with your own MP4 file in the assets/ folder -->
+        <source src="assets/background-video.mp4" type="video/mp4" />
+      </video>
+
+      <!-- Background Music -->
+      <audio id="bg-music" data-start="0" data-duration="10" data-track-index="1" autoplay src="assets/background-music.mp3">
+        <!-- TODO: Replace with your own MP3 file in the assets/ folder -->
+        <source src="assets/background-music.mp3" type="audio/mpeg" />
+      </audio>
+
+      <!-- Dark overlay -->
+      <div id="overlay" class="overlay clip" data-start="0" data-duration="10" data-track-index="2"></div>
+
+      <!-- Title group -->
+      <div
+        id="title-group"
+        class="clip title-wrap"
+        data-start="0"
+        data-duration="10"
+        data-track-index="3"
+      >
+        <div class="main-title">AVARENT</div>
+        <div class="sub-title">Intelligent Compliance</div>
+        <div class="brand-line"></div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---- Fade-in title animation ---- */
+      // Main title fades in + slides up (starts at 0.5s, lasts 2s)
+      tl.from(
+        "#title-group .main-title",
+        { opacity: 0, y: 40, duration: 2, ease: "power3.out" },
+        0.5
+      );
+
+      // Sub-title fades in slightly later (starts at 1.2s, lasts 1.5s)
+      tl.from(
+        "#title-group .sub-title",
+        { opacity: 0, y: 25, duration: 1.5, ease: "power2.out" },
+        1.2
+      );
+
+      // Brand accent line scales in (starts at 1.8s, lasts 1s)
+      tl.from(
+        "#title-group .brand-line",
+        { scaleX: 0, opacity: 0, duration: 1, ease: "power2.out" },
+        1.8
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
