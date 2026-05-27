@@ -23,7 +23,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { AvarentLogo } from "@/components/AvarentLogo";
 
 interface LoginCardSectionProps {
   onLogin: () => void;
@@ -95,9 +94,7 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
       {/* Header */}
       <header className="absolute left-0 right-0 top-0 flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card/65 backdrop-blur-md">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-            <AvarentLogo className="h-5 w-5 text-primary" />
-          </div>
+          <img src="/avarent-logo.png" alt="Avarent" className="h-7 w-auto" />
           <span className="text-[0.75rem] font-bold tracking-[0.18em] uppercase text-foreground font-mono">
             AVARENT MERIDIAN
           </span>
