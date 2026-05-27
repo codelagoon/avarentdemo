@@ -179,7 +179,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
                 </Button>
               </div>
               <p className="text-xs text-center text-muted-foreground">
-                Takes 2 minutes • No credit card required • Free 30-day trial
+                Takes 2 minutes
               </p>
             </div>
 
