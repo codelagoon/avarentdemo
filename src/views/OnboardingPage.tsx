@@ -183,16 +183,6 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
               </p>
             </div>
 
-            <div className="rounded-md bg-blue-50 p-4 text-sm">
-              <p className="font-medium text-blue-900">Trusted by compliance teams at:</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {["First National Bank", "Metro Credit Union", "LendingPoint", "Acme Mortgage"].map(bank => (
-                  <span key={bank} className="rounded-full bg-white px-3 py-1 text-xs text-blue-800">
-                    {bank}
-                  </span>
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
