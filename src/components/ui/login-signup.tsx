@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -38,6 +38,23 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Secret key sequence: type "avarent" to trigger demo onboarding
+  useEffect(() => {
+    if (!onTryNewCompany) return;
+    let buffer = "";
+    const target = "avarent";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      buffer += e.key.toLowerCase();
+      if (buffer.length > target.length) buffer = buffer.slice(-target.length);
+      if (buffer === target) {
+        onTryNewCompany();
+        buffer = "";
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onTryNewCompany]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
