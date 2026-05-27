@@ -16,6 +16,7 @@
 - 2026-05-27T15:45Z [CODE] Restored full Single Page Application (SPA) architecture utilizing Vite and pure client-side routing.
 - 2026-05-27T15:47Z [CODE] Made supabaseClient.ts isomorphic to safely check environment variables via process.env in Node and import.meta.env in Vite browser contexts.
 - 2026-05-27T15:54Z [CODE] Restored Next.js dev server architecture (running next dev / next build) per user instruction, maintaining standard SPA client routing.
+- 2026-05-27T15:56Z [CODE] Removed the brand signature display text "Fairness is not a feature." from the Dashboard center header layout per user request.
 
 ## [PROGRESS]
 - 2026-05-27T15:40Z [CODE] Received user instructions to apply the Meridian Design Scheme v1.0 globally. Configured custom font-families in tailwind.config.js.
@@ -25,6 +26,7 @@
 - 2026-05-27T15:45Z [CODE] Ported all Supabase auth and settings-only theme changes to Vite SPA entrypoint src/App.tsx.
 - 2026-05-27T15:46Z [CODE] Cleaned up unused lucide-react imports from login-signup.tsx that caused runtime boot crashes in Vite browser context.
 - 2026-05-27T15:54Z [CODE] Reverted package.json build/dev scripts to next.js per user clarification.
+- 2026-05-27T15:56Z [CODE] Removed 'Fairness is not a feature.' text from DashboardPage.tsx center layout header.
 
 ## [DISCOVERIES]
 - 2026-05-27T03:12Z [CODE] Root cause of infinite loop: inline channel arrays (`["ledger"]`) create new object references every render, destabilizing useEffect dependency arrays. Fix: serialize to string.

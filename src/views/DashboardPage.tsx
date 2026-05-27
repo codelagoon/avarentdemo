@@ -1065,9 +1065,6 @@ export function DashboardPage() {
             <h2 className="text-base font-bold tracking-tight text-foreground">Disparate Impact Analysis</h2>
             <p className="text-[0.65rem] text-muted-foreground font-mono uppercase tracking-wider">Adverse Impact Ratio — Operational Dashboard</p>
           </div>
-          <div className="font-serif-display text-base md:text-lg italic text-primary pr-2 select-none tracking-wide">
-            Fairness is not a feature.
-          </div>
         </div>
 
         {/* ── Fairness wave + mini-stats row ── */}
