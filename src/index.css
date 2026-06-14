@@ -46,6 +46,14 @@
   --chart-4: hsl(38 72% 46%);      /* amber */
   --chart-5: hsl(0 62% 48%);       /* rose */
 
+  /* Bar-chart component tokens (consumed directly via var()) */
+  --chart-background: hsl(0 0% 100%);
+  --chart-line-primary: var(--chart-1);
+  --chart-line-secondary: var(--chart-2);
+  --chart-crosshair: hsl(240 5% 60%);
+  --chart-grid: hsl(240 6% 90%);
+  --chart-label: hsl(240 4% 44%);
+
   /* Sidebar (inverted-L chrome) */
   --sidebar: 0 0% 97%;             /* slightly recessed */
   --sidebar-foreground: 240 6% 10%;
@@ -92,6 +100,14 @@
   --chart-3: hsl(240 5% 56%);      /* neutral */
   --chart-4: hsl(38 70% 56%);      /* amber */
   --chart-5: hsl(0 65% 60%);       /* rose */
+
+  /* Bar-chart component tokens (consumed directly via var()) */
+  --chart-background: hsl(240 5% 10%);
+  --chart-line-primary: var(--chart-1);
+  --chart-line-secondary: var(--chart-2);
+  --chart-crosshair: hsl(240 5% 42%);
+  --chart-grid: hsl(240 4% 20%);
+  --chart-label: hsl(240 5% 64%);
 
   /* Sidebar — darkest layer for inverted-L depth */
   --sidebar: 240 7% 5%;            /* #0d0d0f */

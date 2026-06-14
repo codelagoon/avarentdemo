@@ -41,6 +41,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* Bar-chart text tokens */
+        "chart-label": "var(--chart-label)",
+        "chart-tooltip-foreground": "hsl(var(--popover-foreground))",
+        "chart-tooltip-muted": "hsl(var(--muted-foreground))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar))",
           foreground: "hsl(var(--sidebar-foreground))",
