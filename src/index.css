@@ -21,7 +21,7 @@
   --popover-foreground: 240 6% 10%;
 
   /* Accent — Avarent orange */
-  --primary: 20 90% 48%;           /* #ea580c */
+  --primary: 24 62% 45%;           /* muted Avarent orange */
   --primary-foreground: 0 0% 100%;
 
   --secondary: 240 5% 96%;         /* #f4f4f5 */
@@ -37,17 +37,17 @@
 
   --border: 240 6% 90%;            /* #e2e2e6 */
   --input: 240 6% 90%;
-  --ring: 20 90% 48%;
+  --ring: 24 62% 45%;
 
   /* Sidebar (inverted-L chrome) */
   --sidebar: 0 0% 97%;             /* slightly recessed */
   --sidebar-foreground: 240 6% 10%;
-  --sidebar-primary: 20 90% 48%;
+  --sidebar-primary: 24 62% 45%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 240 5% 93%;
   --sidebar-accent-foreground: 240 6% 10%;
   --sidebar-border: 240 6% 90%;
-  --sidebar-ring: 20 90% 48%;
+  --sidebar-ring: 24 62% 45%;
 }
 
 .dark {
@@ -61,7 +61,7 @@
   --popover-foreground: 0 0% 95%;
 
   /* Accent — Avarent orange, brightened for dark */
-  --primary: 20 91% 54%;           /* #f1641c */
+  --primary: 24 58% 53%;           /* muted Avarent orange (dark) */
   --primary-foreground: 0 0% 100%;
 
   --secondary: 240 4% 14%;         /* #222226  hover / selected */
@@ -77,17 +77,17 @@
 
   --border: 240 4% 18%;            /* #2c2c31  subtle hairline */
   --input: 240 4% 18%;
-  --ring: 20 91% 54%;
+  --ring: 24 58% 53%;
 
   /* Sidebar — darkest layer for inverted-L depth */
   --sidebar: 240 7% 5%;            /* #0d0d0f */
   --sidebar-foreground: 0 0% 95%;
-  --sidebar-primary: 20 91% 54%;
+  --sidebar-primary: 24 58% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 240 4% 14%;
   --sidebar-accent-foreground: 0 0% 95%;
   --sidebar-border: 240 4% 16%;
-  --sidebar-ring: 20 91% 54%;
+  --sidebar-ring: 24 58% 53%;
 }
 
 @layer base {

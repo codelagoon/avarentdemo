@@ -93,7 +93,7 @@ function EventTypeBadge({ type }: { type: LedgerEventType }) {
 }
 
 // ─── Mini sparkline SVG ───────────────────────────────────────────────────────
-function Sparkline({ data, color = "#f1641c" }: { data: number[]; color?: string }) {
+function Sparkline({ data, color = "#b97039" }: { data: number[]; color?: string }) {
   const w = 52, h = 20
   const min = Math.min(...data), max = Math.max(...data)
   const range = max - min || 1
@@ -110,7 +110,7 @@ function Sparkline({ data, color = "#f1641c" }: { data: number[]; color?: string
 }
 
 // ─── Circular gauge SVG ───────────────────────────────────────────────────────
-function CircularGauge({ value, max = 100, label, sub, color = "#f1641c" }: {
+function CircularGauge({ value, max = 100, label, sub, color = "#b97039" }: {
   value: number; max?: number; label: string; sub?: string; color?: string
 }) {
   const r = 28, circ = 2 * Math.PI * r
@@ -193,7 +193,7 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
   const nodeColors: Record<string, { fill: string; stroke: string }> = {
     input:   { fill: "#1e3a5f", stroke: "#2563eb" },
     model:   { fill: "#1a3040", stroke: "#0891b2" },
-    output:  { fill: "#1e3a5f", stroke: "#f1641c" },
+    output:  { fill: "#1e3a5f", stroke: "#b97039" },
     proxy:   { fill: "#44330a", stroke: "#d97706" },
     severed: { fill: "#3f1010", stroke: "#ef4444" },
   }
@@ -216,7 +216,7 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
             <polygon points="0 0, 7 2.5, 0 5" fill="rgba(100,116,139,0.5)" />
           </marker>
           <marker id="arr-active" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-            <polygon points="0 0, 7 2.5, 0 5" fill="#f1641c" />
+            <polygon points="0 0, 7 2.5, 0 5" fill="#b97039" />
           </marker>
           <marker id="arr-severed" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
             <polygon points="0 0, 7 2.5, 0 5" fill="#ef4444" />
@@ -249,7 +249,7 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
               <path
                 d={`M ${from.x + 32} ${from.y} C ${mx + 8} ${from.y}, ${mx - 8} ${to.y}, ${to.x - 32} ${to.y}`}
                 fill="none"
-                stroke={isSevered ? "#ef4444" : running ? "#f1641c" : "rgba(100,116,139,0.35)"}
+                stroke={isSevered ? "#ef4444" : running ? "#b97039" : "rgba(100,116,139,0.35)"}
                 strokeWidth={isSevered ? 1.5 : running ? 1.5 : 1}
                 strokeDasharray={isSevered ? "4,3" : "none"}
                 opacity={isSevered ? 0.7 : running ? 0.85 : 0.6}
@@ -316,8 +316,8 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
         {/* Live indicator */}
         {running && (
           <g>
-            <circle cx={442} cy={455} r={4.5} fill="#f1641c" opacity={0.9 + Math.sin(tick * 0.3) * 0.1} filter="url(#glow)" />
-            <text x={434} y={452} fontSize="6.5" fill="#f1641c" textAnchor="end" fontFamily="IBM Plex Mono" fontWeight="700">ACTIVE</text>
+            <circle cx={442} cy={455} r={4.5} fill="#b97039" opacity={0.9 + Math.sin(tick * 0.3) * 0.1} filter="url(#glow)" />
+            <text x={434} y={452} fontSize="6.5" fill="#b97039" textAnchor="end" fontFamily="IBM Plex Mono" fontWeight="700">ACTIVE</text>
           </g>
         )}
       </svg>
@@ -348,8 +348,8 @@ function FairnessWaveChart({ running }: { running: boolean }) {
         <AreaChart data={WAVE_DATA} margin={{ top: 4, right: 4, left: -30, bottom: 0 }}>
           <defs>
             <linearGradient id="gradFairness" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#f1641c" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#f1641c" stopOpacity={0} />
+              <stop offset="5%"  stopColor="#b97039" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#b97039" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradBaseline" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor="#94a3b8" stopOpacity={0.15} />
@@ -360,13 +360,13 @@ function FairnessWaveChart({ running }: { running: boolean }) {
           <XAxis dataKey="month" tick={{ fontSize: 9, fill: "rgba(100,116,139,0.7)", fontFamily: "IBM Plex Sans" }} axisLine={false} tickLine={false} />
           <YAxis domain={[60, 100]} tick={{ fontSize: 9, fill: "rgba(100,116,139,0.7)", fontFamily: "IBM Plex Mono" }} axisLine={false} tickLine={false} />
           <RechartsTooltip
-            contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(241,100,28,0.3)", borderRadius: 8, padding: "6px 10px" }}
+            contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(185,112,57,0.3)", borderRadius: 8, padding: "6px 10px" }}
             labelStyle={{ color: "#e2e8f0", fontSize: 10, fontWeight: 600 }}
-            itemStyle={{ color: "#fdba74", fontSize: 10 }}
-            cursor={{ stroke: "rgba(241,100,28,0.3)", strokeWidth: 1 }}
+            itemStyle={{ color: "#d9a877", fontSize: 10 }}
+            cursor={{ stroke: "rgba(185,112,57,0.3)", strokeWidth: 1 }}
           />
           <Area type="monotone" dataKey="baseline" stroke="#94a3b8" strokeWidth={1} strokeDasharray="4 3" fill="url(#gradBaseline)" dot={false} name="CFPB Floor" />
-          <Area type="monotone" dataKey="score"    stroke={running ? "#f97316" : "#f1641c"} strokeWidth={2} fill="url(#gradFairness)" dot={false} name="Fairness Score" />
+          <Area type="monotone" dataKey="score"    stroke={running ? "#c27a3e" : "#b97039"} strokeWidth={2} fill="url(#gradFairness)" dot={false} name="Fairness Score" />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -806,8 +806,8 @@ function ApplicantTable({ activeScenario }: { activeScenario: ScenarioConfig | n
                   data={d.trend}
                   color={
                     d.decision === "approved"     ? "#10b981" :
-                    d.decision === "escalated"    ? "#f97316" :
-                    d.decision === "under_review" ? "#f59e0b" : "#f1641c"
+                    d.decision === "escalated"    ? "#c27a3e" :
+                    d.decision === "under_review" ? "#f59e0b" : "#b97039"
                   }
                 />
               </div>
