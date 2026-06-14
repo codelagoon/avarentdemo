@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { ChartBar as BarChart3, TrendingUp, Users, CircleAlert as AlertCircle, Info, Database } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { ChartBar as BarChart3, TrendingUp, Users, CircleAlert as AlertCircle, Info, Database, Boxes } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -11,6 +11,7 @@ import {
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { RadarChart } from "@/components/ui/radar-chart"
+import { TreemapChart, type TreemapDatum } from "@/components/ui/treemap-chart"
 import { cn } from "@/lib/utils"
 import { FAIRNESS_METRICS, APPROVAL_LIFT_DATA, PROXY_DETECTION_DATA, DATA_VOLUME } from "@/data/mockData"
 
@@ -18,6 +19,50 @@ interface ComplianceAxis {
   axis: string
   label: string
   value: number
+}
+
+// Feature attribution: the model's ~82 features grouped by category and sized by
+// their relative SHAP contribution weight (used by the treemap below).
+const FEATURE_ATTRIBUTION: TreemapDatum[] = [
+  { id: "Model", parent: null },
+  { id: "Credit history", parent: "Model" },
+  { id: "Payment history", parent: "Credit history", size: 22 },
+  { id: "Credit utilization", parent: "Credit history", size: 16 },
+  { id: "Account age", parent: "Credit history", size: 9 },
+  { id: "Recent inquiries", parent: "Credit history", size: 6 },
+  { id: "Derogatory marks", parent: "Credit history", size: 7 },
+  { id: "Income & employment", parent: "Model" },
+  { id: "Income level", parent: "Income & employment", size: 14 },
+  { id: "Debt-to-income", parent: "Income & employment", size: 11 },
+  { id: "Employment tenure", parent: "Income & employment", size: 8 },
+  { id: "Income stability", parent: "Income & employment", size: 7 },
+  { id: "Collateral & loan", parent: "Model" },
+  { id: "Loan amount", parent: "Collateral & loan", size: 9 },
+  { id: "Loan-to-value", parent: "Collateral & loan", size: 8 },
+  { id: "Collateral value", parent: "Collateral & loan", size: 6 },
+  { id: "Cash-flow & behavioral", parent: "Model" },
+  { id: "Cash-flow volatility", parent: "Cash-flow & behavioral", size: 7 },
+  { id: "Transaction patterns", parent: "Cash-flow & behavioral", size: 6 },
+  { id: "Savings rate", parent: "Cash-flow & behavioral", size: 5 },
+  { id: "Alternative data", parent: "Model" },
+  { id: "Rent & utility", parent: "Alternative data", size: 6 },
+  { id: "Open-banking signals", parent: "Alternative data", size: 5 },
+  { id: "Telecom payments", parent: "Alternative data", size: 4 },
+]
+
+function useContainerSize() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState({ width: 0, height: 0 })
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = () => setSize({ width: el.clientWidth, height: el.clientHeight })
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return { ref, ...size }
 }
 
 // Data Volume vs Accuracy & Fairness chart data
@@ -75,6 +120,19 @@ function MetricGauge({ value, label, threshold = 0.8, isDecimal = false, reverse
       <span className={cn("text-[0.55rem] font-bold", pass ? "text-emerald-600" : "text-destructive")}>
         {pass ? "PASS" : "FAIL"}
       </span>
+    </div>
+  )
+}
+
+function FeatureAttributionTreemap() {
+  const { ref, width, height } = useContainerSize()
+  return (
+    <div className="flex-1 min-h-0 p-3">
+      <div ref={ref} className="h-full w-full">
+        {width > 0 && height > 0 && (
+          <TreemapChart width={width} height={height} data={FEATURE_ATTRIBUTION} />
+        )}
+      </div>
     </div>
   )
 }
@@ -330,9 +388,9 @@ export function AnalyticsPage() {
           )}
 
           {subTab === "volume" && (
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
               {/* Data Volume chart */}
-              <Card className="flex-1 min-h-0 flex flex-col border-border/60 shadow-sm overflow-hidden">
+              <Card className="shrink-0 flex flex-col border-border/60 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between border-b border-border/40 px-5 py-3 shrink-0">
                   <div className="flex items-center gap-2">
                     <Database className="h-3.5 w-3.5 text-primary" />
@@ -349,12 +407,7 @@ export function AnalyticsPage() {
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <div className="px-5 py-2.5 bg-muted/20 border-b border-border/20 shrink-0">
-                  <p className="text-[0.68rem] text-muted-foreground">
-                    Optimal range: {DATA_VOLUME.featuresRange.min}–{DATA_VOLUME.featuresRange.max} features · Trained on {(DATA_VOLUME.trainingRecords / 1000000).toFixed(1)}M records
-                  </p>
-                </div>
-                <div className="h-[250px] p-5">
+                <div className="h-[210px] p-5">
                   <ChartContainer config={volumeConfig} className="h-full w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={DATA_VOLUME_CHART} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
@@ -369,6 +422,28 @@ export function AnalyticsPage() {
                     </ResponsiveContainer>
                   </ChartContainer>
                 </div>
+              </Card>
+
+              {/* Feature attribution treemap */}
+              <Card className="flex-1 min-h-0 flex flex-col border-border/60 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between border-b border-border/40 px-5 py-3 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Boxes className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-xs font-bold text-foreground uppercase tracking-wide">Feature Attribution by Category</p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs">
+                        The {DATA_VOLUME.featuresPerDecision} model features grouped into categories. Tile area is proportional to each feature's average SHAP contribution.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[0.65rem] font-semibold text-primary">
+                    {DATA_VOLUME.featuresPerDecision} features
+                  </span>
+                </div>
+                <FeatureAttributionTreemap />
               </Card>
             </div>
           )}
