@@ -10,8 +10,15 @@ import {
   LineChart, Line, ReferenceLine, ResponsiveContainer
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { RadarChart } from "@/components/ui/radar-chart"
 import { cn } from "@/lib/utils"
 import { FAIRNESS_METRICS, APPROVAL_LIFT_DATA, PROXY_DETECTION_DATA, DATA_VOLUME } from "@/data/mockData"
+
+interface ComplianceAxis {
+  axis: string
+  label: string
+  value: number
+}
 
 // Data Volume vs Accuracy & Fairness chart data
 const DATA_VOLUME_CHART = [
@@ -77,6 +84,17 @@ export function AnalyticsPage() {
   const overallDI = FAIRNESS_METRICS.reduce((min, m) => Math.min(min, m.disparateImpact), 1)
   const avgApproval = FAIRNESS_METRICS.reduce((s, m) => s + m.approvalRate, 0) / FAIRNESS_METRICS.length
 
+  // Multi-dimensional compliance profile (same six metrics shown in the gauges),
+  // normalized to 0-1 so they share one radar scale.
+  const complianceProfile: ComplianceAxis[] = [
+    { axis: "AIR",       label: "Adverse impact ratio",   value: 0.923 },
+    { axis: "Parity",    label: "Statistical parity",     value: 1 - 0.077 },
+    { axis: "Approval",  label: "Avg approval rate",      value: avgApproval },
+    { axis: "Ledger",    label: "Ledger continuity",      value: 0.986 },
+    { axis: "Proxy",     label: "Proxy detection",        value: 0.97 },
+    { axis: "Stability", label: "Model stability",        value: 0.94 },
+  ]
+
   return (
     <div className="flex h-full flex-col overflow-hidden" data-testid="analytics-page">
       {/* Header */}
@@ -129,36 +147,64 @@ export function AnalyticsPage() {
         <TooltipProvider>
           {subTab === "overview" && (
             <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
-              {/* Gauges card */}
-              <Card className="border-border/60 shadow-sm shrink-0">
-                <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold text-foreground uppercase tracking-wide">Regulatory Compliance Gauges</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs text-xs">
-                        CFPB 4/5ths rule requires disparate impact ratio ≥ 0.80. All metrics post-Meridian intervention.
-                      </TooltipContent>
-                    </Tooltip>
+              {/* Compliance profile (radar) + gauges */}
+              <div className="grid grid-cols-1 gap-4 shrink-0 lg:grid-cols-[280px_1fr]">
+                {/* Radar: multi-dimensional compliance profile */}
+                <Card className="flex flex-col border-border/60 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold uppercase tracking-wide text-foreground">Compliance Profile</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs">
+                          Six normalized compliance dimensions on one scale (0–1). A larger, more even shape indicates balanced, healthy compliance.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[0.65rem] font-semibold text-primary">6 axes</span>
                   </div>
-                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-semibold text-emerald-600 dark:text-emerald-400">6/6 Passing</span>
-                </div>
-                <div className="flex items-center justify-around px-4 py-4">
-                  <MetricGauge value={0.923} label="AIR" threshold={0.8} isDecimal={true} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={0.077} label="SPD" threshold={0.1} isDecimal={true} reverse={true} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={avgApproval} label="Avg Approval Rate" threshold={0.6} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={0.986} label="Ledger Continuity" threshold={0.99} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={0.97} label="Proxy Detection" threshold={0.9} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={0.94} label="Model Stability" threshold={0.85} />
-                </div>
-              </Card>
+                  <div className="flex flex-1 items-center justify-center py-2">
+                    <RadarChart
+                      width={252}
+                      height={224}
+                      data={complianceProfile}
+                      getValue={(d) => d.value}
+                      getLabel={(d) => d.axis}
+                      maxValue={1}
+                      levels={4}
+                      margin={{ top: 30, right: 48, bottom: 30, left: 48 }}
+                    />
+                  </div>
+                </Card>
+
+                {/* Gauges card */}
+                <Card className="flex flex-col border-border/60 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-foreground uppercase tracking-wide">Regulatory Compliance Gauges</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs">
+                          CFPB 4/5ths rule requires disparate impact ratio ≥ 0.80. All metrics post-Meridian intervention.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-semibold text-emerald-600 dark:text-emerald-400">6/6 Passing</span>
+                  </div>
+                  <div className="flex flex-1 flex-wrap items-center justify-around gap-y-4 px-4 py-4">
+                    <MetricGauge value={0.923} label="AIR" threshold={0.8} isDecimal={true} />
+                    <MetricGauge value={0.077} label="SPD" threshold={0.1} isDecimal={true} reverse={true} />
+                    <MetricGauge value={avgApproval} label="Avg Approval Rate" threshold={0.6} />
+                    <MetricGauge value={0.986} label="Ledger Continuity" threshold={0.99} />
+                    <MetricGauge value={0.97} label="Proxy Detection" threshold={0.9} />
+                    <MetricGauge value={0.94} label="Model Stability" threshold={0.85} />
+                  </div>
+                </Card>
+              </div>
 
               {/* Fairness Table */}
               <Card className="flex-1 min-h-0 flex flex-col border-border/60 shadow-sm overflow-hidden">
