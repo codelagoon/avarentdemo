@@ -93,7 +93,7 @@ function EventTypeBadge({ type }: { type: LedgerEventType }) {
 }
 
 // ─── Mini sparkline SVG ───────────────────────────────────────────────────────
-function Sparkline({ data, color = "#6366f1" }: { data: number[]; color?: string }) {
+function Sparkline({ data, color = "#f1641c" }: { data: number[]; color?: string }) {
   const w = 52, h = 20
   const min = Math.min(...data), max = Math.max(...data)
   const range = max - min || 1
@@ -110,7 +110,7 @@ function Sparkline({ data, color = "#6366f1" }: { data: number[]; color?: string
 }
 
 // ─── Circular gauge SVG ───────────────────────────────────────────────────────
-function CircularGauge({ value, max = 100, label, sub, color = "#6366f1" }: {
+function CircularGauge({ value, max = 100, label, sub, color = "#f1641c" }: {
   value: number; max?: number; label: string; sub?: string; color?: string
 }) {
   const r = 28, circ = 2 * Math.PI * r
@@ -193,7 +193,7 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
   const nodeColors: Record<string, { fill: string; stroke: string }> = {
     input:   { fill: "#1e3a5f", stroke: "#2563eb" },
     model:   { fill: "#1a3040", stroke: "#0891b2" },
-    output:  { fill: "#1e3a5f", stroke: "#6366f1" },
+    output:  { fill: "#1e3a5f", stroke: "#f1641c" },
     proxy:   { fill: "#44330a", stroke: "#d97706" },
     severed: { fill: "#3f1010", stroke: "#ef4444" },
   }
@@ -216,7 +216,7 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
             <polygon points="0 0, 7 2.5, 0 5" fill="rgba(100,116,139,0.5)" />
           </marker>
           <marker id="arr-active" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-            <polygon points="0 0, 7 2.5, 0 5" fill="#6366f1" />
+            <polygon points="0 0, 7 2.5, 0 5" fill="#f1641c" />
           </marker>
           <marker id="arr-severed" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
             <polygon points="0 0, 7 2.5, 0 5" fill="#ef4444" />
@@ -249,7 +249,7 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
               <path
                 d={`M ${from.x + 32} ${from.y} C ${mx + 8} ${from.y}, ${mx - 8} ${to.y}, ${to.x - 32} ${to.y}`}
                 fill="none"
-                stroke={isSevered ? "#ef4444" : running ? "#6366f1" : "rgba(100,116,139,0.35)"}
+                stroke={isSevered ? "#ef4444" : running ? "#f1641c" : "rgba(100,116,139,0.35)"}
                 strokeWidth={isSevered ? 1.5 : running ? 1.5 : 1}
                 strokeDasharray={isSevered ? "4,3" : "none"}
                 opacity={isSevered ? 0.7 : running ? 0.85 : 0.6}
@@ -316,8 +316,8 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
         {/* Live indicator */}
         {running && (
           <g>
-            <circle cx={442} cy={455} r={4.5} fill="#6366f1" opacity={0.9 + Math.sin(tick * 0.3) * 0.1} filter="url(#glow)" />
-            <text x={434} y={452} fontSize="6.5" fill="#6366f1" textAnchor="end" fontFamily="IBM Plex Mono" fontWeight="700">ACTIVE</text>
+            <circle cx={442} cy={455} r={4.5} fill="#f1641c" opacity={0.9 + Math.sin(tick * 0.3) * 0.1} filter="url(#glow)" />
+            <text x={434} y={452} fontSize="6.5" fill="#f1641c" textAnchor="end" fontFamily="IBM Plex Mono" fontWeight="700">ACTIVE</text>
           </g>
         )}
       </svg>
@@ -348,8 +348,8 @@ function FairnessWaveChart({ running }: { running: boolean }) {
         <AreaChart data={WAVE_DATA} margin={{ top: 4, right: 4, left: -30, bottom: 0 }}>
           <defs>
             <linearGradient id="gradFairness" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+              <stop offset="5%"  stopColor="#f1641c" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#f1641c" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradBaseline" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor="#94a3b8" stopOpacity={0.15} />
@@ -360,13 +360,13 @@ function FairnessWaveChart({ running }: { running: boolean }) {
           <XAxis dataKey="month" tick={{ fontSize: 9, fill: "rgba(100,116,139,0.7)", fontFamily: "IBM Plex Sans" }} axisLine={false} tickLine={false} />
           <YAxis domain={[60, 100]} tick={{ fontSize: 9, fill: "rgba(100,116,139,0.7)", fontFamily: "IBM Plex Mono" }} axisLine={false} tickLine={false} />
           <RechartsTooltip
-            contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 8, padding: "6px 10px" }}
+            contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(241,100,28,0.3)", borderRadius: 8, padding: "6px 10px" }}
             labelStyle={{ color: "#e2e8f0", fontSize: 10, fontWeight: 600 }}
-            itemStyle={{ color: "#a5b4fc", fontSize: 10 }}
-            cursor={{ stroke: "rgba(99,102,241,0.3)", strokeWidth: 1 }}
+            itemStyle={{ color: "#fdba74", fontSize: 10 }}
+            cursor={{ stroke: "rgba(241,100,28,0.3)", strokeWidth: 1 }}
           />
           <Area type="monotone" dataKey="baseline" stroke="#94a3b8" strokeWidth={1} strokeDasharray="4 3" fill="url(#gradBaseline)" dot={false} name="CFPB Floor" />
-          <Area type="monotone" dataKey="score"    stroke={running ? "#818cf8" : "#6366f1"} strokeWidth={2} fill="url(#gradFairness)" dot={false} name="Fairness Score" />
+          <Area type="monotone" dataKey="score"    stroke={running ? "#f97316" : "#f1641c"} strokeWidth={2} fill="url(#gradFairness)" dot={false} name="Fairness Score" />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -823,7 +823,7 @@ function ApplicantTable({ activeScenario }: { activeScenario: ScenarioConfig | n
                   color={
                     d.decision === "approved"     ? "#10b981" :
                     d.decision === "escalated"    ? "#f97316" :
-                    d.decision === "under_review" ? "#f59e0b" : "#6366f1"
+                    d.decision === "under_review" ? "#f59e0b" : "#f1641c"
                   }
                 />
               </div>
@@ -951,7 +951,7 @@ function InsightsPanel({ entries, severedEdges, activeScenario, running }: {
       <div className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/60">
         <p className="text-[0.6rem] font-bold tracking-widest text-slate-400 mb-3">Compliance Metrics</p>
         <div className="flex justify-around items-start">
-          <CircularGauge value={90} label="Consistency"  sub="Highly consistent" color="#6366f1" />
+          <CircularGauge value={90} label="Consistency"  sub="Highly consistent" color="#f1641c" />
           <CircularGauge value={90} label="Regularity"   sub="Regular audits"    color="#0891b2" />
           <CircularGauge value={80} label="Robustness"   sub="Adversarial tests"  color="#10b981" />
         </div>
@@ -1074,17 +1074,17 @@ export function DashboardPage() {
             {/* Metric tiles */}
             <div className="flex flex-col gap-1.5 shrink-0">
               <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
-                <span style={{ color: "#6366f1" }}><Activity className="h-3 w-3" /></span>
+                <span style={{ color: "#f1641c" }}><Activity className="h-3 w-3" /></span>
                 <div>
-                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: "#6366f1" }}>{Object.keys(DEMO_SCENARIOS).length}</p>
+                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: "#f1641c" }}>{Object.keys(DEMO_SCENARIOS).length}</p>
                   <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">Scenarios</p>
                 </div>
                 <span className="ml-1"><TrendingUp className="h-2.5 w-2.5 text-emerald-500" /></span>
               </div>
               <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
-                <span style={{ color: severedEdges.length > 0 ? "#ef4444" : "#6366f1" }}><Zap className="h-3 w-3" /></span>
+                <span style={{ color: severedEdges.length > 0 ? "#ef4444" : "#f1641c" }}><Zap className="h-3 w-3" /></span>
                 <div>
-                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: severedEdges.length > 0 ? "#ef4444" : "#6366f1" }}>{severedEdges.length}</p>
+                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: severedEdges.length > 0 ? "#ef4444" : "#f1641c" }}>{severedEdges.length}</p>
                   <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">Interventions</p>
                 </div>
                 <span className="ml-1">{severedEdges.length > 0 ? <TrendingDown className="h-2.5 w-2.5 text-rose-500" /> : <Minus className="h-2.5 w-2.5 text-slate-400" />}</span>
