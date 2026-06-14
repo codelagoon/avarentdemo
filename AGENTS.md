@@ -31,3 +31,9 @@ Scripts live in `package.json`; use those rather than duplicating commands here:
   browser. The app itself runs fine regardless.
 - API keys for the AI credit-analysis edge function (OpenRouter/NVIDIA) are optional; without them
   `scenarioService` falls back to deterministic local logic — no functional impact on the demo.
+- **GUI testing gotcha:** running a Red Team / "Execute Adversarial Test" scenario briefly shows a
+  full-screen splash (white animating cube on a black background) and this loading splash also
+  flashes intermittently afterward. This is expected animation/transition behavior, **not** a crash
+  — the dashboard re-renders with results (Insights panel AIR/SPD, "severed" count, Evidence Ledger
+  entries) each time. When capturing screenshots/video, wait for the splash to resolve before
+  asserting the result state.
