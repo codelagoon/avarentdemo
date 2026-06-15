@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts"
+import { BarChart, Bar, BarXAxis, Grid as BarGrid, ChartTooltip } from "@/components/ui/bar-chart"
 import { cn } from "@/lib/utils"
 import { type ThreatSeverity } from "@/data/mockData"
 import { threatService } from "@/services/threatService"
@@ -110,6 +111,20 @@ export function ThreatAnalysisPage() {
   }), [threats])
 
   const maxHeat = Math.max(...HEATMAP_DATA.flatMap(r => DAY_KEYS.map(d => r[d])))
+
+  // Per-event model scores for the distribution bar chart. Each threat is a
+  // distinct event, so labels are de-duplicated to keep the x-axis categories unique.
+  const scoreData = useMemo(() => {
+    const seen = new Map<string, number>()
+    return threats.map((t) => {
+      const parts = t.applicantName.split(" ")
+      let label = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0]
+      const n = (seen.get(label) ?? 0) + 1
+      seen.set(label, n)
+      if (n > 1) label = `${label} ${n}`
+      return { name: label, score: Math.round(t.modelScore * 100) }
+    })
+  }, [threats])
 
   const handleResolveAlert = (id: string) => {
     antiFairwashingService.resolveAlert(id)
@@ -374,14 +389,28 @@ export function ThreatAnalysisPage() {
                     </span>
                   </div>
                   {isDistributionExpanded && (
-                    <div className="px-4 py-3">
-                      {threats.map(t => (
-                        <div key={t.id} className="mb-1.5 flex items-center gap-2">
-                          <span className="w-14 truncate text-[0.6rem] text-muted-foreground">{t.applicantName.split(" ")[0]}</span>
-                          <Progress value={t.modelScore * 100} className="h-1.5 flex-1" />
-                          <span className="font-mono text-[0.6rem] text-foreground w-6 text-right">{(t.modelScore * 100).toFixed(0)}</span>
-                        </div>
-                      ))}
+                    <div className="px-3 pb-1 pt-1">
+                      <BarChart
+                        data={scoreData}
+                        xDataKey="name"
+                        aspectRatio="1.7 / 1"
+                        barGap={0.28}
+                        animationDuration={900}
+                        margin={{ top: 10, right: 8, bottom: 26, left: 8 }}
+                      >
+                        <BarGrid horizontal numTicksRows={4} />
+                        <Bar dataKey="score" lineCap={3} />
+                        <BarXAxis maxLabels={6} tickerHalfWidth={26} />
+                        <ChartTooltip
+                          rows={(point) => [
+                            {
+                              color: "var(--chart-line-primary)",
+                              label: "Model score",
+                              value: `${point.score as number}%`,
+                            },
+                          ]}
+                        />
+                      </BarChart>
                     </div>
                   )}
                 </Card>

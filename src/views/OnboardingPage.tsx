@@ -137,7 +137,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
   // ─── Welcome Step ──────────────────────────────────────────────────────────
   if (step === "welcome") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <Card className="w-full max-w-2xl shadow-xl">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
@@ -192,7 +192,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
   // ─── Company Info Step ─────────────────────────────────────────────────────
   if (step === "company") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <Card className="w-full max-w-xl shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -276,7 +276,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
   // ─── Profile Step ──────────────────────────────────────────────────────────
   if (step === "profile") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <Card className="w-full max-w-xl shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -356,7 +356,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
   // ─── Compliance Needs Step ───────────────────────────────────────────────────
   if (step === "compliance") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <Card className="w-full max-w-2xl shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -454,7 +454,7 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
   // ─── Confirm Step ──────────────────────────────────────────────────────────
   if (step === "confirm") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <Card className="w-full max-w-xl shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
@@ -499,11 +499,11 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
               </div>
             </div>
 
-            <div className="rounded-md bg-blue-50 p-4">
-              <p className="text-sm text-blue-900">
+            <div className="rounded-md border border-primary/20 bg-primary/10 p-4">
+              <p className="text-sm text-foreground">
                 <strong>What happens next?</strong>
               </p>
-              <ul className="mt-2 text-xs text-blue-800 space-y-1 list-disc list-inside">
+              <ul className="mt-2 text-xs text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Your dashboard will be configured for {USE_CASES.find(u => u.value === data.primaryUseCase)?.label}</li>
                 <li>Sample data will be loaded for demonstration</li>
                 <li>You can start running adversarial tests immediately</li>

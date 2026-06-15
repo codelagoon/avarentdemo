@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { ChartBar as BarChart3, TrendingUp, Users, CircleAlert as AlertCircle, Info, Database } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { ChartBar as BarChart3, TrendingUp, Users, CircleAlert as AlertCircle, Info, Database, Boxes } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -10,8 +10,60 @@ import {
   LineChart, Line, ReferenceLine, ResponsiveContainer
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { RadarChart } from "@/components/ui/radar-chart"
+import { TreemapChart, type TreemapDatum } from "@/components/ui/treemap-chart"
 import { cn } from "@/lib/utils"
 import { FAIRNESS_METRICS, APPROVAL_LIFT_DATA, PROXY_DETECTION_DATA, DATA_VOLUME } from "@/data/mockData"
+
+interface ComplianceAxis {
+  axis: string
+  label: string
+  value: number
+}
+
+// Feature attribution: the model's ~82 features grouped by category and sized by
+// their relative SHAP contribution weight (used by the treemap below).
+const FEATURE_ATTRIBUTION: TreemapDatum[] = [
+  { id: "Model", parent: null },
+  { id: "Credit history", parent: "Model" },
+  { id: "Payment history", parent: "Credit history", size: 22 },
+  { id: "Credit utilization", parent: "Credit history", size: 16 },
+  { id: "Account age", parent: "Credit history", size: 9 },
+  { id: "Recent inquiries", parent: "Credit history", size: 6 },
+  { id: "Derogatory marks", parent: "Credit history", size: 7 },
+  { id: "Income & employment", parent: "Model" },
+  { id: "Income level", parent: "Income & employment", size: 14 },
+  { id: "Debt-to-income", parent: "Income & employment", size: 11 },
+  { id: "Employment tenure", parent: "Income & employment", size: 8 },
+  { id: "Income stability", parent: "Income & employment", size: 7 },
+  { id: "Collateral & loan", parent: "Model" },
+  { id: "Loan amount", parent: "Collateral & loan", size: 9 },
+  { id: "Loan-to-value", parent: "Collateral & loan", size: 8 },
+  { id: "Collateral value", parent: "Collateral & loan", size: 6 },
+  { id: "Cash-flow & behavioral", parent: "Model" },
+  { id: "Cash-flow volatility", parent: "Cash-flow & behavioral", size: 7 },
+  { id: "Transaction patterns", parent: "Cash-flow & behavioral", size: 6 },
+  { id: "Savings rate", parent: "Cash-flow & behavioral", size: 5 },
+  { id: "Alternative data", parent: "Model" },
+  { id: "Rent & utility", parent: "Alternative data", size: 6 },
+  { id: "Open-banking signals", parent: "Alternative data", size: 5 },
+  { id: "Telecom payments", parent: "Alternative data", size: 4 },
+]
+
+function useContainerSize() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState({ width: 0, height: 0 })
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = () => setSize({ width: el.clientWidth, height: el.clientHeight })
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return { ref, ...size }
+}
 
 // Data Volume vs Accuracy & Fairness chart data
 const DATA_VOLUME_CHART = [
@@ -72,10 +124,34 @@ function MetricGauge({ value, label, threshold = 0.8, isDecimal = false, reverse
   )
 }
 
+function FeatureAttributionTreemap() {
+  const { ref, width, height } = useContainerSize()
+  return (
+    <div className="flex-1 min-h-0 p-3">
+      <div ref={ref} className="h-full w-full">
+        {width > 0 && height > 0 && (
+          <TreemapChart width={width} height={height} data={FEATURE_ATTRIBUTION} />
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function AnalyticsPage() {
   const [subTab, setSubTab] = useState<"overview" | "lift" | "volume">("overview")
   const overallDI = FAIRNESS_METRICS.reduce((min, m) => Math.min(min, m.disparateImpact), 1)
   const avgApproval = FAIRNESS_METRICS.reduce((s, m) => s + m.approvalRate, 0) / FAIRNESS_METRICS.length
+
+  // Multi-dimensional compliance profile (same six metrics shown in the gauges),
+  // normalized to 0-1 so they share one radar scale.
+  const complianceProfile: ComplianceAxis[] = [
+    { axis: "AIR",       label: "Adverse impact ratio",   value: 0.923 },
+    { axis: "Parity",    label: "Statistical parity",     value: 1 - 0.077 },
+    { axis: "Approval",  label: "Avg approval rate",      value: avgApproval },
+    { axis: "Ledger",    label: "Ledger continuity",      value: 0.986 },
+    { axis: "Proxy",     label: "Proxy detection",        value: 0.97 },
+    { axis: "Stability", label: "Model stability",        value: 0.94 },
+  ]
 
   return (
     <div className="flex h-full flex-col overflow-hidden" data-testid="analytics-page">
@@ -129,36 +205,64 @@ export function AnalyticsPage() {
         <TooltipProvider>
           {subTab === "overview" && (
             <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
-              {/* Gauges card */}
-              <Card className="border-border/60 shadow-sm shrink-0">
-                <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold text-foreground uppercase tracking-wide">Regulatory Compliance Gauges</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs text-xs">
-                        CFPB 4/5ths rule requires disparate impact ratio ≥ 0.80. All metrics post-Meridian intervention.
-                      </TooltipContent>
-                    </Tooltip>
+              {/* Compliance profile (radar) + gauges */}
+              <div className="grid grid-cols-1 gap-4 shrink-0 lg:grid-cols-[280px_1fr]">
+                {/* Radar: multi-dimensional compliance profile */}
+                <Card className="flex flex-col border-border/60 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold uppercase tracking-wide text-foreground">Compliance Profile</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs">
+                          Six normalized compliance dimensions on one scale (0–1). A larger, more even shape indicates balanced, healthy compliance.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[0.65rem] font-semibold text-primary">6 axes</span>
                   </div>
-                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-semibold text-emerald-600 dark:text-emerald-400">6/6 Passing</span>
-                </div>
-                <div className="flex items-center justify-around px-4 py-4">
-                  <MetricGauge value={0.923} label="AIR" threshold={0.8} isDecimal={true} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={0.077} label="SPD" threshold={0.1} isDecimal={true} reverse={true} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={avgApproval} label="Avg Approval Rate" threshold={0.6} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={0.986} label="Ledger Continuity" threshold={0.99} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={0.97} label="Proxy Detection" threshold={0.9} />
-                  <div className="h-10 w-px bg-border/60" />
-                  <MetricGauge value={0.94} label="Model Stability" threshold={0.85} />
-                </div>
-              </Card>
+                  <div className="flex flex-1 items-center justify-center py-2">
+                    <RadarChart
+                      width={252}
+                      height={224}
+                      data={complianceProfile}
+                      getValue={(d) => d.value}
+                      getLabel={(d) => d.axis}
+                      maxValue={1}
+                      levels={4}
+                      margin={{ top: 30, right: 48, bottom: 30, left: 48 }}
+                    />
+                  </div>
+                </Card>
+
+                {/* Gauges card */}
+                <Card className="flex flex-col border-border/60 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-foreground uppercase tracking-wide">Regulatory Compliance Gauges</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs">
+                          CFPB 4/5ths rule requires disparate impact ratio ≥ 0.80. All metrics post-Meridian intervention.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-semibold text-emerald-600 dark:text-emerald-400">6/6 Passing</span>
+                  </div>
+                  <div className="flex flex-1 flex-wrap items-center justify-around gap-y-4 px-4 py-4">
+                    <MetricGauge value={0.923} label="AIR" threshold={0.8} isDecimal={true} />
+                    <MetricGauge value={0.077} label="SPD" threshold={0.1} isDecimal={true} reverse={true} />
+                    <MetricGauge value={avgApproval} label="Avg Approval Rate" threshold={0.6} />
+                    <MetricGauge value={0.986} label="Ledger Continuity" threshold={0.99} />
+                    <MetricGauge value={0.97} label="Proxy Detection" threshold={0.9} />
+                    <MetricGauge value={0.94} label="Model Stability" threshold={0.85} />
+                  </div>
+                </Card>
+              </div>
 
               {/* Fairness Table */}
               <Card className="flex-1 min-h-0 flex flex-col border-border/60 shadow-sm overflow-hidden">
@@ -284,9 +388,9 @@ export function AnalyticsPage() {
           )}
 
           {subTab === "volume" && (
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
               {/* Data Volume chart */}
-              <Card className="flex-1 min-h-0 flex flex-col border-border/60 shadow-sm overflow-hidden">
+              <Card className="shrink-0 flex flex-col border-border/60 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between border-b border-border/40 px-5 py-3 shrink-0">
                   <div className="flex items-center gap-2">
                     <Database className="h-3.5 w-3.5 text-primary" />
@@ -303,12 +407,7 @@ export function AnalyticsPage() {
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <div className="px-5 py-2.5 bg-muted/20 border-b border-border/20 shrink-0">
-                  <p className="text-[0.68rem] text-muted-foreground">
-                    Optimal range: {DATA_VOLUME.featuresRange.min}–{DATA_VOLUME.featuresRange.max} features · Trained on {(DATA_VOLUME.trainingRecords / 1000000).toFixed(1)}M records
-                  </p>
-                </div>
-                <div className="h-[250px] p-5">
+                <div className="h-[210px] p-5">
                   <ChartContainer config={volumeConfig} className="h-full w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={DATA_VOLUME_CHART} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
@@ -323,6 +422,28 @@ export function AnalyticsPage() {
                     </ResponsiveContainer>
                   </ChartContainer>
                 </div>
+              </Card>
+
+              {/* Feature attribution treemap */}
+              <Card className="flex-1 min-h-0 flex flex-col border-border/60 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between border-b border-border/40 px-5 py-3 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Boxes className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-xs font-bold text-foreground uppercase tracking-wide">Feature Attribution by Category</p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs">
+                        The {DATA_VOLUME.featuresPerDecision} model features grouped into categories. Tile area is proportional to each feature's average SHAP contribution.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[0.65rem] font-semibold text-primary">
+                    {DATA_VOLUME.featuresPerDecision} features
+                  </span>
+                </div>
+                <FeatureAttributionTreemap />
               </Card>
             </div>
           )}

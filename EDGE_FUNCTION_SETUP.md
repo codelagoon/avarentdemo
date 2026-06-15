@@ -14,22 +14,24 @@ Browser → Supabase Edge Function → OpenRouter (Free Models) → NVIDIA NIM (
 
 The Edge Function is deployed at:
 ```
-https://kkjrnlsmunacdcjleqjv.supabase.co/functions/v1/analyze-credit
+https://<your-project-ref>.supabase.co/functions/v1/analyze-credit
 ```
 
 ### 2. Set Environment Variables (REQUIRED)
 
 You need to set the API keys in the Supabase Dashboard:
 
-1. Go to [Supabase Dashboard](https://app.supabase.com/project/kkjrnlsmunacdcjleqjv/functions)
+1. Go to [Supabase Dashboard](https://app.supabase.com/project/<your-project-ref>/functions)
 2. Click on the **"analyze-credit"** function
 3. Go to **"Secrets"** tab
 4. Add these secrets:
 
 | Secret Name | Value |
 |------------|-------|
-| `OPENROUTER_API_KEY` | `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` |
-| `NVIDIA_API_KEY` | `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` |
+| `OPENROUTER_API_KEY` | `<your-openrouter-api-key>` |
+| `NVIDIA_API_KEY` | `<your-nvidia-api-key>` |
+
+> Never commit real API keys. Set these as Supabase Edge Function secrets only.
 
 ### 3. Test the Function
 

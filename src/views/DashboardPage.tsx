@@ -49,13 +49,13 @@ const RECENT_DECISIONS = [
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
-    critical: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900",
-    high:     "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900",
-    medium:   "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900",
-    low:      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900",
+    critical: "bg-rose-500/12 text-rose-400",
+    high:     "bg-orange-500/12 text-orange-400",
+    medium:   "bg-amber-500/12 text-amber-400",
+    low:      "bg-emerald-500/12 text-emerald-400",
   }
   return (
-    <span className={cn("rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide", map[severity] ?? map.low)}>
+    <span className={cn("rounded px-1.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-wide", map[severity] ?? map.low)}>
       {severity}
     </span>
   )
@@ -63,14 +63,14 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 function DecisionBadge({ decision }: { decision: string }) {
   const map: Record<string, { cls: string; label: string; icon: React.ReactNode }> = {
-    approved:     { cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900", label: "Approved",    icon: <Check className="h-2.5 w-2.5" /> },
-    denied:       { cls: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900",                   label: "Denied",      icon: <X className="h-2.5 w-2.5" /> },
-    under_review: { cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900",             label: "Review",      icon: <Minus className="h-2.5 w-2.5" /> },
-    escalated:    { cls: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900",       label: "Escalated",   icon: <AlertTriangle className="h-2.5 w-2.5" /> },
+    approved:     { cls: "bg-emerald-500/12 text-emerald-400", label: "Approved",  icon: <Check className="h-2.5 w-2.5" /> },
+    denied:       { cls: "bg-rose-500/12 text-rose-400",       label: "Denied",    icon: <X className="h-2.5 w-2.5" /> },
+    under_review: { cls: "bg-amber-500/12 text-amber-400",     label: "Review",    icon: <Minus className="h-2.5 w-2.5" /> },
+    escalated:    { cls: "bg-orange-500/12 text-orange-400",   label: "Escalated", icon: <AlertTriangle className="h-2.5 w-2.5" /> },
   }
   const { cls, label, icon } = map[decision] ?? map.under_review
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold", cls)}>
+    <span className={cn("inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.6rem] font-medium", cls)}>
       {icon}{label}
     </span>
   )
@@ -78,22 +78,22 @@ function DecisionBadge({ decision }: { decision: string }) {
 
 function EventTypeBadge({ type }: { type: LedgerEventType }) {
   const map: Record<LedgerEventType, { label: string; cls: string }> = {
-    decision:    { label: "Decision",    cls: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-900" },
-    intervention:{ label: "Intervention",cls: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900" },
-    proof_signed:{ label: "Proof Signed",cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900" },
-    alert:       { label: "Alert",       cls: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900" },
-    audit:       { label: "Audit",       cls: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700" },
+    decision:    { label: "Decision",     cls: "bg-blue-500/12 text-blue-400" },
+    intervention:{ label: "Intervention", cls: "bg-orange-500/12 text-orange-400" },
+    proof_signed:{ label: "Proof Signed", cls: "bg-emerald-500/12 text-emerald-400" },
+    alert:       { label: "Alert",        cls: "bg-rose-500/12 text-rose-400" },
+    audit:       { label: "Audit",        cls: "bg-muted text-muted-foreground" },
   }
   const { label, cls } = map[type]
   return (
-    <span className={cn("rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold", cls)}>
+    <span className={cn("rounded px-1.5 py-0.5 text-[0.6rem] font-medium", cls)}>
       {label}
     </span>
   )
 }
 
 // ─── Mini sparkline SVG ───────────────────────────────────────────────────────
-function Sparkline({ data, color = "#6366f1" }: { data: number[]; color?: string }) {
+function Sparkline({ data, color = "#b97039" }: { data: number[]; color?: string }) {
   const w = 52, h = 20
   const min = Math.min(...data), max = Math.max(...data)
   const range = max - min || 1
@@ -110,7 +110,7 @@ function Sparkline({ data, color = "#6366f1" }: { data: number[]; color?: string
 }
 
 // ─── Circular gauge SVG ───────────────────────────────────────────────────────
-function CircularGauge({ value, max = 100, label, sub, color = "#6366f1" }: {
+function CircularGauge({ value, max = 100, label, sub, color = "#b97039" }: {
   value: number; max?: number; label: string; sub?: string; color?: string
 }) {
   const r = 28, circ = 2 * Math.PI * r
@@ -193,7 +193,7 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
   const nodeColors: Record<string, { fill: string; stroke: string }> = {
     input:   { fill: "#1e3a5f", stroke: "#2563eb" },
     model:   { fill: "#1a3040", stroke: "#0891b2" },
-    output:  { fill: "#1e3a5f", stroke: "#6366f1" },
+    output:  { fill: "#1e3a5f", stroke: "#b97039" },
     proxy:   { fill: "#44330a", stroke: "#d97706" },
     severed: { fill: "#3f1010", stroke: "#ef4444" },
   }
@@ -216,7 +216,7 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
             <polygon points="0 0, 7 2.5, 0 5" fill="rgba(100,116,139,0.5)" />
           </marker>
           <marker id="arr-active" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-            <polygon points="0 0, 7 2.5, 0 5" fill="#6366f1" />
+            <polygon points="0 0, 7 2.5, 0 5" fill="#b97039" />
           </marker>
           <marker id="arr-severed" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
             <polygon points="0 0, 7 2.5, 0 5" fill="#ef4444" />
@@ -249,7 +249,7 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
               <path
                 d={`M ${from.x + 32} ${from.y} C ${mx + 8} ${from.y}, ${mx - 8} ${to.y}, ${to.x - 32} ${to.y}`}
                 fill="none"
-                stroke={isSevered ? "#ef4444" : running ? "#6366f1" : "rgba(100,116,139,0.35)"}
+                stroke={isSevered ? "#ef4444" : running ? "#b97039" : "rgba(100,116,139,0.35)"}
                 strokeWidth={isSevered ? 1.5 : running ? 1.5 : 1}
                 strokeDasharray={isSevered ? "4,3" : "none"}
                 opacity={isSevered ? 0.7 : running ? 0.85 : 0.6}
@@ -316,8 +316,8 @@ function CausalGraph({ severedEdges, running }: { severedEdges: string[]; runnin
         {/* Live indicator */}
         {running && (
           <g>
-            <circle cx={442} cy={455} r={4.5} fill="#6366f1" opacity={0.9 + Math.sin(tick * 0.3) * 0.1} filter="url(#glow)" />
-            <text x={434} y={452} fontSize="6.5" fill="#6366f1" textAnchor="end" fontFamily="IBM Plex Mono" fontWeight="700">ACTIVE</text>
+            <circle cx={442} cy={455} r={4.5} fill="#b97039" opacity={0.9 + Math.sin(tick * 0.3) * 0.1} filter="url(#glow)" />
+            <text x={434} y={452} fontSize="6.5" fill="#b97039" textAnchor="end" fontFamily="IBM Plex Mono" fontWeight="700">ACTIVE</text>
           </g>
         )}
       </svg>
@@ -348,8 +348,8 @@ function FairnessWaveChart({ running }: { running: boolean }) {
         <AreaChart data={WAVE_DATA} margin={{ top: 4, right: 4, left: -30, bottom: 0 }}>
           <defs>
             <linearGradient id="gradFairness" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+              <stop offset="5%"  stopColor="#b97039" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#b97039" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradBaseline" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor="#94a3b8" stopOpacity={0.15} />
@@ -360,13 +360,13 @@ function FairnessWaveChart({ running }: { running: boolean }) {
           <XAxis dataKey="month" tick={{ fontSize: 9, fill: "rgba(100,116,139,0.7)", fontFamily: "IBM Plex Sans" }} axisLine={false} tickLine={false} />
           <YAxis domain={[60, 100]} tick={{ fontSize: 9, fill: "rgba(100,116,139,0.7)", fontFamily: "IBM Plex Mono" }} axisLine={false} tickLine={false} />
           <RechartsTooltip
-            contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 8, padding: "6px 10px" }}
+            contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(185,112,57,0.3)", borderRadius: 8, padding: "6px 10px" }}
             labelStyle={{ color: "#e2e8f0", fontSize: 10, fontWeight: 600 }}
-            itemStyle={{ color: "#a5b4fc", fontSize: 10 }}
-            cursor={{ stroke: "rgba(99,102,241,0.3)", strokeWidth: 1 }}
+            itemStyle={{ color: "#d9a877", fontSize: 10 }}
+            cursor={{ stroke: "rgba(185,112,57,0.3)", strokeWidth: 1 }}
           />
           <Area type="monotone" dataKey="baseline" stroke="#94a3b8" strokeWidth={1} strokeDasharray="4 3" fill="url(#gradBaseline)" dot={false} name="CFPB Floor" />
-          <Area type="monotone" dataKey="score"    stroke={running ? "#818cf8" : "#6366f1"} strokeWidth={2} fill="url(#gradFairness)" dot={false} name="Fairness Score" />
+          <Area type="monotone" dataKey="score"    stroke={running ? "#c27a3e" : "#b97039"} strokeWidth={2} fill="url(#gradFairness)" dot={false} name="Fairness Score" />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -441,24 +441,9 @@ function ComplianceControlsPanel({
             {(Object.values(DEMO_SCENARIOS) as ScenarioConfig[]).map(s => {
               const isActive = activeScenario?.id === s.id
               const styleMap = {
-                good_faith: {
-                  base: "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/30",
-                  active: "border-emerald-500 bg-emerald-100 dark:bg-emerald-900/50",
-                  icon: <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />,
-                  accent: "text-emerald-700 dark:text-emerald-400",
-                },
-                mild_proxy: {
-                  base: "border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/30",
-                  active: "border-amber-500 bg-amber-100 dark:bg-amber-900/50",
-                  icon: <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />,
-                  accent: "text-amber-700 dark:text-amber-400",
-                },
-                bad_faith: {
-                  base: "border-rose-200 bg-rose-50/60 dark:border-rose-900 dark:bg-rose-950/30",
-                  active: "border-rose-500 bg-rose-100 dark:bg-rose-900/50",
-                  icon: <Shield className="h-3 w-3 text-rose-600 dark:text-rose-400" />,
-                  accent: "text-rose-700 dark:text-rose-400",
-                },
+                good_faith: { icon: <CheckCircle className="h-3 w-3 text-emerald-500" /> },
+                mild_proxy: { icon: <AlertTriangle className="h-3 w-3 text-amber-500" /> },
+                bad_faith:  { icon: <Shield className="h-3 w-3 text-rose-500" /> },
               }[s.id]
               return (
                 <button
@@ -466,23 +451,24 @@ function ComplianceControlsPanel({
                   onClick={() => onScenarioSelect(s.id)}
                   data-testid={`scenario-${s.id}`}
                   className={cn(
-                    "w-full rounded-lg border px-3 py-2 text-left transition-all duration-150",
-                    isActive ? styleMap.active : styleMap.base,
-                    "hover:shadow-sm"
+                    "w-full rounded-md border px-3 py-2 text-left transition-colors",
+                    isActive
+                      ? "border-primary/50 bg-primary/5"
+                      : "border-border bg-transparent hover:bg-muted/40"
                   )}
                 >
                   <div className="flex items-center gap-2">
                     {styleMap.icon}
-                    <span className={cn("text-xs font-semibold", styleMap.accent)}>{s.label}</span>
-                    {isActive && <span className="ml-auto flex h-1.5 w-1.5 rounded-full bg-current opacity-70 animate-pulse" />}
+                    <span className="text-xs font-medium text-foreground">{s.label}</span>
+                    {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
                   </div>
-                  <p className="mt-0.5 pl-5 text-[0.6rem] text-slate-500 dark:text-slate-400 line-clamp-1">{s.description.split("—")[0].replace("DEMO: ", "")}</p>
+                  <p className="mt-0.5 pl-5 text-[0.6rem] text-muted-foreground line-clamp-1">{s.description.split("—")[0].replace("DEMO: ", "")}</p>
                 </button>
               )
             })}
             {testResult && (
-              <div className="mt-1 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-slate-700 dark:bg-slate-800">
-                <span className="text-[0.65rem] text-slate-500 dark:text-slate-400">Last result:</span>
+              <div className="mt-1 flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-1.5">
+                <span className="text-[0.65rem] text-muted-foreground">Last result</span>
                 <div className="flex items-center gap-1.5">
                   <DecisionBadge decision={testResult.outcome} />
                   <span className="font-mono text-[0.65rem] font-bold text-indigo-600 dark:text-indigo-400">
@@ -513,19 +499,19 @@ function ComplianceControlsPanel({
               <div className="space-y-1">
                 {/* Attack vector badge */}
                 {scenario.attackVector && (
-                  <div className="mb-2 flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 dark:border-orange-900 dark:bg-orange-950/40">
-                    <AlertTriangle className="h-3 w-3 text-orange-600 dark:text-orange-400 shrink-0" />
-                    <span className="text-[0.62rem] font-semibold text-orange-700 dark:text-orange-400 line-clamp-1">
+                  <div className="mb-2 flex items-center gap-1.5 rounded-md bg-orange-500/10 px-2.5 py-1.5">
+                    <AlertTriangle className="h-3 w-3 shrink-0 text-orange-400" />
+                    <span className="line-clamp-1 text-[0.62rem] font-medium text-orange-400">
                       {scenario.attackVector}
                     </span>
                     {scenario.proxiesDetected > 0 && (
-                      <span className="ml-auto shrink-0 rounded-full bg-orange-600 px-1.5 py-0.5 text-[0.55rem] font-bold text-white">
+                      <span className="ml-auto shrink-0 rounded bg-orange-500/15 px-1.5 py-0.5 text-[0.55rem] font-medium text-orange-400">
                         {scenario.proxiesDetected} proxy
                       </span>
                     )}
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   {[
                     ["Name",       scenario.applicantName],
                     ["ID",         scenario.applicantId],
@@ -536,9 +522,9 @@ function ComplianceControlsPanel({
                     ["ZIP",        scenario.zipCode],
                     ["Employment", `${scenario.employmentYears} yrs`],
                   ].map(([k, v]) => (
-                    <div key={k} className="rounded-md bg-slate-50 px-2 py-1 dark:bg-slate-800/60">
-                      <p className="text-[0.55rem] text-slate-400 uppercase tracking-wide">{k}</p>
-                      <p className="font-mono text-[0.65rem] font-semibold text-slate-700 dark:text-slate-200 truncate">{v}</p>
+                    <div key={k} className="min-w-0">
+                      <p className="text-[0.55rem] text-muted-foreground">{k}</p>
+                      <p className="mt-0.5 truncate font-mono text-[0.65rem] font-medium text-foreground">{v}</p>
                     </div>
                   ))}
                 </div>
@@ -673,36 +659,34 @@ function ComplianceControlsPanel({
 function EvidenceFeed({ entries }: { entries: LedgerEntry[] }) {
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
+      <div className="flex-1 divide-y divide-border/50 overflow-y-auto pr-0.5">
         {entries.map((entry, i) => (
           <div
             key={entry.id}
             className={cn(
-              "rounded-xl border bg-white p-2.5 transition-all dark:bg-slate-900/60 dark:border-slate-800",
-              i === 0 ? "animate-ledger-in border-indigo-100 shadow-sm dark:border-indigo-900/40" : "border-slate-100"
+              "-mx-1 rounded-md px-1.5 py-2.5 transition-colors hover:bg-muted/40",
+              i === 0 && "animate-ledger-in"
             )}
             data-testid={`ledger-entry-${entry.id}`}
           >
-            <div className="flex items-start justify-between gap-2 mb-1.5">
-              <div className="flex flex-wrap items-center gap-1">
-                <EventTypeBadge type={entry.eventType} />
-                {entry.decision && <DecisionBadge decision={entry.decision} />}
-                {entry.severity && <SeverityBadge severity={entry.severity} />}
-              </div>
+            <div className="mb-1.5 flex flex-wrap items-center gap-1">
+              <EventTypeBadge type={entry.eventType} />
+              {entry.decision && <DecisionBadge decision={entry.decision} />}
+              {entry.severity && <SeverityBadge severity={entry.severity} />}
             </div>
-            <p className="text-[0.7rem] font-semibold text-slate-800 dark:text-slate-200 truncate">{entry.applicantName}</p>
-            <p className="text-[0.62rem] text-slate-500 dark:text-slate-400 truncate mt-0.5">{entry.message}</p>
+            <p className="truncate text-[0.72rem] font-medium text-foreground">{entry.applicantName}</p>
+            <p className="mt-0.5 truncate text-[0.62rem] text-muted-foreground">{entry.message}</p>
             <div className="mt-2 flex items-center justify-between">
-              <span className="font-mono text-[0.58rem] text-slate-400 dark:text-slate-600 truncate max-w-[100px]">
-                #{entry.hash.slice(0, 14)}...
+              <span className="max-w-[100px] truncate font-mono text-[0.58rem] text-muted-foreground/60">
+                #{entry.hash.slice(0, 14)}…
               </span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <div className={cn(
                   "h-1.5 w-1.5 rounded-full",
                   entry.fairnessScore >= 0.8 ? "bg-emerald-500" : "bg-rose-500"
                 )} />
-                <span className="font-mono text-[0.62rem] font-bold text-slate-600 dark:text-slate-300">
-                  AIR: {entry.fairnessScore.toFixed(2)} · SPD: {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
+                <span className="font-mono text-[0.62rem] font-medium text-muted-foreground">
+                  AIR {entry.fairnessScore.toFixed(2)} · SPD {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -822,8 +806,8 @@ function ApplicantTable({ activeScenario }: { activeScenario: ScenarioConfig | n
                   data={d.trend}
                   color={
                     d.decision === "approved"     ? "#10b981" :
-                    d.decision === "escalated"    ? "#f97316" :
-                    d.decision === "under_review" ? "#f59e0b" : "#6366f1"
+                    d.decision === "escalated"    ? "#c27a3e" :
+                    d.decision === "under_review" ? "#f59e0b" : "#b97039"
                   }
                 />
               </div>
@@ -850,119 +834,77 @@ function InsightsPanel({ entries, severedEdges, activeScenario, running }: {
     <div className="flex h-full flex-col overflow-y-auto gap-3 py-1">
       {/* Insights header */}
       <div className="px-1">
-        <p className="text-[0.6rem] font-bold tracking-widest text-slate-400 mb-1">Insights</p>
-        <h2 className="text-base font-black text-slate-900 dark:text-slate-100 leading-tight">
-          {activeScenario ? activeScenario.label : "All Audits"}
+        <p className="mb-0.5 text-[0.62rem] font-medium tracking-wide text-muted-foreground">Insights</p>
+        <h2 className="text-sm font-semibold leading-tight text-foreground">
+          {activeScenario ? activeScenario.label : "All audits"}
         </h2>
       </div>
 
-      {/* KPI tiles row */}
+      {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-2">
-        <div className={cn(
-          "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
-          "border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900/60"
-        )}>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">Models Active</p>
-            <Boxes className="h-3 w-3 text-slate-400" />
+        {[
+          { label: "Models active", value: DAILY_STATS.modelsInProduction, icon: Boxes,         accent: false },
+          { label: "24h audits",    value: DAILY_STATS.auditsLast24h,       icon: BarChart2,     accent: false },
+          { label: "Features",      value: DATA_VOLUME.featuresPerDecision, icon: Database,      accent: false },
+          { label: "Open alerts",   value: DAILY_STATS.openIncidents,       icon: AlertTriangle, accent: DAILY_STATS.openIncidents > 0 },
+        ].map(tile => (
+          <div key={tile.label} className="rounded-lg bg-muted/30 p-2.5">
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="text-[0.65rem] text-muted-foreground">{tile.label}</p>
+              <tile.icon className={cn("h-3 w-3", tile.accent ? "text-primary" : "text-muted-foreground/50")} />
+            </div>
+            <p className={cn("text-lg font-semibold tabular-nums", tile.accent ? "text-primary" : "text-foreground")}>
+              {tile.value}
+            </p>
           </div>
-          <p className="text-xl font-black tabular-nums text-slate-800 dark:text-slate-200">
-            {DAILY_STATS.modelsInProduction}
-          </p>
-        </div>
-        <div className={cn(
-          "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
-          "border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900/60"
-        )}>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">24h Audits</p>
-            <BarChart2 className="h-3 w-3 text-slate-400" />
-          </div>
-          <p className="text-xl font-black tabular-nums text-slate-800 dark:text-slate-200">
-            {DAILY_STATS.auditsLast24h}
-          </p>
-        </div>
-        <div className={cn(
-          "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
-          "border-indigo-100 bg-indigo-50 dark:border-indigo-900/50 dark:bg-indigo-950/30"
-        )}>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">Features</p>
-            <Database className="h-3 w-3 text-indigo-500" />
-          </div>
-          <p className="text-xl font-black tabular-nums text-indigo-700 dark:text-indigo-300">
-            {DATA_VOLUME.featuresPerDecision}
-          </p>
-        </div>
-        <div className={cn(
-          "rounded-xl border p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md",
-          DAILY_STATS.openIncidents > 0
-            ? "border-indigo-100 bg-indigo-50 dark:border-indigo-900/50 dark:bg-indigo-950/30"
-            : "border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900/60"
-        )}>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[0.58rem] font-bold tracking-wider text-slate-400">Open Alerts</p>
-            <AlertTriangle className={cn("h-3 w-3", DAILY_STATS.openIncidents > 0 ? "text-indigo-500" : "text-slate-400")} />
-          </div>
-          <p className={cn("text-xl font-black tabular-nums", DAILY_STATS.openIncidents > 0 ? "text-indigo-700 dark:text-indigo-300" : "text-slate-800 dark:text-slate-200")}>
-            {DAILY_STATS.openIncidents}
-          </p>
-        </div>
+        ))}
       </div>
 
-      {/* Fairness score summary */}
-      <div className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/60">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-4">
+      {/* Fairness summary */}
+      <div className="rounded-lg border border-border/60 bg-card/40 p-3">
+        <div className="mb-2.5 flex items-start justify-between">
+          <div className="flex items-center gap-5">
             <div>
-              <span className="text-[0.58rem] font-bold text-slate-400">
-                AIR
-              </span>
-              <p className="text-sm font-black text-slate-700 dark:text-slate-300 font-mono mt-0.5">
-                {avgFairness.toFixed(2)}
-              </p>
+              <p className="font-mono text-base font-medium tabular-nums text-foreground">{avgFairness.toFixed(2)}</p>
+              <p className="mt-0.5 text-[0.6rem] font-medium text-muted-foreground">AIR</p>
+              <p className="text-[0.55rem] text-muted-foreground/70">Adverse impact ratio</p>
             </div>
             <div>
-              <span className="text-[0.58rem] font-bold text-slate-400">
-                SPD
-              </span>
-              <p className="text-sm font-black text-slate-700 dark:text-slate-300 font-mono mt-0.5">
-                {Math.max(0, 1 - avgFairness).toFixed(2)}
-              </p>
+              <p className="font-mono text-base font-medium tabular-nums text-foreground">{Math.max(0, 1 - avgFairness).toFixed(2)}</p>
+              <p className="mt-0.5 text-[0.6rem] font-medium text-muted-foreground">SPD</p>
+              <p className="text-[0.55rem] text-muted-foreground/70">Statistical parity diff.</p>
             </div>
           </div>
           <span className={cn(
-            "font-mono text-[0.6rem] font-black rounded-md px-1.5 py-0.5 border shrink-0",
-            avgFairness >= 0.8
-              ? "bg-emerald-50 text-emerald-700 border-emerald-250 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50"
-              : "bg-rose-50 text-rose-700 border-rose-250 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/50"
+            "shrink-0 rounded px-1.5 py-0.5 font-mono text-[0.6rem] font-medium",
+            avgFairness >= 0.8 ? "bg-emerald-500/12 text-emerald-400" : "bg-rose-500/12 text-rose-400"
           )}>
-            {avgFairness >= 0.8 ? "CFPB PASS" : "CFPB FAIL"}
+            {avgFairness >= 0.8 ? "CFPB pass" : "CFPB fail"}
           </span>
         </div>
-        <Progress value={avgFairness * 100} className="h-1.5 mb-1.5" />
-        <div className="flex justify-between text-[0.58rem] text-slate-400">
-          <span>Floor: 0.80</span>
+        <Progress value={avgFairness * 100} className="mb-1.5 h-1" />
+        <div className="flex justify-between text-[0.58rem] text-muted-foreground">
+          <span>Floor 0.80</span>
           <span>{severedEdges.length > 0 ? `${severedEdges.length} edge${severedEdges.length > 1 ? "s" : ""} severed` : "No interventions"}</span>
         </div>
       </div>
 
-      {/* Circular compliance gauges */}
-      <div className="rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/60">
-        <p className="text-[0.6rem] font-bold tracking-widest text-slate-400 mb-3">Compliance Metrics</p>
-        <div className="flex justify-around items-start">
-          <CircularGauge value={90} label="Consistency"  sub="Highly consistent" color="#6366f1" />
-          <CircularGauge value={90} label="Regularity"   sub="Regular audits"    color="#0891b2" />
-          <CircularGauge value={80} label="Robustness"   sub="Adversarial tests"  color="#10b981" />
+      {/* Compliance gauges */}
+      <div className="rounded-lg border border-border/60 bg-card/40 p-3">
+        <p className="mb-3 text-[0.62rem] font-medium tracking-wide text-muted-foreground">Compliance metrics</p>
+        <div className="flex items-start justify-around">
+          <CircularGauge value={90} label="Consistency"  sub="Highly consistent" color="#a1a1aa" />
+          <CircularGauge value={90} label="Regularity"   sub="Regular audits"    color="#a1a1aa" />
+          <CircularGauge value={80} label="Robustness"   sub="Adversarial tests"  color="#a1a1aa" />
         </div>
       </div>
 
       {/* Evidence feed */}
-      <div className="flex-1 overflow-hidden rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/60">
-        <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-border/60 bg-card/40 p-3">
+        <div className="mb-1 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <div className={cn("h-1.5 w-1.5 rounded-full", running ? "bg-indigo-500 animate-pulse" : "bg-emerald-500 animate-pulse")} />
-            <span className="text-[0.6rem] font-bold tracking-widest text-slate-500 dark:text-slate-400">Evidence Ledger</span>
+            <div className={cn("h-1.5 w-1.5 rounded-full", running ? "bg-primary animate-pulse" : "bg-emerald-500")} />
+            <span className="text-[0.62rem] font-medium tracking-wide text-muted-foreground">Evidence ledger</span>
           </div>
           <div className="flex items-center gap-1">
             <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition-colors">
@@ -1072,38 +1014,34 @@ export function DashboardPage() {
         <div className="border-b border-border/60 bg-card px-5 py-3 shrink-0">
           <div className="flex items-center gap-4">
             {/* Metric tiles */}
-            <div className="flex flex-col gap-1.5 shrink-0">
-              <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
-                <span style={{ color: "#6366f1" }}><Activity className="h-3 w-3" /></span>
+            <div className="flex shrink-0 flex-col gap-1">
+              <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 hover:bg-muted/40 transition-colors">
+                <Activity className="h-3 w-3 text-muted-foreground/60" />
                 <div>
-                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: "#6366f1" }}>{Object.keys(DEMO_SCENARIOS).length}</p>
-                  <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">Scenarios</p>
+                  <p className="text-sm font-semibold tabular-nums leading-none text-foreground">{Object.keys(DEMO_SCENARIOS).length}</p>
+                  <p className="mt-1 text-[0.58rem] leading-none text-muted-foreground">Scenarios</p>
                 </div>
-                <span className="ml-1"><TrendingUp className="h-2.5 w-2.5 text-emerald-500" /></span>
               </div>
-              <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
-                <span style={{ color: severedEdges.length > 0 ? "#ef4444" : "#6366f1" }}><Zap className="h-3 w-3" /></span>
+              <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 hover:bg-muted/40 transition-colors">
+                <Zap className={cn("h-3 w-3", severedEdges.length > 0 ? "text-rose-500" : "text-muted-foreground/60")} />
                 <div>
-                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: severedEdges.length > 0 ? "#ef4444" : "#6366f1" }}>{severedEdges.length}</p>
-                  <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">Interventions</p>
+                  <p className={cn("text-sm font-semibold tabular-nums leading-none", severedEdges.length > 0 ? "text-rose-400" : "text-foreground")}>{severedEdges.length}</p>
+                  <p className="mt-1 text-[0.58rem] leading-none text-muted-foreground">Interventions</p>
                 </div>
-                <span className="ml-1">{severedEdges.length > 0 ? <TrendingDown className="h-2.5 w-2.5 text-rose-500" /> : <Minus className="h-2.5 w-2.5 text-slate-400" />}</span>
               </div>
-              <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
-                <span style={{ color: "#10b981" }}><Scale className="h-3 w-3" /></span>
+              <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 hover:bg-muted/40 transition-colors">
+                <Scale className="h-3 w-3 text-muted-foreground/60" />
                 <div>
-                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: "#10b981" }}>{DAILY_STATS.fairnessScore.toFixed(2)}</p>
-                  <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">AIR</p>
+                  <p className="text-sm font-semibold tabular-nums leading-none text-foreground">{DAILY_STATS.fairnessScore.toFixed(2)}</p>
+                  <p className="mt-1 text-[0.58rem] leading-none text-muted-foreground">AIR · impact ratio</p>
                 </div>
-                <span className="ml-1"><TrendingUp className="h-2.5 w-2.5 text-emerald-500" /></span>
               </div>
-              <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1.5">
-                <span style={{ color: "#0ea5e9" }}><Scale className="h-3 w-3" /></span>
+              <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 hover:bg-muted/40 transition-colors">
+                <Scale className="h-3 w-3 text-muted-foreground/60" />
                 <div>
-                  <p className="text-sm font-black tabular-nums leading-none" style={{ color: "#0ea5e9" }}>{Math.max(0, 1 - DAILY_STATS.fairnessScore).toFixed(2)}</p>
-                  <p className="mt-0.5 text-[0.58rem] font-semibold tracking-wider text-slate-400 leading-none">SPD</p>
+                  <p className="text-sm font-semibold tabular-nums leading-none text-foreground">{Math.max(0, 1 - DAILY_STATS.fairnessScore).toFixed(2)}</p>
+                  <p className="mt-1 text-[0.58rem] leading-none text-muted-foreground">SPD · parity diff.</p>
                 </div>
-                <span className="ml-1"><TrendingDown className="h-2.5 w-2.5 text-emerald-500" /></span>
               </div>
             </div>
 

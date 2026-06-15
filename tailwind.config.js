@@ -41,6 +41,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* Bar-chart text tokens */
+        "chart-label": "var(--chart-label)",
+        "chart-tooltip-foreground": "hsl(var(--popover-foreground))",
+        "chart-tooltip-muted": "hsl(var(--muted-foreground))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -51,6 +55,39 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        /*
+         * Palette remaps for the v2.0 overhaul. The codebase historically used
+         * `indigo` as its accent and `slate` as its neutral. Remapping them here
+         * re-skins every page to the Linear-style neutral + Avarent orange system
+         * without touching each call site.
+         */
+        indigo: {
+          50:  "#faf3ec",
+          100: "#f3e5d6",
+          200: "#e6cbac",
+          300: "#d6a87c",
+          400: "#c5854f",
+          500: "#b66e35",
+          600: "#a35d28",
+          700: "#854c22",
+          800: "#693d20",
+          900: "#56331e",
+          950: "#2e1810",
+        },
+        slate: {
+          50:  "#fafafa",
+          100: "#f4f4f5",
+          200: "#e4e4e7",
+          300: "#d4d4d8",
+          400: "#a1a1aa",
+          500: "#71717a",
+          600: "#52525b",
+          700: "#3f3f46",
+          750: "#323238",
+          800: "#27272a",
+          900: "#18181b",
+          950: "#0c0c0e",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -58,9 +95,9 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["IBM Plex Sans", "-apple-system", "BlinkMacSystemFont", "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Arial", "system-ui", "sans-serif"],
-        mono: ["IBM Plex Mono", "SF Mono", "Menlo", "Monaco", "Consolas", "Courier New", "monospace"],
-        serif: ["Playfair Display", "Georgia", "Times New Roman", "serif"],
+        sans: ["var(--font-dm-sans)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Helvetica Neue", "Arial", "system-ui", "sans-serif"],
+        mono: ["var(--font-dm-mono)", "SF Mono", "Menlo", "Monaco", "Consolas", "Courier New", "monospace"],
+        serif: ["var(--font-dm-sans)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "system-ui", "sans-serif"],
       },
     },
   },

@@ -1,99 +1,123 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Meridian Design Scheme v1.0 — Warm Academic System */
+/*
+ * Meridian Design System v2.0 — "Linear-inspired" command surface
+ * Neutral low-chroma surfaces with elevation layers + single Avarent orange accent.
+ * Dark is the primary theme; a clean neutral light theme is provided for the toggle.
+ */
 :root {
-  /* Geometry */
-  --radius: 0.5rem; /* Sharp rested outline borders */
+  /* Geometry — tight, Linear-like radii */
+  --radius: 0.5rem;
 
-  /* Backgrounds — Warm Ivory */
-  --background: 52 47% 97%;       /* #fbfaf3 */
-  --foreground: 240 5.9% 10%;     /* #18181b */
+  /* Surfaces — neutral light (#fafafa base) */
+  --background: 0 0% 98%;          /* #fafafa */
+  --foreground: 240 6% 10%;        /* #18181b */
 
-  /* Elevated surfaces — Warm Off-White cards */
-  --card: 60 25% 99%;             /* #fdfdfb */
-  --card-foreground: 240 5.9% 10%;
-  --popover: 60 25% 99%;
-  --popover-foreground: 240 5.9% 10%;
+  --card: 0 0% 100%;               /* #ffffff */
+  --card-foreground: 240 6% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 6% 10%;
 
-  /* Primary Control — Avarent Vibrant Orange */
-  --primary: 20 90.2% 48.2%;      /* #ea580c */
+  /* Accent — Avarent orange */
+  --primary: 24 62% 45%;           /* muted Avarent orange */
   --primary-foreground: 0 0% 100%;
 
-  /* Tertiary surfaces — Warm Muted Gray-Cream */
-  --secondary: 45 15% 93%;        /* #f0efeb */
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 45 15% 93%;
-  --muted-foreground: 240 5.3% 34%; /* #52525b */
+  --secondary: 240 5% 96%;         /* #f4f4f5 */
+  --secondary-foreground: 240 6% 10%;
+  --muted: 240 5% 96%;
+  --muted-foreground: 240 4% 44%;  /* #6b6b74 */
 
-  /* Accent Highlight */
-  --accent: 45 15% 93%;
-  --accent-foreground: 240 5.9% 10%;
+  --accent: 240 5% 95%;
+  --accent-foreground: 240 6% 10%;
 
-  /* Destructive decline actions */
-  --destructive: 0 72.2% 41.6%;   /* #b91c1c */
+  --destructive: 0 72% 45%;        /* #c81e1e */
   --destructive-foreground: 0 0% 100%;
 
-  /* Outline Border separators */
-  --border: 45 10% 86%;           /* #e4e2d9 */
-  --input: 45 15% 93%;
-  --ring: 20 90.2% 48.2%;
+  --border: 240 6% 90%;            /* #e2e2e6 */
+  --input: 240 6% 90%;
+  --ring: 24 62% 45%;
 
-  /* Sidebar compatibility tokens */
-  --sidebar: 60 25% 99%;
-  --sidebar-foreground: 240 5.9% 10%;
-  --sidebar-primary: 20 90.2% 48.2%;
+  /* Data-viz palette (full colors; consumed directly via var(--chart-n)) */
+  --chart-1: hsl(24 62% 45%);      /* muted orange (primary series) */
+  --chart-2: hsl(190 45% 40%);     /* teal */
+  --chart-3: hsl(240 5% 52%);      /* neutral */
+  --chart-4: hsl(38 72% 46%);      /* amber */
+  --chart-5: hsl(0 62% 48%);       /* rose */
+
+  /* Bar-chart component tokens (consumed directly via var()) */
+  --chart-background: hsl(0 0% 100%);
+  --chart-line-primary: var(--chart-1);
+  --chart-line-secondary: var(--chart-2);
+  --chart-crosshair: hsl(240 5% 60%);
+  --chart-grid: hsl(240 6% 90%);
+  --chart-label: hsl(240 4% 44%);
+
+  /* Sidebar (inverted-L chrome) */
+  --sidebar: 0 0% 97%;             /* slightly recessed */
+  --sidebar-foreground: 240 6% 10%;
+  --sidebar-primary: 24 62% 45%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 45 15% 93%;
-  --sidebar-accent-foreground: 240 5.9% 10%;
-  --sidebar-border: 45 10% 86%;
-  --sidebar-ring: 20 90.2% 48.2%;
+  --sidebar-accent: 240 5% 93%;
+  --sidebar-accent-foreground: 240 6% 10%;
+  --sidebar-border: 240 6% 90%;
+  --sidebar-ring: 24 62% 45%;
 }
 
 .dark {
-  /* Background — Near Black */
-  --background: 60 5% 7%;         /* #111110 */
-  --foreground: 240 4.8% 95.9%;   /* #f4f4f5 */
+  /* Surfaces — neutral near-black with elevation layers */
+  --background: 240 6% 7%;         /* #111113  app canvas */
+  --foreground: 0 0% 95%;          /* #f2f2f2 */
 
-  /* Elevated surfaces — Dark Charcoal Slate */
-  --card: 60 3% 9%;               /* #181817 */
-  --card-foreground: 240 4.8% 95.9%;
-  --popover: 60 3% 9%;
-  --popover-foreground: 240 4.8% 95.9%;
+  --card: 240 5% 10%;              /* #18181b  elevated panel */
+  --card-foreground: 0 0% 95%;
+  --popover: 240 6% 11%;           /* #1b1b1f */
+  --popover-foreground: 0 0% 95%;
 
-  /* Primary Control — Avarent Orange Glow */
-  --primary: 20 90% 60%;          /* #f97316 */
-  --primary-foreground: 60 5% 7%;
+  /* Accent — Avarent orange, brightened for dark */
+  --primary: 24 58% 53%;           /* muted Avarent orange (dark) */
+  --primary-foreground: 0 0% 100%;
 
-  /* Tertiary surfaces — Warm Elevated Charcoal */
-  --secondary: 60 2% 13%;         /* #222221 */
-  --secondary-foreground: 240 4.8% 95.9%;
-  --muted: 60 2% 13%;
-  --muted-foreground: 240 5% 65%; /* #a1a1aa */
+  --secondary: 240 4% 14%;         /* #222226  hover / selected */
+  --secondary-foreground: 0 0% 95%;
+  --muted: 240 4% 14%;
+  --muted-foreground: 240 5% 64%;  /* #9b9ba4  Linear-style muted */
 
-  --accent: 60 2% 13%;
-  --accent-foreground: 240 4.8% 95.9%;
+  --accent: 240 4% 16%;            /* #27272b */
+  --accent-foreground: 0 0% 95%;
 
-  /* Destructive decline actions dark */
-  --destructive: 0 93.3% 70.4%;   /* #f87171 */
-  --destructive-foreground: 60 5% 7%;
+  --destructive: 0 75% 60%;        /* #e85a5a */
+  --destructive-foreground: 0 0% 100%;
 
-  /* Outline borders dark */
-  --border: 60 2% 20%;            /* #2a2a29 */
-  --input: 60 2% 13%;
-  --ring: 20 90% 60%;
+  --border: 240 4% 18%;            /* #2c2c31  subtle hairline */
+  --input: 240 4% 18%;
+  --ring: 24 58% 53%;
 
-  --sidebar: 60 3% 9%;
-  --sidebar-foreground: 240 4.8% 95.9%;
-  --sidebar-primary: 20 90% 60%;
-  --sidebar-primary-foreground: 60 5% 7%;
-  --sidebar-accent: 60 2% 13%;
-  --sidebar-accent-foreground: 240 4.8% 95.9%;
-  --sidebar-border: 60 2% 20%;
-  --sidebar-ring: 20 90% 60%;
+  /* Data-viz palette (full colors; consumed directly via var(--chart-n)) */
+  --chart-1: hsl(24 58% 53%);      /* muted orange (primary series) */
+  --chart-2: hsl(190 48% 52%);     /* teal */
+  --chart-3: hsl(240 5% 56%);      /* neutral */
+  --chart-4: hsl(38 70% 56%);      /* amber */
+  --chart-5: hsl(0 65% 60%);       /* rose */
+
+  /* Bar-chart component tokens (consumed directly via var()) */
+  --chart-background: hsl(240 5% 10%);
+  --chart-line-primary: var(--chart-1);
+  --chart-line-secondary: var(--chart-2);
+  --chart-crosshair: hsl(240 5% 42%);
+  --chart-grid: hsl(240 4% 20%);
+  --chart-label: hsl(240 5% 64%);
+
+  /* Sidebar — darkest layer for inverted-L depth */
+  --sidebar: 240 7% 5%;            /* #0d0d0f */
+  --sidebar-foreground: 0 0% 95%;
+  --sidebar-primary: 24 58% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 4% 14%;
+  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-border: 240 4% 16%;
+  --sidebar-ring: 24 58% 53%;
 }
 
 @layer base {
@@ -102,7 +126,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, system-ui, sans-serif;
+    font-family: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -111,7 +135,7 @@
 
 @layer utilities {
   .font-mono-data {
-    font-family: "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-family: var(--font-dm-mono), "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
     font-size: 0.8125rem;
     font-feature-settings: "tnum";
   }
@@ -159,10 +183,10 @@
 
   /* sign-in page animations */
   .font-sf {
-    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, system-ui, sans-serif;
+    font-family: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
   }
   .font-serif-display {
-    font-family: "Playfair Display", Georgia, Times New Roman, serif;
+    font-family: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
   }
   .animate-element {
     opacity: 0;
