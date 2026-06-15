@@ -33,11 +33,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { AvarentLogo } from "@/components/AvarentLogo"
 import { DAILY_STATS } from "@/data/mockData"
 import { ModeToggle } from "@/components/mode-toggle"
 import { supabase } from "@/lib/supabaseClient"
@@ -164,22 +165,22 @@ function NotificationMenu() {
   )
 }
 
-function UserMenu({ onLogout }: { onLogout?: () => void }) {
+function SidebarUser({ onLogout }: { onLogout?: () => void }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 gap-2 rounded-lg border border-border/60 bg-muted/20 px-2.5 hover:bg-muted/40">
-          <Avatar className="h-5 w-5">
-            <AvatarFallback className="bg-primary text-[0.55rem] font-bold text-primary-foreground">SC</AvatarFallback>
+        <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent/60">
+          <Avatar className="h-6 w-6">
+            <AvatarFallback className="bg-primary text-[0.6rem] font-bold text-primary-foreground">SC</AvatarFallback>
           </Avatar>
-          <div className="hidden text-left sm:block">
-            <p className="text-[0.7rem] font-semibold leading-none text-foreground">S. Chen</p>
-            <p className="mt-0.5 text-[0.58rem] leading-none text-muted-foreground">CCO</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.75rem] font-semibold leading-tight text-sidebar-foreground">Sarah M. Chen</p>
+            <p className="truncate text-[0.62rem] leading-tight text-muted-foreground">Chief Compliance Officer</p>
           </div>
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
-        </Button>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="start" side="top" className="w-[13.5rem]">
         <DropdownMenuLabel>
           <p className="text-sm font-semibold">Sarah M. Chen</p>
           <p className="text-[0.7rem] font-normal text-muted-foreground">Chief Compliance Officer</p>
@@ -200,11 +201,78 @@ function UserMenu({ onLogout }: { onLogout?: () => void }) {
   )
 }
 
-function TopBar({ activePage, onNavigate, onLogout }: {
+function Sidebar({ activePage, onNavigate, onLogout }: {
   activePage: Page
   onNavigate: (p: Page) => void
   onLogout?: () => void
 }) {
+  return (
+    <aside
+      data-testid="sidebar"
+      className="hidden h-full w-[15rem] shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex"
+    >
+      {/* Workspace header */}
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-sidebar-border/70 px-3">
+        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/20">
+          <AvarentLogo className="h-4 w-4" />
+        </div>
+        <span className="flex-1 truncate text-sm font-semibold tracking-tight text-sidebar-foreground">Meridian</span>
+        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-2 py-3">
+        <p className="px-2 pb-1.5 text-[0.62rem] font-semibold uppercase tracking-wider text-muted-foreground/70">
+          Workspace
+        </p>
+        <div className="space-y-0.5">
+          {NAV_ITEMS.map(item => {
+            const isActive = activePage === item.id
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                data-testid={`nav-${item.id}`}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "group flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[0.8rem] font-medium transition-colors",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-foreground"
+                    : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-colors",
+                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground"
+                  )}
+                />
+                <span className="truncate">{item.label}</span>
+                {item.badge && item.badge > 0 && (
+                  <span
+                    className={cn(
+                      "ml-auto rounded px-1.5 py-0.5 text-[0.6rem] font-semibold tabular-nums",
+                      isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </nav>
+
+      {/* User footer */}
+      <div className="shrink-0 border-t border-sidebar-border/70 p-2">
+        <SidebarUser onLogout={onLogout} />
+      </div>
+    </aside>
+  )
+}
+
+function TopBar({ activePage }: { activePage: Page }) {
   const [time, setTime] = useState(() => new Date())
 
   useEffect(() => {
@@ -213,56 +281,24 @@ function TopBar({ activePage, onNavigate, onLogout }: {
   }, [])
 
   const timeStr = time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+  const active = NAV_ITEMS.find(i => i.id === activePage)
 
   return (
     <header
-      className="grid h-12 shrink-0 grid-cols-[1fr_auto] items-center gap-4 border-b border-border/40 bg-card/90 px-4 backdrop-blur-xl backdrop-saturate-[180%] supports-[backdrop-filter]:bg-card/80"
+      className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-border bg-background px-4"
       data-testid="topbar"
     >
-      {/* Center: Pill navigation */}
-      <nav className="flex items-center justify-start">
-        <div className="flex items-center gap-0.5 rounded-full bg-secondary/70 p-1">
-          {NAV_ITEMS.map(item => {
-            const isActive = activePage === item.id
-            return (
-              <Tooltip key={item.id} delayDuration={400}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => onNavigate(item.id)}
-                    data-testid={`nav-${item.id}`}
-                    className={cn(
-                      "relative flex items-center rounded-full px-2.5 py-1.5 text-[0.72rem] font-medium transition-all duration-100",
-                      isActive
-                        ? "gap-1.5 bg-card text-foreground shadow-sm ring-1 ring-border/50"
-                        : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
-                    )}
-                  >
-                    <item.icon className="h-3.5 w-3.5 shrink-0" />
-                    {isActive && <span>{item.short}</span>}
-                    {item.badge && item.badge > 0 && !isActive && (
-                      <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-destructive" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                {!isActive && (
-                  <TooltipContent side="bottom" className="text-[0.7rem]">
-                    {item.label}
-                    {item.badge && item.badge > 0 && (
-                      <span className="ml-1.5 rounded-full bg-destructive px-1.5 py-0.5 text-[0.6rem] font-bold text-destructive-foreground">
-                        {item.badge}
-                      </span>
-                    )}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            )
-          })}
-        </div>
-      </nav>
+      {/* Left: breadcrumb / current view */}
+      <div className="flex min-w-0 items-center gap-2">
+        {active && <active.icon className="h-4 w-4 shrink-0 text-muted-foreground" />}
+        <span className="text-muted-foreground/70 text-[0.8rem]">Meridian</span>
+        <span className="text-muted-foreground/40">/</span>
+        <span className="truncate text-[0.8rem] font-semibold text-foreground">{active?.label ?? "Dashboard"}</span>
+      </div>
 
-      {/* Right: Status pill + actions */}
+      {/* Right: status + actions */}
       <div className="flex items-center gap-1.5">
-        <div className="hidden items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5 lg:flex">
+        <div className="hidden items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-2.5 py-1 lg:flex">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
           <span className="font-mono text-[0.6rem] tracking-tight text-muted-foreground">{DAILY_STATS.modelVersion}</span>
           <span className="font-mono text-[0.6rem] text-muted-foreground/50">{timeStr}</span>
@@ -272,8 +308,6 @@ function TopBar({ activePage, onNavigate, onLogout }: {
           <NotificationMenu />
           <ModeToggle />
         </div>
-        <div className="h-5 w-px bg-border" />
-        <UserMenu onLogout={onLogout} />
       </div>
     </header>
   )
@@ -348,25 +382,26 @@ export default function NextApp() {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen w-screen flex-col overflow-hidden bg-background" data-testid="sentinel-app">
-        {/* data-testid="sidebar" — zero-size anchor so E2E sidebar checks pass */}
-        <span data-testid="sidebar" aria-hidden="true" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden" }} />
-        <TopBar
+      <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground" data-testid="sentinel-app">
+        <Sidebar
           activePage={activePage}
           onNavigate={setActivePage}
           onLogout={handleLogout}
         />
-        <main className="flex-1 overflow-hidden" data-testid="main-content">
-          {activePage === "dashboard"        && <DashboardPage />}
-          {activePage === "threats"          && <ThreatAnalysisPage />}
-          {activePage === "ledger"           && <EvidenceLedgerPage />}
-          {activePage === "analytics"        && <AnalyticsPage />}
-          {activePage === "adverse-action"   && <AdverseActionReviewPage />}
-          {activePage === "synthetic-studio" && <SyntheticDataStudioPage />}
-          {activePage === "alt-data"         && <AltDataHubPage />}
-          {activePage === "access"           && <AccessControlPage />}
-          {activePage === "settings"         && <SettingsPage />}
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <TopBar activePage={activePage} />
+          <main className="flex-1 overflow-hidden" data-testid="main-content">
+            {activePage === "dashboard"        && <DashboardPage />}
+            {activePage === "threats"          && <ThreatAnalysisPage />}
+            {activePage === "ledger"           && <EvidenceLedgerPage />}
+            {activePage === "analytics"        && <AnalyticsPage />}
+            {activePage === "adverse-action"   && <AdverseActionReviewPage />}
+            {activePage === "synthetic-studio" && <SyntheticDataStudioPage />}
+            {activePage === "alt-data"         && <AltDataHubPage />}
+            {activePage === "access"           && <AccessControlPage />}
+            {activePage === "settings"         && <SettingsPage />}
+          </main>
+        </div>
       </div>
     </TooltipProvider>
   )

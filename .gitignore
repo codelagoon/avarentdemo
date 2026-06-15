@@ -12,3 +12,7 @@ test-results/
 .eslintcache
 
 .vercel
+
+# Supabase CLI local/scratch files
+supabase/.temp/
+supabase/.branches/
