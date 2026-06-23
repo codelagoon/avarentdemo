@@ -1,4 +1,5 @@
 import { toast } from "sonner"
+import { emit } from "@/lib/sync"
 import { ledgerService } from "./ledgerService"
 import { threatService } from "./threatService"
 import { companyService } from "./companyService"
@@ -53,7 +54,39 @@ export interface AuditPacket {
 
 // Audit Packet Generation for Regulatory Reporting
 // One-click "Generate Exam Package" for regulators
+const PACKET_HISTORY_KEY = "avarent_audit_packet_history"
+
 class AuditPacketService {
+  private packetHistory: AuditPacket[] = []
+
+  constructor() {
+    this.packetHistory = this.loadPacketHistory()
+  }
+
+  private loadPacketHistory(): AuditPacket[] {
+    if (typeof window === "undefined") return []
+    const stored = localStorage.getItem(PACKET_HISTORY_KEY)
+    if (!stored) return []
+    try {
+      return JSON.parse(stored) as AuditPacket[]
+    } catch {
+      return []
+    }
+  }
+
+  private savePacketHistory() {
+    if (typeof window === "undefined") return
+    localStorage.setItem(PACKET_HISTORY_KEY, JSON.stringify(this.packetHistory))
+    emit("auditPacket")
+  }
+
+  getPacketHistory(): AuditPacket[] {
+    this.packetHistory = this.loadPacketHistory()
+    return [...this.packetHistory].sort(
+      (a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime()
+    )
+  }
+
   /**
    * Generate comprehensive audit packet
    */
@@ -128,6 +161,9 @@ class AuditPacketService {
     toast.success("Audit Packet Generated", {
       description: `Packet ID: ${packet.packetId}`,
     })
+
+    this.packetHistory.unshift(packet)
+    this.savePacketHistory()
 
     return packet
   }

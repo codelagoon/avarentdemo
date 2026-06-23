@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Copy, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -21,12 +21,18 @@ import {
   WorkflowQueuePanel,
 } from "@/components/shell/WorkflowQueuePanel"
 import { ViewportPage } from "@/components/shell/ViewportPage"
-import { LEDGER_ENTRIES, type LedgerEntry, type LedgerEventType } from "@/data/mockData"
+import type { LedgerEntry, LedgerEventType } from "@/data/mockData"
+import {
+  approveDocumentation,
+  AUDIT_PACKET_SYNC_CHANNELS,
+  downloadExamPacket,
+  generateExamPacket,
+  getDocumentationQueue,
+  requestDocumentationRevision,
+  routeToLegalReview,
+} from "@/domains/audit/auditPacketDomain"
+import { useLiveData } from "@/hooks/useLiveData"
 import { cn } from "@/lib/utils"
-
-const DOCUMENT_QUEUE = LEDGER_ENTRIES.filter(
-  (e) => e.eventType === "proof_signed" || e.decision === "denied" || e.decision === "escalated"
-).slice(0, 5)
 
 function formatTimestamp(iso: string): string {
   return new Date(iso).toLocaleString("en-US", {
@@ -94,15 +100,25 @@ function DocumentationDetail({ entry }: DocumentationDetailProps) {
   const isSealed = entry.eventType === "proof_signed"
 
   const handleApprove = () => {
+    approveDocumentation(entry)
     toast.success(`Documentation approved for ${entry.id} — exam package updated`)
   }
 
   const handleRequestRevision = () => {
+    requestDocumentationRevision(entry)
     toast.info(`Revision requested for ${entry.id}`)
   }
 
   const handleLegalReview = () => {
+    routeToLegalReview(entry)
     toast.warning(`${entry.id} routed to legal review queue`)
+  }
+
+  const handleGeneratePacket = () => {
+    const packet = generateExamPacket()
+    void downloadExamPacket(packet).then(() => {
+      toast.success(`Exam package ${packet.packetId} generated and downloaded`)
+    })
   }
 
   return (
@@ -230,18 +246,38 @@ function DocumentationDetail({ entry }: DocumentationDetailProps) {
         <Button variant="outline" size="sm" onClick={handleLegalReview}>
           Legal review
         </Button>
+        {isSealed ? (
+          <Button variant="outline" size="sm" onClick={handleGeneratePacket}>
+            Generate exam package
+          </Button>
+        ) : null}
       </footer>
     </>
   )
 }
 
 export function DocumentationPage() {
-  const [selectedId, setSelectedId] = useState(DOCUMENT_QUEUE[0]?.id ?? "")
-  const selected = DOCUMENT_QUEUE.find((doc) => doc.id === selectedId)
+  const documentQueue = useLiveData(
+    () => getDocumentationQueue(),
+    [...AUDIT_PACKET_SYNC_CHANNELS]
+  )
+  const [selectedId, setSelectedId] = useState("")
+
+  useEffect(() => {
+    if (documentQueue.length === 0) {
+      setSelectedId("")
+      return
+    }
+    if (!documentQueue.some((doc) => doc.id === selectedId)) {
+      setSelectedId(documentQueue[0].id)
+    }
+  }, [documentQueue, selectedId])
+
+  const selected = documentQueue.find((doc) => doc.id === selectedId)
 
   const queueItems = useMemo(
     () =>
-      DOCUMENT_QUEUE.map((doc) => ({
+      documentQueue.map((doc) => ({
         id: doc.id,
         title: doc.id,
         subtitle: queueLabel(doc),
@@ -261,7 +297,7 @@ export function DocumentationPage() {
           </Badge>
         ),
       })),
-    []
+    [documentQueue]
   )
 
   return (

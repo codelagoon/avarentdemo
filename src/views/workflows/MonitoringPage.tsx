@@ -9,15 +9,15 @@ import {
 import { SeverityBadge } from "@/components/command-center/SeverityBadge"
 import { ViewportPage } from "@/components/shell/ViewportPage"
 import {
-  COMMAND_CENTER_ACTIVITY,
-  COMMAND_CENTER_KPIS,
-  DAILY_STATS,
-  DISPARITY_TREND_30D,
-  MONITORING_SEVERITY_COUNTS,
-  MONITORING_SIGNALS,
-  THREAT_EVENTS,
-  type ThreatSeverity,
-} from "@/data/mockData"
+  getDisparityTrend,
+  getEmergingRisks,
+  getMonitoringAlerts,
+  getMonitoringDailyStats,
+  getMonitoringSignals,
+  getSeverityCounts,
+  MONITORING_SYNC_CHANNELS,
+} from "@/domains/fairness/monitoringDomain"
+import { useLiveData } from "@/hooks/useLiveData"
 import type { WorkflowId } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
 
@@ -25,75 +25,22 @@ export interface MonitoringPageProps {
   onNavigate?: (id: WorkflowId) => void
 }
 
-interface MonitoringAlert {
-  id: string
-  title: string
-  detail: string
-  time: string
-  severity: ThreatSeverity
-  referenceId: string
-}
-
-const SEVERITY_RANK: Record<ThreatSeverity, number> = {
-  critical: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-}
-
-function formatRelativeTime(isoTimestamp: string): string {
-  const diffMs = Date.now() - new Date(isoTimestamp).getTime()
-  const minutes = Math.max(1, Math.round(diffMs / 60_000))
-  if (minutes < 60) return `${minutes}m`
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours}h`
-  return `${Math.round(hours / 24)}d`
-}
-
-function buildAlerts(): MonitoringAlert[] {
-  const threatAlerts: MonitoringAlert[] = THREAT_EVENTS.filter((t) => t.blocked).map(
-    (threat) => ({
-      id: threat.id,
-      title: threat.attackVector,
-      detail: threat.description,
-      time: formatRelativeTime(threat.timestamp),
-      severity: threat.severity,
-      referenceId: threat.id,
-    })
-  )
-
-  const activityAlerts: MonitoringAlert[] = COMMAND_CENTER_ACTIVITY.filter(
-    (item) => item.severity
-  ).map((item) => ({
-    id: item.id,
-    title: item.description,
-    detail: `Reference ${item.referenceId}`,
-    time: formatRelativeTime(item.timestamp),
-    severity: item.severity!,
-    referenceId: item.referenceId,
-  }))
-
-  const airBreach = COMMAND_CENTER_KPIS.adverseImpactRatio
-  const airAlert: MonitoringAlert = {
-    id: "alert-air-floor",
-    title: "Adverse Impact Ratio below regulatory floor",
-    detail: `${COMMAND_CENTER_KPIS.topBreachMetric.context} — ${airBreach.plainLabel} (AIR) ${airBreach.value.toFixed(2)} (${airBreach.thresholdStatus})`,
-    time: "1h",
-    severity: "critical",
-    referenceId: "FN-204",
-  }
-
-  return [...threatAlerts, ...activityAlerts, airAlert].sort(
-    (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]
-  )
-}
-
 const noopNavigate = () => {}
 
 export function MonitoringPage({ onNavigate = noopNavigate }: MonitoringPageProps) {
-  const alerts = useMemo(() => buildAlerts(), [])
-  const emerging = THREAT_EVENTS.filter((risk) => !risk.blocked)
+  const syncChannels = [...MONITORING_SYNC_CHANNELS]
+  const alerts = useLiveData(() => getMonitoringAlerts(), syncChannels)
+  const emerging = useLiveData(() => getEmergingRisks(), syncChannels)
+  const dailyStats = useLiveData(() => getMonitoringDailyStats(), syncChannels)
+  const trendData = useLiveData(() => getDisparityTrend(), syncChannels)
+  const signals = useLiveData(() => getMonitoringSignals(), syncChannels)
+  const severityCounts = useLiveData(() => getSeverityCounts(), syncChannels)
   const [monitoringTab, setMonitoringTab] = useState<MonitoringPanelTab>("overview")
+
+  const openIncidentCount = useMemo(
+    () => alerts.filter((a) => a.severity === "critical" || a.severity === "high").length,
+    [alerts]
+  )
 
   return (
     <ViewportPage testId="monitoring-page">
@@ -107,8 +54,8 @@ export function MonitoringPage({ onNavigate = noopNavigate }: MonitoringPageProp
             <span className="font-semibold">Monitoring</span>
             <span className="text-muted-foreground">
               {" "}
-              · {DAILY_STATS.openIncidents} active · {DAILY_STATS.systemHealth} ·{" "}
-              {DAILY_STATS.modelVersion}
+              · {openIncidentCount || dailyStats.openIncidents} active · {dailyStats.systemHealth} ·{" "}
+              {dailyStats.modelVersion}
             </span>
           </p>
         </div>
@@ -171,9 +118,9 @@ export function MonitoringPage({ onNavigate = noopNavigate }: MonitoringPageProp
                 tabbedView
                 activeTab={monitoringTab}
                 onTabChange={setMonitoringTab}
-                severityCounts={MONITORING_SEVERITY_COUNTS}
-                trendData={DISPARITY_TREND_30D}
-                signals={MONITORING_SIGNALS}
+                severityCounts={severityCounts}
+                trendData={trendData}
+                signals={signals}
               />
             </div>
           </section>

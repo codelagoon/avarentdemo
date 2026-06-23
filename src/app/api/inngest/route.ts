@@ -2,18 +2,13 @@ export const dynamic = "force-dynamic";
 
 import { serve } from "inngest/next";
 import { inngest } from "@/lib/inngest";
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase connection for Realtime dashboard notifications
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://zpjjoskdaouhzinijztf.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpwampvc2tkYW91aHppbmlqenRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTc2NzEsImV4cCI6MjA4OTM3MzY3MX0.pYrFFQfM2IDg9r1rs-HLDUAeFXQ3fBGhJS6ZB9oenW4";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const sealLedgerFn = inngest.createFunction(
   { id: "seal-ledger", name: "SHA-256 Ledger Sealing" },
   { event: "ledger/seal" },
   async ({ event, step }) => {
-    const { companyId, applicantId, decisionEvent } = event.data;
+    const { applicantId, decisionEvent } = event.data;
 
     const sealResult = await step.run("calculate-hash-chain", async () => {
       await new Promise((resolve) => setTimeout(resolve, 80));
@@ -40,24 +35,28 @@ const trainGANFn = inngest.createFunction(
   async ({ event, step }) => {
     const { epochs, privacyBudget, quality } = event.data;
 
+    const modalEndpoint = process.env.MODAL_ML_COMPUTE_URL;
+    if (!modalEndpoint) {
+      throw new Error("Missing required environment variable: MODAL_ML_COMPUTE_URL");
+    }
+
     const modalResponse = await step.run("invoke-modal-container", async () => {
-      const modalEndpoint = process.env.MODAL_ML_COMPUTE_URL || "https://avarent-meridian-ml.modal.run";
-      const token = process.env.MODAL_API_TOKEN || "";
+      const token = process.env.MODAL_API_TOKEN ?? "";
       const payload = { epochs, privacyBudget, quality };
       const res = await fetch(modalEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token && { "Authorization": `Bearer ${token}` })
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         throw new Error(`Modal request failed: ${res.status}`);
       }
       return await res.json();
     });
-    console.log(`Invoking Modal ML Compute at ${process.env.MODAL_ML_COMPUTE_URL || "https://avarent-meridian-ml.modal.run"} for GAN Training...`);
+
     return { success: true, modalResponse };
   }
 );
@@ -91,7 +90,7 @@ const searchLDAFn = inngest.createFunction(
   { id: "search-lda-alternative", name: "Less Discriminatory Alternative Search" },
   { event: "lda/search" },
   async ({ event, step }) => {
-    const { companyId, modelId, currentAir, currentSpd } = event.data;
+    const { companyId, currentAir } = event.data;
 
     const ldaResult = await step.run("pareto-optimal-rashomon-search", async () => {
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -106,16 +105,16 @@ const searchLDAFn = inngest.createFunction(
 
       const message = `Less Discriminatory Alternative found — Model B raises AIR to 0.82 with 0.3% accuracy delta.`;
 
-      await supabase
-        .from("threat_log")
-        .insert({
-          company_id: companyId,
-          feature_name: "LDA Search Completed",
-          correlation_coefficient: 0.03,
-          information_value: 0.82,
-          is_quarantined: false,
-          status_description: message
-        });
+      const supabase = createAdminClient();
+      await supabase.from("threat_log").insert({
+        company_id: companyId,
+        applicant_name: "System",
+        applicant_id: "lda-search",
+        attack_vector: "LDA Search Completed",
+        risk_score: 0,
+        severity: "nominal",
+        status: "resolved",
+      });
 
       return {
         exists: true,

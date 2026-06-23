@@ -34,12 +34,15 @@ import {
   type NavigateOptions,
   type WorkflowId,
 } from "@/lib/navigation"
+import type { MembershipRole } from "@/lib/identity/types"
 import { DAILY_STATS } from "@/data/mockData"
 
 interface FloatingNavProps {
   activeWorkflow: WorkflowId
   onNavigate: (id: WorkflowId, options?: NavigateOptions) => void
   onLogout?: () => void
+  organizationName?: string | null
+  membershipRole?: MembershipRole | null
 }
 
 const SECONDARY_WORKFLOW_IDS = new Set(SECONDARY_NAV.map((item) => item.id))
@@ -84,7 +87,13 @@ function NavItemButton({
   )
 }
 
-export function FloatingNav({ activeWorkflow, onNavigate, onLogout }: FloatingNavProps) {
+export function FloatingNav({
+  activeWorkflow,
+  onNavigate,
+  onLogout,
+  organizationName,
+  membershipRole,
+}: FloatingNavProps) {
   const isSecondaryActive = SECONDARY_WORKFLOW_IDS.has(activeWorkflow)
   const [moreOpen, setMoreOpen] = useState(isSecondaryActive)
 
@@ -202,8 +211,13 @@ export function FloatingNav({ activeWorkflow, onNavigate, onLogout }: FloatingNa
             </MenubarTrigger>
           <MenubarContent align="start" side="right" sideOffset={12} className="w-52">
             <MenubarItem disabled className="font-medium">
-              Sarah M. Chen
+              {organizationName ?? "Meridian"}
             </MenubarItem>
+            {membershipRole ? (
+              <MenubarItem disabled className="text-xs text-muted-foreground">
+                Role: {membershipRole}
+              </MenubarItem>
+            ) : null}
             <MenubarSeparator />
             <MenubarItem
               className={cn(

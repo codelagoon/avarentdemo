@@ -1,12 +1,13 @@
 "use client"
 
-import { useMemo } from "react"
 import { toast } from "sonner"
 import { Label } from "@gravity-ui/uikit"
 import { Button } from "@/components/ui/button"
 import { ViewportPage } from "@/components/shell/ViewportPage"
 import { SeverityBadge } from "@/components/command-center/SeverityBadge"
-import { LEDGER_ENTRIES, type LedgerEventType } from "@/data/mockData"
+import { getLedgerEntries, LEDGER_SYNC_CHANNELS } from "@/domains/audit/ledgerDomain"
+import { useLiveData } from "@/hooks/useLiveData"
+import type { LedgerEventType } from "@/data/mockData"
 import { getNavItem, type WorkflowId } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
 
@@ -34,14 +35,7 @@ export interface AuditHistoryPageProps {
 
 export function AuditHistoryPage({ onNavigate }: AuditHistoryPageProps) {
   const nav = getNavItem("audit-history")
-
-  const entries = useMemo(
-    () =>
-      [...LEDGER_ENTRIES].sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      ),
-    []
-  )
+  const entries = useLiveData(() => getLedgerEntries(), [...LEDGER_SYNC_CHANNELS])
 
   const handleExport = () => {
     toast.success(`Exporting ${entries.length} ledger entries for exam package`)

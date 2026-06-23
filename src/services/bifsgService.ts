@@ -1,11 +1,11 @@
 import { toast } from "sonner"
 import { createClient } from "@supabase/supabase-js"
 
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env"
+
 // Initialize Supabase connection for persistent caching (Option B)
 // Enforces a 24-hour TTL shared cache across all Next.js/Vercel serverless instances
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://zpjjoskdaouhzinijztf.supabase.co"
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpwampvc2tkYW91aHppbmlqenRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTc2NzEsImV4cCI6MjA4OTM3MzY3MX0.pYrFFQfM2IDg9r1rs-HLDUAeFXQ3fBGhJS6ZB9oenW4"
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabase = createClient(getSupabaseUrl(), getSupabaseAnonKey())
 
 export interface BIFSGInput {
   firstName: string

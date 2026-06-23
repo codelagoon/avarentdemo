@@ -1,10 +1,14 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { AppShell } from "@/components/shell/AppShell"
-import { getInvestigationIdForFinding } from "@/data/mockData"
+import { IdentityProvider } from "@/contexts/IdentityContext"
+import { getInvestigationIdForFinding } from "@/domains/investigations/investigationDomain"
+import {
+  EMPTY_APPLICATION_CONTEXT,
+  type ApplicationContext,
+} from "@/lib/identity/types"
 import { WORKFLOW_KEYS, type NavigateOptions, type WorkflowId } from "@/lib/navigation"
-import { supabase } from "@/lib/supabaseClient"
 import LoginCardSection from "@/components/ui/login-signup"
 import { OnboardingPage } from "@/views/OnboardingPage"
 import { CommandCenterPage } from "@/views/workflows/CommandCenterPage"
@@ -16,7 +20,6 @@ import { DataSourcesPage } from "@/views/workflows/DataSourcesPage"
 import { AuditHistoryPage } from "@/views/workflows/AuditHistoryPage"
 import { OrganizationPage } from "@/views/workflows/OrganizationPage"
 import { SettingsPage } from "@/views/workflows/SettingsPage"
-const skipAuth = process.env.NEXT_PUBLIC_SKIP_AUTH === "true"
 
 function WorkflowView({
   workflow,
@@ -60,8 +63,31 @@ export default function NextApp() {
   const [mounted, setMounted] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<WorkflowId>("command-center")
   const [selectedInvestigationId, setSelectedInvestigationId] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(skipAuth)
-  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [identity, setIdentity] = useState<ApplicationContext>(EMPTY_APPLICATION_CONTEXT)
+  const [identityLoaded, setIdentityLoaded] = useState(false)
+
+  const refreshIdentity = useCallback(async () => {
+    try {
+      const response = await fetch("/api/identity/context")
+      if (!response.ok) {
+        setIdentity({ ...EMPTY_APPLICATION_CONTEXT, is_loading: false })
+        return
+      }
+      const data = (await response.json()) as ApplicationContext
+      setIdentity({ ...data, is_loading: false })
+    } catch {
+      setIdentity({ ...EMPTY_APPLICATION_CONTEXT, is_loading: false })
+    } finally {
+      setIdentityLoaded(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
+    void refreshIdentity()
+  }, [refreshIdentity])
+
+  const isAuthenticated = Boolean(identity.user_id || identity.workos_user_id)
 
   const handleNavigate = useCallback((id: WorkflowId, options?: NavigateOptions) => {
     setActiveWorkflow(id)
@@ -75,48 +101,27 @@ export default function NextApp() {
     }
   }, [])
 
-  useEffect(() => {
-    setMounted(true)
-    if (skipAuth) return
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setIsAuthenticated(true)
-      } else if (typeof window !== "undefined" && localStorage.getItem("avarent_auth") === "demo") {
-        setIsAuthenticated(true)
-      }
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-    if (e.metaKey || e.ctrlKey || e.altKey) return
-    const workflow = WORKFLOW_KEYS[e.key]
-    if (workflow) handleNavigate(workflow)
-  }, [handleNavigate])
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!isAuthenticated || identity.needs_onboarding) return
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const workflow = WORKFLOW_KEYS[e.key]
+      if (workflow) handleNavigate(workflow)
+    },
+    [handleNavigate, identity.needs_onboarding, isAuthenticated]
+  )
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [handleKeyDown])
 
-  const handleLogout = async () => {
-    if (!skipAuth) {
-      await supabase.auth.signOut()
-    }
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("avarent_auth")
-    }
-    setIsAuthenticated(false)
+  const handleLogout = () => {
+    window.location.href = "/api/auth/signout"
   }
 
-  if (!mounted) {
+  if (!mounted || !identityLoaded) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -124,30 +129,45 @@ export default function NextApp() {
     )
   }
 
-  if (showOnboarding) {
-    return <OnboardingPage onComplete={() => { setShowOnboarding(false); setIsAuthenticated(true) }} />
+  if (identity.needs_onboarding && isAuthenticated) {
+    return (
+      <OnboardingPage
+        userEmail={identity.email}
+        onComplete={async () => {
+          await refreshIdentity()
+        }}
+      />
+    )
   }
 
   if (!isAuthenticated) {
     return (
       <LoginCardSection
-        onLogin={() => setIsAuthenticated(true)}
-        onTryNewCompany={() => setShowOnboarding(true)}
+        onLogin={() => {
+          void refreshIdentity()
+        }}
+        onRegisterComplete={() => {
+          void refreshIdentity()
+        }}
       />
     )
   }
 
   return (
-    <AppShell
-      activeWorkflow={activeWorkflow}
-      onNavigate={handleNavigate}
-      onLogout={handleLogout}
-    >
-      <WorkflowView
-        workflow={activeWorkflow}
+    <IdentityProvider initialContext={identity}>
+      <AppShell
+        activeWorkflow={activeWorkflow}
         onNavigate={handleNavigate}
-        selectedInvestigationId={selectedInvestigationId}
-      />
-    </AppShell>
+        onLogout={handleLogout}
+        organizationName={identity.organization_name}
+        membershipRole={identity.role}
+      >
+        <WorkflowView
+          workflow={activeWorkflow}
+          onNavigate={handleNavigate}
+          selectedInvestigationId={selectedInvestigationId}
+        />
+      </AppShell>
+    </IdentityProvider>
   )
 }

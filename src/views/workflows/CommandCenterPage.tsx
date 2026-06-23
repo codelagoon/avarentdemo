@@ -14,14 +14,18 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
-  COMMAND_CENTER_KPIS,
-  COMMAND_CENTER_FINDINGS,
-  DISPARITY_TREND_30D,
-  MONITORING_SEVERITY_COUNTS,
-  MONITORING_SIGNALS,
-  EXAM_READINESS_CATEGORIES,
-  COMMAND_CENTER_ACTIVITY,
-} from "@/data/mockData"
+  COMMAND_CENTER_SYNC_CHANNELS,
+  getCommandCenterActivity,
+  getCommandCenterFindings,
+  getCommandCenterKpis,
+  getDisparityTrend,
+  getExamReadinessCategories,
+  getMonitoringSignals,
+  getSeverityCounts,
+} from "@/domains/command-center/commandCenterDomain"
+import { useLiveData } from "@/hooks/useLiveData"
+import type { ActivityFeedItem, CommandCenterFinding, ExamReadinessCategory } from "@/data/mockData"
+import type { DisparityTrendPoint, MonitoringSignal } from "@/data/mockData"
 import type { NavigateOptions, WorkflowId } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
 
@@ -35,9 +39,7 @@ interface CollapsibleSectionProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   collapseOnMobile?: boolean
-  /** Fill a grid cell and scroll content internally */
   fill?: boolean
-  /** When false, content is clipped to panel height without outer scroll */
   scrollContent?: boolean
   headerAccessory?: React.ReactNode
   className?: string
@@ -113,9 +115,17 @@ function CollapsibleSection({
 
 function CommandCenterRightRail({
   criticalFindingCount,
+  severityCounts,
+  trendData,
+  signals,
+  categories,
   onNavigate,
 }: {
   criticalFindingCount: number
+  severityCounts: ReturnType<typeof getSeverityCounts>
+  trendData: DisparityTrendPoint[]
+  signals: MonitoringSignal[]
+  categories: ExamReadinessCategory[]
   onNavigate?: CommandCenterPageProps["onNavigate"]
 }) {
   const [monitoringOpen, setMonitoringOpen] = useState(true)
@@ -157,9 +167,9 @@ function CommandCenterRightRail({
           dense={bothOpen}
           activeTab={monitoringTab}
           onTabChange={setMonitoringTab}
-          severityCounts={MONITORING_SEVERITY_COUNTS}
-          trendData={DISPARITY_TREND_30D}
-          signals={MONITORING_SIGNALS}
+          severityCounts={severityCounts}
+          trendData={trendData}
+          signals={signals}
         />
       </CollapsibleSection>
       <CollapsibleSection
@@ -173,7 +183,7 @@ function CommandCenterRightRail({
         <ReadinessSnapshot
           hideHeader
           compact={bothOpen}
-          categories={EXAM_READINESS_CATEGORIES}
+          categories={categories}
           criticalFindingCount={criticalFindingCount}
           onNavigate={onNavigate}
         />
@@ -183,8 +193,12 @@ function CommandCenterRightRail({
 }
 
 function CommandCenterMainColumn({
+  findings,
+  activity,
   onNavigate,
 }: {
+  findings: CommandCenterFinding[]
+  activity: ActivityFeedItem[]
   onNavigate?: CommandCenterPageProps["onNavigate"]
 }) {
   const [activityOpen, setActivityOpen] = useState(false)
@@ -200,7 +214,7 @@ function CommandCenterMainColumn({
     >
       <div className="min-h-0 overflow-hidden">
         <FindingsTable
-          findings={COMMAND_CENTER_FINDINGS}
+          findings={findings}
           onNavigate={onNavigate}
           className="h-full min-h-0"
         />
@@ -211,16 +225,23 @@ function CommandCenterMainColumn({
         onOpenChange={setActivityOpen}
         fill={activityOpen}
       >
-        <ActivityFeed items={COMMAND_CENTER_ACTIVITY} hideHeader />
+        <ActivityFeed items={activity} hideHeader />
       </CollapsibleSection>
     </div>
   )
 }
 
 export function CommandCenterPage({ onNavigate }: CommandCenterPageProps) {
-  const criticalFindingCount = COMMAND_CENTER_FINDINGS.filter(
-    (f) => f.severity === "critical"
-  ).length
+  const syncChannels = [...COMMAND_CENTER_SYNC_CHANNELS]
+  const kpis = useLiveData(() => getCommandCenterKpis(), syncChannels)
+  const findings = useLiveData(() => getCommandCenterFindings(), syncChannels)
+  const activity = useLiveData(() => getCommandCenterActivity(), syncChannels)
+  const trendData = useLiveData(() => getDisparityTrend(), syncChannels)
+  const signals = useLiveData(() => getMonitoringSignals(), syncChannels)
+  const severityCounts = useLiveData(() => getSeverityCounts(), syncChannels)
+  const categories = useLiveData(() => getExamReadinessCategories(), syncChannels)
+
+  const criticalFindingCount = findings.filter((f) => f.severity === "critical").length
 
   return (
     <ViewportPage testId="command-center-page" className="gap-2">
@@ -247,16 +268,24 @@ export function CommandCenterPage({ onNavigate }: CommandCenterPageProps) {
         </div>
       )}
 
-      <KpiRow kpis={COMMAND_CENTER_KPIS} />
+      <KpiRow kpis={kpis} />
 
       <div
         className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden lg:grid-cols-3"
         style={{ gridTemplateRows: "minmax(0, 1fr)" }}
       >
-        <CommandCenterMainColumn onNavigate={onNavigate} />
+        <CommandCenterMainColumn
+          findings={findings}
+          activity={activity}
+          onNavigate={onNavigate}
+        />
 
         <CommandCenterRightRail
           criticalFindingCount={criticalFindingCount}
+          severityCounts={severityCounts}
+          trendData={trendData}
+          signals={signals}
+          categories={categories}
           onNavigate={onNavigate}
         />
       </div>

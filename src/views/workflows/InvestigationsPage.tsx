@@ -22,12 +22,15 @@ import {
 } from "@/components/shell/WorkflowQueuePanel"
 import { ViewportPage } from "@/components/shell/ViewportPage"
 import {
-  THREAT_EVENTS,
-  getLedgerEvidenceForThreat,
-  type ThreatEvent,
-  type LedgerEntry,
-  type LedgerEventType,
-} from "@/data/mockData"
+  assignInvestigation,
+  escalateInvestigation,
+  getInvestigations,
+  getLedgerEvidenceForInvestigation,
+  INVESTIGATION_SYNC_CHANNELS,
+  resolveInvestigation,
+} from "@/domains/investigations/investigationDomain"
+import { useLiveData } from "@/hooks/useLiveData"
+import type { ThreatEvent, LedgerEntry, LedgerEventType } from "@/data/mockData"
 import { cn } from "@/lib/utils"
 
 const INITIAL_VISIBLE = 8
@@ -106,18 +109,24 @@ interface InvestigationDetailProps {
 }
 
 function InvestigationDetail({ threat }: InvestigationDetailProps) {
-  const evidence = getLedgerEvidenceForThreat(threat)
+  const evidence = useLiveData(
+    () => getLedgerEvidenceForInvestigation(threat),
+    [...INVESTIGATION_SYNC_CHANNELS]
+  )
   const title = threat.signalLabel ?? threat.attackVector
 
   const handleAssign = () => {
+    assignInvestigation(threat.id)
     toast.success(`Investigation ${threat.id} assigned to you`)
   }
 
   const handleEscalate = () => {
+    escalateInvestigation(threat)
     toast.warning(`${threat.id} escalated to compliance review`)
   }
 
   const handleResolve = () => {
+    resolveInvestigation(threat)
     toast.success(`Investigation ${threat.id} resolved — mitigation recorded in ledger`)
   }
 
@@ -248,24 +257,25 @@ export interface InvestigationsPageProps {
 export function InvestigationsPage({
   initialInvestigationId,
 }: InvestigationsPageProps) {
+  const threats = useLiveData(() => getInvestigations(), [...INVESTIGATION_SYNC_CHANNELS])
   const [showAll, setShowAll] = useState(false)
   const [selectedId, setSelectedId] = useState(
-    initialInvestigationId ?? THREAT_EVENTS[0]?.id ?? ""
+    initialInvestigationId ?? threats[0]?.id ?? ""
   )
 
   useEffect(() => {
     if (initialInvestigationId) {
       setSelectedId(initialInvestigationId)
-      const index = THREAT_EVENTS.findIndex((t) => t.id === initialInvestigationId)
+      const index = threats.findIndex((t) => t.id === initialInvestigationId)
       if (index >= INITIAL_VISIBLE) {
         setShowAll(true)
       }
     }
-  }, [initialInvestigationId])
+  }, [initialInvestigationId, threats])
 
-  const visibleThreats = showAll ? THREAT_EVENTS : THREAT_EVENTS.slice(0, INITIAL_VISIBLE)
-  const hiddenCount = THREAT_EVENTS.length - INITIAL_VISIBLE
-  const selected = THREAT_EVENTS.find((t) => t.id === selectedId) ?? visibleThreats[0]
+  const visibleThreats = showAll ? threats : threats.slice(0, INITIAL_VISIBLE)
+  const hiddenCount = threats.length - INITIAL_VISIBLE
+  const selected = threats.find((t) => t.id === selectedId) ?? visibleThreats[0]
 
   const queueItems = useMemo(
     () =>
