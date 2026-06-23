@@ -35,6 +35,34 @@ export interface ThreatEvent {
   modelScore: number
   zipCode?: string
   description: string
+  /** Linked Command Center finding (e.g. FN-204) for deep-link navigation */
+  findingId?: string
+  /** Feature-level label for aggregate monitoring surfaces (no PII) */
+  signalLabel?: string
+}
+
+export interface EmergingRiskSignal {
+  id: string
+  featureName: string
+  technicalTerm: string
+  correlation: number
+  sampleSize: number
+  severity: ThreatSeverity
+  description: string
+  findingId?: string
+  investigationId?: string
+  timestamp: string
+}
+
+export interface MonitoringAlert {
+  id: string
+  title: string
+  detail: string
+  severity: ThreatSeverity
+  relativeTime: string
+  asOf: string
+  findingId?: string
+  investigationId?: string
 }
 
 export interface FairnessMetric {
@@ -72,7 +100,7 @@ export const generateHash = (seed: string): string => {
   return hash
 }
 
-export const LEDGER_ENTRIES: LedgerEntry[] = [
+const LEDGER_ENTRIES_RAW: LedgerEntry[] = [
   {
     id: "EVT-20260429-0001",
     timestamp: "2026-04-29T14:23:11.847Z",
@@ -475,12 +503,35 @@ export const LEDGER_ENTRIES: LedgerEntry[] = [
   },
 ]
 
+/** Audit ledger — applicant names redacted; IDs only per aggregate-only policy */
+export const LEDGER_ENTRIES: LedgerEntry[] = LEDGER_ENTRIES_RAW.map((entry) => ({
+  ...entry,
+  applicantName: entry.applicantId === "SYS-AUDIT" ? entry.applicantName : entry.applicantId,
+}))
+
 export const THREAT_EVENTS: ThreatEvent[] = [
   {
+    id: "THR-20260619-0001",
+    timestamp: "2026-06-19T15:45:00Z",
+    applicantId: "AGG-MORTGAGE-Q2-HL",
+    applicantName: "Mortgage Q2 — Hispanic / Latino cohort",
+    severity: "critical",
+    attackVector: "Adverse Impact Ratio Breach",
+    proxyVariables: ["approval_rate_mortgage_q2"],
+    confidence: 0.91,
+    blocked: false,
+    modelScore: 0.78,
+    findingId: "FN-204",
+    signalLabel: "Mortgage approval rate — Hispanic / Latino",
+    description:
+      "Mortgage Adverse Impact Ratio (AIR) for Hispanic / Latino applicants at 0.78 — below 0.80 regulatory threshold",
+  },
+  {
     id: "THR-20260429-0001",
-    timestamp: "2026-04-29T14:23:45Z",
+    timestamp: "2026-06-20T10:15:00Z",
     applicantId: "APP-2026-084723",
     applicantName: "Priya K. Sharma",
+    findingId: "FN-200",
     severity: "critical",
     attackVector: "Sequential Proxy Correlation Attack",
     proxyVariables: ["zip_code_95123", "neighborhood_score", "school_district_rating"],
@@ -492,9 +543,10 @@ export const THREAT_EVENTS: ThreatEvent[] = [
   },
   {
     id: "THR-20260429-0002",
-    timestamp: "2026-04-29T13:47:22Z",
+    timestamp: "2026-06-17T14:36:00Z",
     applicantId: "APP-2026-084718",
     applicantName: "DeShawn R. Brown",
+    findingId: "FN-203",
     severity: "high",
     attackVector: "Single Proxy Variable",
     proxyVariables: ["credit_union_membership"],
@@ -505,9 +557,10 @@ export const THREAT_EVENTS: ThreatEvent[] = [
   },
   {
     id: "THR-20260429-0003",
-    timestamp: "2026-04-29T13:12:09Z",
+    timestamp: "2026-06-15T09:22:00Z",
     applicantId: "APP-2026-084711",
     applicantName: "Maria E. Gonzalez",
+    findingId: "FN-202",
     severity: "high",
     attackVector: "Dual Proxy Interaction",
     proxyVariables: ["first_name_entropy", "mailing_address_block"],
@@ -518,54 +571,59 @@ export const THREAT_EVENTS: ThreatEvent[] = [
   },
   {
     id: "THR-20260429-0004",
-    timestamp: "2026-04-29T12:38:55Z",
-    applicantId: "APP-2026-084705",
-    applicantName: "Antoine L. Freeman",
+    timestamp: "2026-06-21T08:44:00Z",
+    applicantId: "AGG-FEAT-GROCERY-PROX",
+    applicantName: "Grocery store proximity · n=1,842",
     severity: "medium",
     attackVector: "Indirect Feature Correlation",
     proxyVariables: ["grocery_store_proximity"],
     confidence: 0.65,
     blocked: false,
     modelScore: 0.71,
+    signalLabel: "Grocery store proximity feature",
     description: "Grocery store proximity shows weak but measurable correlation with national origin — monitoring",
   },
   {
     id: "THR-20260429-0005",
-    timestamp: "2026-04-29T11:55:33Z",
-    applicantId: "APP-2026-084698",
-    applicantName: "Linda S. Park",
+    timestamp: "2026-06-13T11:30:00Z",
+    applicantId: "AGG-FEAT-PAYMENT-Q3",
+    applicantName: "Payment history Q3 drift · n=3,104",
+    findingId: "FN-201",
     severity: "medium",
     attackVector: "Temporal Feature Drift",
     proxyVariables: ["payment_history_q3", "medical_expense_ratio"],
     confidence: 0.61,
     blocked: false,
     modelScore: 0.68,
+    signalLabel: "Payment history Q3 drift",
     description: "Temporal drift detected in payment history Q3 feature — possible data quality issue",
   },
   {
     id: "THR-20260429-0006",
-    timestamp: "2026-04-29T11:22:14Z",
-    applicantId: "APP-2026-084691",
-    applicantName: "Kevin O. Washington",
+    timestamp: "2026-06-20T16:10:00Z",
+    applicantId: "AGG-FEAT-COMMUTE-DIST",
+    applicantName: "Commute distance correlation · n=982",
     severity: "low",
     attackVector: "Weak Correlation Flag",
     proxyVariables: ["commute_distance"],
     confidence: 0.42,
     blocked: false,
     modelScore: 0.83,
+    signalLabel: "Commute distance feature",
     description: "Commute distance shows marginal correlation with protected class — low priority watch",
   },
   {
     id: "THR-20260429-0007",
-    timestamp: "2026-04-29T10:44:07Z",
-    applicantId: "APP-2026-084685",
-    applicantName: "Susan Y. Lee",
+    timestamp: "2026-06-18T07:55:00Z",
+    applicantId: "AGG-FEAT-ACCOUNT-AGE",
+    applicantName: "Account age feature · n=5,621",
     severity: "low",
     attackVector: "Benign Feature Noise",
     proxyVariables: ["account_age_days"],
     confidence: 0.38,
     blocked: false,
     modelScore: 0.88,
+    signalLabel: "Account age days feature",
     description: "Account age feature passes fairness test — classified as benign noise below threshold",
   },
   {
@@ -596,22 +654,24 @@ export const THREAT_EVENTS: ThreatEvent[] = [
   },
   {
     id: "THR-20260429-0010",
-    timestamp: "2026-04-29T08:45:12Z",
-    applicantId: "APP-2026-084668",
-    applicantName: "Christopher J. Wright",
+    timestamp: "2026-06-19T13:20:00Z",
+    applicantId: "AGG-FEAT-UTILITY-PAY",
+    applicantName: "Utility payment history · n=774",
     severity: "low",
     attackVector: "Single Variable Flag",
     proxyVariables: ["utility_payment_history"],
     confidence: 0.44,
     blocked: false,
     modelScore: 0.79,
+    signalLabel: "Utility payment history feature",
     description: "Utility payment history shows marginal correlation — flagged for monitoring",
   },
   {
     id: "THR-20260429-0011",
-    timestamp: "2026-04-29T08:12:56Z",
+    timestamp: "2026-06-20T10:15:00Z",
     applicantId: "APP-2026-084661",
     applicantName: "Stephanie K. Kim",
+    findingId: "FN-200",
     severity: "critical",
     attackVector: "4-Layer Proxy Cascade",
     proxyVariables: ["zip_code", "census_tract", "school_rating", "commute_time"],
@@ -622,15 +682,16 @@ export const THREAT_EVENTS: ThreatEvent[] = [
   },
   {
     id: "THR-20260429-0012",
-    timestamp: "2026-04-29T07:38:21Z",
-    applicantId: "APP-2026-084655",
-    applicantName: "Michael A. Johnson",
+    timestamp: "2026-06-21T09:05:00Z",
+    applicantId: "AGG-FEAT-INSURANCE-HIST",
+    applicantName: "Insurance history metrics · n=412",
     severity: "medium",
     attackVector: "Insurance History Proxy",
     proxyVariables: ["prior_insurance_lapse", "claims_history_score"],
     confidence: 0.68,
     blocked: false,
     modelScore: 0.62,
+    signalLabel: "Insurance history metrics feature",
     description: "Insurance history metrics show moderate correlation with protected class — escalated",
   },
 ]
@@ -638,11 +699,34 @@ export const THREAT_EVENTS: ThreatEvent[] = [
 export const FAIRNESS_METRICS: FairnessMetric[] = [
   { group: "White / Non-Hispanic", approvalRate: 0.74, denialRate: 0.26, avgScore: 721, sampleSize: 14823, disparateImpact: 1.0, lift: 0 },
   { group: "Black / African American", approvalRate: 0.68, denialRate: 0.32, avgScore: 698, sampleSize: 4217, disparateImpact: 0.92, lift: 0.06 },
-  { group: "Hispanic / Latino", approvalRate: 0.70, denialRate: 0.30, avgScore: 705, sampleSize: 5631, disparateImpact: 0.95, lift: 0.04 },
+  { group: "Hispanic / Latino", approvalRate: 0.58, denialRate: 0.42, avgScore: 698, sampleSize: 5631, disparateImpact: 0.78, lift: 0.16 },
   { group: "Asian / Pacific Islander", approvalRate: 0.76, denialRate: 0.24, avgScore: 734, sampleSize: 3892, disparateImpact: 1.03, lift: -0.02 },
   { group: "Native American", approvalRate: 0.67, denialRate: 0.33, avgScore: 694, sampleSize: 412, disparateImpact: 0.91, lift: 0.07 },
   { group: "Two or More Races", approvalRate: 0.71, denialRate: 0.29, avgScore: 709, sampleSize: 889, disparateImpact: 0.96, lift: 0.03 },
 ]
+
+/** Product-slice metrics for the active mortgage breach scenario (FN-204) */
+export const MORTGAGE_FAIRNESS_METRICS: FairnessMetric[] = [
+  { group: "White / Non-Hispanic", approvalRate: 0.76, denialRate: 0.24, avgScore: 728, sampleSize: 9214, disparateImpact: 1.0, lift: 0 },
+  { group: "Black / African American", approvalRate: 0.69, denialRate: 0.31, avgScore: 701, sampleSize: 2103, disparateImpact: 0.91, lift: 0.07 },
+  { group: "Hispanic / Latino", approvalRate: 0.59, denialRate: 0.41, avgScore: 699, sampleSize: 2847, disparateImpact: 0.78, lift: 0.17 },
+  { group: "Asian / Pacific Islander", approvalRate: 0.77, denialRate: 0.23, avgScore: 736, sampleSize: 1924, disparateImpact: 1.01, lift: -0.01 },
+]
+
+export const DATA_AS_OF = "2026-06-22T15:00:00Z"
+
+/** Maps Command Center finding IDs to linked investigation (threat event) IDs */
+export const FINDING_INVESTIGATION_MAP: Record<string, string> = {
+  "FN-204": "THR-20260619-0001",
+  "FN-203": "THR-20260429-0002",
+  "FN-202": "THR-20260429-0003",
+  "FN-201": "THR-20260429-0005",
+  "FN-200": "THR-20260429-0011",
+}
+
+export function getInvestigationIdForFinding(findingId: string): string | undefined {
+  return FINDING_INVESTIGATION_MAP[findingId]
+}
 
 export const USER_ROLES: UserRole[] = [
   {
@@ -915,4 +999,440 @@ export const DAILY_STATS = {
   modelVersion: "FNB-FAIR-v4.2.1",
   lastAudit: "2026-04-29T06:00:00Z",
   cfpbCompliant: true,
+}
+
+// ─── Command Center dashboard data ───────────────────────────────────────────
+
+export type FindingStatus = "investigating" | "review" | "monitoring" | "resolved"
+
+export interface CommandCenterFinding {
+  id: string
+  category: string
+  issueDescription: string
+  affectedGroup: string
+  severity: ThreatSeverity
+  ageDays: number
+  status: FindingStatus
+  /** ISO timestamp aligned with ageDays and activity feed */
+  detectedAt: string
+  /** Linked investigation (threat event) for deep-link navigation */
+  investigationId: string
+}
+
+export type WorkflowStepStatus = "completed" | "active" | "queued" | "pending"
+
+export interface WorkflowStep {
+  id: string
+  label: string
+  status: WorkflowStepStatus
+  progress?: number
+}
+
+export interface WorkflowActivity {
+  title: string
+  recordCount: number
+  etaMinutes: number
+  steps: WorkflowStep[]
+}
+
+export interface DisparityTrendPoint {
+  day: string
+  mortgage: number
+  auto: number
+  personal: number
+  creditCard: number
+}
+
+export interface MonitoringSignal {
+  id: string
+  metricName: string
+  technicalTerm: string
+  value: number
+  trend: "up" | "down" | "flat"
+  severity: ThreatSeverity
+}
+
+export interface ExamReadinessCategory {
+  id: string
+  label: string
+  percentage: number
+  status: string
+}
+
+export type ActivityFeedCategory = "finding" | "analysis" | "investigation" | "audit"
+
+export interface ActivityFeedItem {
+  id: string
+  category: ActivityFeedCategory
+  description: string
+  severity?: ThreatSeverity
+  referenceId: string
+  timestamp: string
+}
+
+export interface FairnessMetricReading {
+  technicalTerm: string
+  plainLabel: string
+  value: number
+  threshold: number
+  thresholdStatus: string
+  passing: boolean
+}
+
+export interface TopBreachMetric {
+  plainLabel: string
+  technicalTerm: string
+  value: number
+  context: string
+  thresholdStatus: string
+}
+
+export interface CommandCenterKpis {
+  adverseImpactRatio: FairnessMetricReading
+  statisticalParityDifference: FairnessMetricReading
+  topBreachMetric: TopBreachMetric
+  postureSummary: string
+  examReadiness: number
+  examLabel: string
+  examTrend: string
+  activeFindings: {
+    total: number
+    critical: number
+    high: number
+    medium: number
+    low: number
+    trend: string
+  }
+  investigations: {
+    total: number
+    open: number
+    inReview: number
+    resolved: number
+    trend: string
+  }
+  modelsMonitored: {
+    active: number
+    total: number
+    trend: string
+  }
+}
+
+export const COMMAND_CENTER_KPIS: CommandCenterKpis = {
+  adverseImpactRatio: {
+    technicalTerm: "AIR",
+    plainLabel: "Adverse Impact Ratio",
+    value: 0.78,
+    threshold: 0.8,
+    thresholdStatus: "below 0.80 threshold",
+    passing: false,
+  },
+  statisticalParityDifference: {
+    technicalTerm: "SPD",
+    plainLabel: "Statistical Parity Difference",
+    value: 0.11,
+    threshold: 0.1,
+    thresholdStatus: "above 0.10 threshold",
+    passing: false,
+  },
+  topBreachMetric: {
+    plainLabel: "Approval Rate Disparity",
+    technicalTerm: "Adverse Impact Ratio",
+    value: 0.78,
+    context: "Hispanic / Latino — Mortgage",
+    thresholdStatus: "below 0.80 threshold",
+  },
+  postureSummary:
+    "2 critical findings need immediate review; mortgage AIR breach is the top priority.",
+  examReadiness: 94,
+  examLabel: "Strong",
+  examTrend: "↑ 8% vs last month",
+  activeFindings: {
+    total: 7,
+    critical: 2,
+    high: 5,
+    medium: 0,
+    low: 0,
+    trend: "↑ 2 new this week",
+  },
+  investigations: {
+    total: 4,
+    open: 2,
+    inReview: 2,
+    resolved: 0,
+    trend: "Avg. age: 4.2 days",
+  },
+  modelsMonitored: {
+    active: DAILY_STATS.modelsInProduction,
+    total: 12,
+    trend: "↑ 2 new this month",
+  },
+}
+
+export const COMMAND_CENTER_FINDINGS: CommandCenterFinding[] = [
+  {
+    id: "FN-204",
+    category: "Mortgage",
+    issueDescription: "Approval Rate Disparity",
+    affectedGroup: "Hispanic / Latino",
+    severity: "critical",
+    ageDays: 3,
+    status: "investigating",
+    detectedAt: "2026-06-19T15:45:00Z",
+    investigationId: "THR-20260619-0001",
+  },
+  {
+    id: "FN-203",
+    category: "Auto",
+    issueDescription: "Disparate Impact Ratio",
+    affectedGroup: "Black / African American",
+    severity: "high",
+    ageDays: 5,
+    status: "review",
+    detectedAt: "2026-06-17T14:36:00Z",
+    investigationId: "THR-20260429-0002",
+  },
+  {
+    id: "FN-202",
+    category: "Personal",
+    issueDescription: "Score Distribution Gap",
+    affectedGroup: "Native American",
+    severity: "high",
+    ageDays: 7,
+    status: "investigating",
+    detectedAt: "2026-06-15T09:22:00Z",
+    investigationId: "THR-20260429-0003",
+  },
+  {
+    id: "FN-201",
+    category: "Credit Card",
+    issueDescription: "Denial Rate Variance",
+    affectedGroup: "Two or More Races",
+    severity: "medium",
+    ageDays: 9,
+    status: "monitoring",
+    detectedAt: "2026-06-13T11:30:00Z",
+    investigationId: "THR-20260429-0005",
+  },
+  {
+    id: "FN-200",
+    category: "Mortgage",
+    issueDescription: "Proxy Variable Correlation",
+    affectedGroup: "Hispanic / Latino",
+    severity: "critical",
+    ageDays: 2,
+    status: "investigating",
+    detectedAt: "2026-06-20T10:15:00Z",
+    investigationId: "THR-20260429-0011",
+  },
+]
+
+export const COMMAND_CENTER_WORKFLOW: WorkflowActivity = {
+  title: "Mortgage Q2 2025",
+  recordCount: 82421,
+  etaMinutes: 2,
+  steps: [
+    { id: "import", label: "Import", status: "completed" },
+    { id: "validate", label: "Validate", status: "completed" },
+    { id: "analyze", label: "Analyze", status: "active", progress: 78 },
+    { id: "generate", label: "Generate", status: "queued" },
+    { id: "findings", label: "Findings", status: "pending" },
+  ],
+}
+
+const generateDisparityTrend = (): DisparityTrendPoint[] => {
+  const points: DisparityTrendPoint[] = []
+  const baseMortgage = FAIRNESS_METRICS[2].disparateImpact
+  const baseAuto = FAIRNESS_METRICS[1].disparateImpact
+  const basePersonal = FAIRNESS_METRICS[4].disparateImpact
+  const baseCredit = FAIRNESS_METRICS[3].disparateImpact
+
+  for (let i = 29; i >= 0; i--) {
+    const drift = (29 - i) * 0.002
+    const noise = Math.sin(i * 0.7) * 0.015
+    points.push({
+      day: `D${30 - i}`,
+      mortgage: Number((baseMortgage - drift + noise).toFixed(3)),
+      auto: Number((baseAuto - drift * 0.8 + noise * 0.6).toFixed(3)),
+      personal: Number((basePersonal - drift * 0.5 + noise * 0.4).toFixed(3)),
+      creditCard: Number((baseCredit + drift * 0.3 + noise * 0.3).toFixed(3)),
+    })
+  }
+  return points
+}
+
+export const DISPARITY_TREND_30D = generateDisparityTrend()
+
+export const MONITORING_SEVERITY_COUNTS = {
+  critical: THREAT_EVENTS.filter((t) => t.severity === "critical").length,
+  high: THREAT_EVENTS.filter((t) => t.severity === "high").length,
+  medium: THREAT_EVENTS.filter((t) => t.severity === "medium").length,
+  low: THREAT_EVENTS.filter((t) => t.severity === "low").length,
+}
+
+export const MONITORING_SIGNALS: MonitoringSignal[] = [
+  {
+    id: "sig-1",
+    metricName: "Adverse Impact Ratio – Hispanic / Latino (Mortgage)",
+    technicalTerm: "AIR (Adverse Impact Ratio)",
+    value: 0.78,
+    trend: "down",
+    severity: "critical",
+  },
+  {
+    id: "sig-2",
+    metricName: "Denial Rate – Black / African American",
+    technicalTerm: "DIR (Disparate Impact Ratio)",
+    value: 0.92,
+    trend: "down",
+    severity: "high",
+  },
+  {
+    id: "sig-3",
+    metricName: "Score Gap – Native American",
+    technicalTerm: "Δ Score Distribution",
+    value: 0.18,
+    trend: "up",
+    severity: "medium",
+  },
+  {
+    id: "sig-4",
+    metricName: "Proxy Correlation – ZIP Code",
+    technicalTerm: "Pearson r (proxy variable)",
+    value: 0.74,
+    trend: "flat",
+    severity: "medium",
+  },
+]
+
+export const MONITORING_ALERTS: MonitoringAlert[] = [
+  {
+    id: "alert-3",
+    title: "AIR below floor",
+    detail: "Hispanic / Latino AIR at 0.78 — below 0.80 threshold (Mortgage Q2)",
+    severity: "critical",
+    relativeTime: "3d",
+    asOf: DATA_AS_OF,
+    findingId: "FN-204",
+    investigationId: "THR-20260619-0001",
+  },
+  {
+    id: "alert-1",
+    title: "Proxy variable detected",
+    detail: "ZIP code flagged as disparate impact proxy",
+    severity: "high",
+    relativeTime: "2m",
+    asOf: DATA_AS_OF,
+    findingId: "FN-200",
+    investigationId: "THR-20260429-0011",
+  },
+  {
+    id: "alert-2",
+    title: "Fairwashing blocked",
+    detail: "Explanation discrepancy (Kolmogorov-Smirnov = 0.41)",
+    severity: "medium",
+    relativeTime: "14m",
+    asOf: DATA_AS_OF,
+  },
+]
+
+/** Feature-level aggregate signals for emerging risks (no applicant PII) */
+export const EMERGING_RISK_SIGNALS: EmergingRiskSignal[] = THREAT_EVENTS.filter(
+  (t) => !t.blocked && t.signalLabel
+).map((t) => ({
+  id: t.id,
+  featureName: t.signalLabel ?? t.applicantName,
+  technicalTerm: t.attackVector,
+  correlation: t.confidence,
+  sampleSize: t.applicantId.startsWith("AGG-")
+    ? Number.parseInt(t.applicantName.match(/n=([\d,]+)/)?.[1]?.replace(/,/g, "") ?? "0", 10)
+    : 0,
+  severity: t.severity,
+  description: t.description,
+  findingId: t.findingId,
+  investigationId: t.id,
+  timestamp: t.timestamp,
+}))
+
+export const EXAM_READINESS_CATEGORIES: ExamReadinessCategory[] = [
+  { id: "doc", label: "Documentation Coverage", percentage: 96, status: "Complete" },
+  { id: "evidence", label: "Evidence Integrity", percentage: 98, status: "Strong" },
+  { id: "policy", label: "Policy Alignment", percentage: 91, status: "Good" },
+  { id: "monitoring", label: "Monitoring Coverage", percentage: 95, status: "Strong" },
+]
+
+export const MODEL_SPARKLINE_DATA = PROXY_DETECTION_DATA.map((d) => ({
+  week: d.week,
+  value: d.cleared,
+}))
+
+export const COMMAND_CENTER_ACTIVITY: ActivityFeedItem[] = [
+  {
+    id: "act-1",
+    category: "finding",
+    description: "New finding detected — approval rate disparity",
+    severity: "critical",
+    referenceId: "FN-204",
+    timestamp: "2026-06-19T15:45:00Z",
+  },
+  {
+    id: "act-2",
+    category: "analysis",
+    description: "Statistical analysis completed for Mortgage Q2",
+    referenceId: LEDGER_ENTRIES[6].id,
+    timestamp: "2026-06-22T15:30:00Z",
+  },
+  {
+    id: "act-3",
+    category: "investigation",
+    description: "Investigation opened for proxy cascade",
+    severity: "high",
+    referenceId: "THR-20260429-0011",
+    timestamp: "2026-06-20T10:15:00Z",
+  },
+  {
+    id: "act-4",
+    category: "audit",
+    description: "Scheduled fairness audit passed",
+    referenceId: LEDGER_ENTRIES[22].id,
+    timestamp: "2026-06-22T14:53:00Z",
+  },
+  {
+    id: "act-5",
+    category: "finding",
+    description: "Finding escalated to compliance review",
+    severity: "high",
+    referenceId: "FN-203",
+    timestamp: "2026-06-17T14:36:00Z",
+  },
+]
+
+/** Ledger rows linked to an investigation — by applicant/cohort ID or activity references. */
+export function getLedgerEvidenceForThreat(threat: ThreatEvent): LedgerEntry[] {
+  const ids = new Set<string>()
+
+  for (const entry of LEDGER_ENTRIES) {
+    if (entry.applicantId === threat.applicantId) ids.add(entry.id)
+  }
+
+  for (const activity of COMMAND_CENTER_ACTIVITY) {
+    const matchesThreat =
+      activity.referenceId === threat.id || activity.referenceId === threat.findingId
+    if (matchesThreat && activity.referenceId.startsWith("EVT-")) {
+      ids.add(activity.referenceId)
+    }
+  }
+
+  if (threat.findingId === "FN-204") {
+    for (const activity of COMMAND_CENTER_ACTIVITY) {
+      if (activity.category === "analysis" && activity.referenceId.startsWith("EVT-")) {
+        ids.add(activity.referenceId)
+      }
+    }
+  }
+
+  return [...ids]
+    .map((id) => LEDGER_ENTRIES.find((e) => e.id === id))
+    .filter((e): e is LedgerEntry => Boolean(e))
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 4)
 }

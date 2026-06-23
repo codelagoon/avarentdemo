@@ -15,13 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import {
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowRight, Envelope, Key } from "@gravity-ui/icons";
+import { Icon, PasswordInput } from "@gravity-ui/uikit";
 import { supabase } from "@/lib/supabaseClient";
 
 interface LoginCardSectionProps {
@@ -30,7 +25,6 @@ interface LoginCardSectionProps {
 }
 
 export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCardSectionProps) {
-  const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -113,7 +107,7 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
   return (
     <div className="fixed inset-0 bg-background flex flex-col items-center justify-center" data-testid="login-screen">
       {/* Header */}
-      <header className="absolute left-0 right-0 top-0 flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card/65 backdrop-blur-md">
+      <header className="absolute left-0 right-0 top-0 flex items-center justify-between border-b border-border bg-card px-6 py-4">
         <div className="flex items-center gap-2">
           <img src="/avarent-logo.png" alt="Avarent" className="h-[84px] w-auto" />
         </div>
@@ -121,10 +115,10 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
           <Button
             variant="outline"
             onClick={onTryNewCompany}
-            className="h-8 rounded-lg border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground font-mono text-[0.7rem] uppercase tracking-wider transition-colors"
+            className="h-8 g-text-caption uppercase tracking-wider"
           >
             <span className="mr-2">Demo Request</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            <Icon data={ArrowRight} size={14} />
           </Button>
         )}
       </header>
@@ -144,42 +138,27 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  className="pl-10"
-                />
-              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onUpdate={setEmail}
+                disabled={loading}
+                startContent={<Icon data={Envelope} size={16} />}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Access Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  data-testid="password-input"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  className="pl-10 pr-10"
-                />
-                <button
-                  type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowPassword((v) => !v)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              <PasswordInput
+                id="password"
+                data-testid="password-input"
+                placeholder="••••••••"
+                value={password}
+                onUpdate={setPassword}
+                disabled={loading}
+                startContent={<Icon data={Key} size={16} />}
+              />
             </div>
 
             {errorMsg && (
@@ -204,8 +183,8 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
               </a>
             </div>
 
-            <Button type="submit" disabled={loading} data-testid="login-submit" className="w-full">
-              {loading ? "Authorizing..." : mode === "signin" ? "Sign In" : "Register Control Account"}
+            <Button type="submit" disabled={loading} data-testid="login-submit" className="w-full" loading={loading}>
+              {mode === "signin" ? "Sign In" : "Register Control Account"}
             </Button>
 
             <Separator />

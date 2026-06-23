@@ -1,31 +1,26 @@
 "use client"
 
 import * as React from "react"
-import { CheckIcon } from "lucide-react"
-import { Checkbox as CheckboxPrimitive } from "radix-ui"
-
+import { Checkbox as GravityCheckbox } from "@gravity-ui/uikit"
 import { cn } from "@/lib/utils"
 
 function Checkbox({
   className,
+  checked,
+  onCheckedChange,
   ...props
-}: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
+}: React.ComponentProps<"button"> & {
+  checked?: boolean
+  onCheckedChange?: (checked: boolean | "indeterminate") => void
+}) {
   return (
-    <CheckboxPrimitive.Root
+    <GravityCheckbox
       data-slot="checkbox"
-      className={cn(
-        "peer size-4 shrink-0 rounded-[4px] border border-input shadow-xs transition-shadow outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:bg-input/30 dark:aria-invalid:ring-destructive/40 dark:data-[state=checked]:bg-primary",
-        className
-      )}
+      className={cn(className)}
+      checked={checked === "indeterminate" ? "indeterminate" : Boolean(checked)}
+      onUpdate={(value) => onCheckedChange?.(value)}
       {...props}
-    >
-      <CheckboxPrimitive.Indicator
-        data-slot="checkbox-indicator"
-        className="grid place-content-center text-current transition-none"
-      >
-        <CheckIcon className="size-3.5" />
-      </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
+    />
   )
 }
 
