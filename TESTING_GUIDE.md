@@ -4,19 +4,20 @@
 
 ### 1. Access the Application
 - **URL**: http://localhost:5173
-- **Password**: 197704
-- **Alternative**: Click "Get Started" to test company onboarding
+- **Authentication**: Supabase email/password (register or sign in)
+- **New organization**: Click "Register Organization" and complete signup, then the onboarding wizard
 
 ### 2. Login Options Test
 
 #### Option A: Existing User Access
-1. Enter password: `197704`
-2. Click "Access Dashboard"
-3. Verify dashboard loads with 5 KPI cards
+1. Enter your registered email and password
+2. Click "Sign In"
+3. Verify the Command Center dashboard loads
 
 #### Option B: New Company Onboarding
-1. Click "Get Started" on login page
-2. Complete 5-step onboarding wizard:
+1. Click "Register Organization" on the login page
+2. Complete registration with email and password
+3. Complete the onboarding wizard:
    - **Step 1**: Welcome screen with feature overview
    - **Step 2**: Company name, industry, size
    - **Step 3**: Email, phone, regulatory body (CFPB/OCC/FDIC)

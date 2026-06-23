@@ -11,4 +11,7 @@ playwright-report/
 test-results/
 .eslintcache
 
+# gstack (installed via npm run setup:gstack)
+.claude/skills/gstack/
+
 .vercel

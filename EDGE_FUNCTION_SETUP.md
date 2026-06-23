@@ -28,8 +28,8 @@ You need to set the API keys in the Supabase Dashboard:
 
 | Secret Name | Value |
 |------------|-------|
-| `OPENROUTER_API_KEY` | `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` |
-| `NVIDIA_API_KEY` | `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` |
+| `OPENROUTER_API_KEY` | Your OpenRouter API key (from https://openrouter.ai/keys) |
+| `NVIDIA_API_KEY` | Your NVIDIA NIM API key (from https://build.nvidia.com/) |
 
 ### 3. Test the Function
 
