@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
-import { useLiveData } from "@/hooks/useLiveData"
+import { useLiveData } from "@legacy/hooks/useLiveData"
 import {
   Play, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle,
   Shield, Zap, ChevronDown, Hash, Activity,
@@ -23,7 +23,7 @@ import {
 } from "@/data/mockData"
 import { ledgerService } from "@/services/ledgerService"
 import { scenarioService } from "@/services/scenarioService"
-import { DataImportDialog } from "@/components/DataImportDialog"
+import { DataImportDialog } from "@legacy/components/DataImportDialog"
 
 // ─── Fairness wave data ───────────────────────────────────────────────────────
 const WAVE_DATA = [

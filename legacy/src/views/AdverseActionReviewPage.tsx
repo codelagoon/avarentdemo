@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { useLiveData } from "@/hooks/useLiveData"
+import { useLiveData } from "@legacy/hooks/useLiveData"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"

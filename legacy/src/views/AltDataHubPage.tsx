@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { useLiveData } from "@/hooks/useLiveData"
+import { useLiveData } from "@legacy/hooks/useLiveData"
 import { Network, Link2, Link2Off, BadgePercent, Cpu, CheckCircle2, AlertTriangle, Plus, Layers, TrendingUp, Info } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

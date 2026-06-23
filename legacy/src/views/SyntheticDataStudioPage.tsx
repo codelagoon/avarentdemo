@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useLiveData } from "@/hooks/useLiveData"
+import { useLiveData } from "@legacy/hooks/useLiveData"
 import { Database, Cpu, ShieldAlert, Sparkles, Sliders, RefreshCw, BarChart3, CheckCircle2, HelpCircle, Download, FileSpreadsheet } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

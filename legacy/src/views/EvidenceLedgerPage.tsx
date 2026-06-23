@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { useLiveData } from "@/hooks/useLiveData"
+import { useLiveData } from "@legacy/hooks/useLiveData"
 import { BookOpen, Search, Download, Hash, ChevronDown, ChevronUp, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, FileText, Lock, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"

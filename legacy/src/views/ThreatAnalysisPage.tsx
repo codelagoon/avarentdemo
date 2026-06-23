@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { useLiveData } from "@/hooks/useLiveData"
+import { useLiveData } from "@legacy/hooks/useLiveData"
 import { ShieldAlert, TrendingUp, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Search, Download, Info, ShieldCheck, Fingerprint, Shield, RefreshCw, ChevronDown, ChevronUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
