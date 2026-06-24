@@ -22,7 +22,7 @@ import { type LedgerEventType } from "@/data/mockData" // Temporarily retained f
 const DAILY_STATS: any = { appsToday: 0, modelsActive: 0, modelVersion: "v1.0" }
 const DATA_VOLUME: any[] = []
 import { ledgerService } from "@/services/ledgerService"
-import { scenarioService } from "@/services/scenarioService"
+import { scenarioService, DEMO_SCENARIOS, type ScenarioConfig } from "@/services/scenarioService"
 import { DataImportDialog } from "@/components/DataImportDialog"
 
 // ─── Fairness wave data ───────────────────────────────────────────────────────
