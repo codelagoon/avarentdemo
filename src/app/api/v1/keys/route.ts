@@ -4,8 +4,8 @@ import crypto from "crypto"
 
 // We must use the Service Role key to insert into api_keys since it bypasses RLS
 // However, we MUST verify the user's session first.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zpjjoskdaouhzinijztf.supabase.co"
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy-service-key-to-prevent-build-crash"
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 export async function POST(req: Request) {

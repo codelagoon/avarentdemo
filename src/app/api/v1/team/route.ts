@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zpjjoskdaouhzinijztf.supabase.co"
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy-service-key-to-prevent-build-crash"
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 export async function GET(req: Request) {
