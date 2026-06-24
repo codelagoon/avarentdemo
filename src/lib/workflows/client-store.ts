@@ -40,6 +40,32 @@ export function setWorkflowCache(
   emit("ledger")
 }
 
+export function upsertThreatInCache(event: ThreatEvent): void {
+  if (!cache.threats) return
+  const index = cache.threats.findIndex((t) => t.id === event.id)
+  const next = [...cache.threats]
+  if (index >= 0) {
+    next[index] = event
+  } else {
+    next.unshift(event)
+  }
+  cache.threats = next
+  emit("threat")
+}
+
+export function upsertLedgerInCache(entry: LedgerEntry): void {
+  if (!cache.ledger) return
+  const index = cache.ledger.findIndex((e) => e.id === entry.id)
+  const next = [...cache.ledger]
+  if (index >= 0) {
+    next[index] = entry
+  } else {
+    next.unshift(entry)
+  }
+  cache.ledger = next
+  emit("ledger")
+}
+
 export function clearWorkflowCache(): void {
   cache.organizationId = null
   cache.threats = null

@@ -8,9 +8,7 @@ import { getMembershipForUser } from "@/domains/identity/membershipDomain"
 import { syncWorkOSUserToSupabase } from "@/lib/identity/workos-supabase-sync"
 import {
   createUserServerClient,
-  hasSupabaseAuthCookie,
 } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
 
 async function buildContextFromSupabaseUser(
   supabaseUser: {
@@ -56,8 +54,6 @@ export async function resolveApplicationContext(): Promise<ApplicationContext> {
     }
   }
 
-  const cookieStore = await cookies()
-  const cookieList = cookieStore.getAll()
   const supabase = await createUserServerClient({ writable: false })
 
   const {
@@ -78,20 +74,17 @@ export async function resolveApplicationContext(): Promise<ApplicationContext> {
   }
 
   if (!supabaseUser && workosUserId && workosUser) {
-    const authCookiePresent = hasSupabaseAuthCookie(cookieList)
-    if (!authCookiePresent) {
+    try {
       await syncWorkOSUserToSupabase(workosUser)
       const linkedClient = await createUserServerClient({ writable: false })
       const {
         data: { user: linkedUser },
       } = await linkedClient.auth.getUser()
       if (linkedUser) {
-        return buildContextFromSupabaseUser(
-          linkedUser,
-          workosUserId,
-          workosEmail
-        )
+        return buildContextFromSupabaseUser(linkedUser, workosUserId, workosEmail)
       }
+    } catch {
+      // Fall through to WorkOS-only context; mutations use ensureSupabaseUserLinked.
     }
 
     return {

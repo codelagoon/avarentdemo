@@ -39,7 +39,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { DAILY_STATS } from "@/data/mockData"
-import { supabase } from "@/lib/supabaseClient"
+import { getSupabaseClient } from "@/lib/supabaseClient"
 import LoginCardSection from "@/components/ui/login-signup"
 
 import { DashboardPage } from "@legacy/views/DashboardPage"
@@ -286,6 +286,8 @@ export default function App() {
   useEffect(() => {
     setMounted(true)
 
+    const supabase = getSupabaseClient()
+
     // Check active session on mount (Supabase real auth or demo bypass)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -316,6 +318,7 @@ export default function App() {
   }, [handleKeyDown])
 
   const handleLogout = async () => {
+    const supabase = getSupabaseClient()
     await supabase.auth.signOut()
     if (typeof window !== "undefined") {
       localStorage.removeItem("avarent_auth")

@@ -4,21 +4,29 @@ import { emit } from "@/lib/sync"
 import {
   getCachedOrganizationId,
   getCachedThreats,
+  upsertThreatInCache,
 } from "@/lib/workflows/client-store"
+import { toast } from "sonner"
 
 const STORAGE_KEY = "avarent_threat_events"
 
 async function persistThreatToApi(event: ThreatEvent): Promise<void> {
   if (typeof window === "undefined" || !getCachedOrganizationId()) return
   try {
-    await fetch("/api/workflows/investigations", {
+    const response = await fetch("/api/workflows/investigations", {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ event }),
     })
-  } catch {
-    // localStorage remains source of truth until API succeeds
+    if (!response.ok) {
+      throw new Error(`Investigation sync failed (${response.status})`)
+    }
+    upsertThreatInCache(event)
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to sync investigation"
+    toast.error(message)
   }
 }
 
@@ -42,6 +50,17 @@ export class ThreatService {
     return THREAT_EVENTS
   }
 
+  /** Single source for reads and writes — prefers Supabase-hydrated cache. */
+  private resolveEvents(): ThreatEvent[] {
+    const cached = getCachedThreats()
+    if (cached) {
+      this.events = [...cached]
+      return this.events
+    }
+    this.events = this.loadFromStorage()
+    return this.events
+  }
+
   private saveToStorage() {
     if (typeof window === "undefined") return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.events))
@@ -49,12 +68,8 @@ export class ThreatService {
   }
 
   getAll(): ThreatEvent[] {
-    const cached = getCachedThreats()
-    if (cached) return [...cached]
-
-    this.events = this.loadFromStorage()
-    return [...this.events].sort((a, b) =>
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    return [...this.resolveEvents()].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
   }
 
@@ -63,7 +78,7 @@ export class ThreatService {
   }
 
   getById(id: string): ThreatEvent | undefined {
-    return this.events.find(e => e.id === id)
+    return this.resolveEvents().find((e) => e.id === id)
   }
 
   add(event: Omit<ThreatEvent, "id" | "timestamp">): ThreatEvent {
@@ -76,20 +91,24 @@ export class ThreatService {
       timestamp: now.toISOString(),
     }
 
-    this.events.unshift(newEvent)
+    const events = this.resolveEvents()
+    events.unshift(newEvent)
     this.saveToStorage()
+    upsertThreatInCache(newEvent)
     void persistThreatToApi(newEvent)
     return newEvent
   }
 
   update(id: string, updates: Partial<ThreatEvent>): ThreatEvent | null {
-    const index = this.events.findIndex(e => e.id === id)
+    const events = this.resolveEvents()
+    const index = events.findIndex((e) => e.id === id)
     if (index === -1) return null
 
-    this.events[index] = { ...this.events[index], ...updates }
+    events[index] = { ...events[index], ...updates }
     this.saveToStorage()
-    void persistThreatToApi(this.events[index])
-    return this.events[index]
+    upsertThreatInCache(events[index])
+    void persistThreatToApi(events[index])
+    return events[index]
   }
 
   block(id: string): ThreatEvent | null {
@@ -98,22 +117,25 @@ export class ThreatService {
 
   getStats() {
     const all = this.getAll()
-    const blocked = all.filter(e => e.blocked).length
+    const blocked = all.filter((e) => e.blocked).length
     return {
       total: all.length,
       blocked,
       active: all.length - blocked,
-      critical: all.filter(e => e.severity === "critical" && !e.blocked).length,
-      high: all.filter(e => e.severity === "high" && !e.blocked).length,
+      critical: all.filter((e) => e.severity === "critical" && !e.blocked).length,
+      high: all.filter((e) => e.severity === "high" && !e.blocked).length,
       byVector: this.groupByVector(all),
     }
   }
 
   private groupByVector(events: ThreatEvent[]) {
-    return events.reduce((acc, e) => {
-      acc[e.attackVector] = (acc[e.attackVector] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
+    return events.reduce(
+      (acc, e) => {
+        acc[e.attackVector] = (acc[e.attackVector] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    )
   }
 
   reset() {

@@ -88,13 +88,23 @@ export default function NextApp() {
     void refreshIdentity()
   }, [refreshIdentity])
 
-  const isAuthenticated = Boolean(identity.user_id || identity.workos_user_id)
+  const hasLinkedSession = Boolean(identity.user_id)
+  const hasWorkOSSession = Boolean(identity.workos_user_id)
+  const isSignedIn = hasLinkedSession || hasWorkOSSession
   const workosEnabled = isWorkOSClientEnabled()
 
   useEffect(() => {
-    if (!mounted || !identityLoaded || isAuthenticated || !workosEnabled) return
+    if (!mounted || !identityLoaded || isSignedIn || !workosEnabled) return
     window.location.replace("/api/auth/signin")
-  }, [mounted, identityLoaded, isAuthenticated, workosEnabled])
+  }, [mounted, identityLoaded, isSignedIn, workosEnabled])
+
+  useEffect(() => {
+    if (!mounted || !identityLoaded || hasLinkedSession || !hasWorkOSSession) return
+    const timer = window.setInterval(() => {
+      void refreshIdentity()
+    }, 2000)
+    return () => window.clearInterval(timer)
+  }, [mounted, identityLoaded, hasLinkedSession, hasWorkOSSession, refreshIdentity])
 
   const handleNavigate = useCallback((id: WorkflowId, options?: NavigateOptions) => {
     setActiveWorkflow(id)
@@ -110,13 +120,13 @@ export default function NextApp() {
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (!isAuthenticated || identity.needs_onboarding) return
+      if (!hasLinkedSession || identity.needs_onboarding) return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const workflow = WORKFLOW_KEYS[e.key]
       if (workflow) handleNavigate(workflow)
     },
-    [handleNavigate, identity.needs_onboarding, isAuthenticated]
+    [handleNavigate, identity.needs_onboarding, hasLinkedSession]
   )
 
   useEffect(() => {
@@ -136,7 +146,7 @@ export default function NextApp() {
     )
   }
 
-  if (identity.needs_onboarding && isAuthenticated) {
+  if (identity.needs_onboarding && isSignedIn) {
     return (
       <OnboardingPage
         userEmail={identity.email}
@@ -147,7 +157,16 @@ export default function NextApp() {
     )
   }
 
-  if (!isAuthenticated) {
+  if (!hasLinkedSession) {
+    if (workosEnabled && hasWorkOSSession) {
+      return (
+        <div className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-background">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Linking your account…</p>
+        </div>
+      )
+    }
+
     if (workosEnabled) {
       return (
         <div className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-background">
