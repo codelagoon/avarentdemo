@@ -440,26 +440,37 @@ function ComplianceControlsPanel({
           <div className="px-3 pb-3 space-y-1.5">
             {(Object.values(DEMO_SCENARIOS) as ScenarioConfig[]).map(s => {
               const isActive = activeScenario?.id === s.id
-              const styleMap = {
-                good_faith: {
+              const styleMap = ({
+                baseline: {
                   base: "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/30",
                   active: "border-emerald-500 bg-emerald-100 dark:bg-emerald-900/50",
                   icon: <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />,
                   accent: "text-emerald-700 dark:text-emerald-400",
                 },
-                mild_proxy: {
-                  base: "border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/30",
-                  active: "border-amber-500 bg-amber-100 dark:bg-amber-900/50",
-                  icon: <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />,
-                  accent: "text-amber-700 dark:text-amber-400",
-                },
-                bad_faith: {
+                fairwashing: {
                   base: "border-rose-200 bg-rose-50/60 dark:border-rose-900 dark:bg-rose-950/30",
                   active: "border-rose-500 bg-rose-100 dark:bg-rose-900/50",
                   icon: <Shield className="h-3 w-3 text-rose-600 dark:text-rose-400" />,
                   accent: "text-rose-700 dark:text-rose-400",
                 },
-              }[s.id]
+                proxy: {
+                  base: "border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/30",
+                  active: "border-amber-500 bg-amber-100 dark:bg-amber-900/50",
+                  icon: <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />,
+                  accent: "text-amber-700 dark:text-amber-400",
+                },
+                drift: {
+                  base: "border-sky-200 bg-sky-50/60 dark:border-sky-900 dark:bg-sky-950/30",
+                  active: "border-sky-500 bg-sky-100 dark:bg-sky-900/50",
+                  icon: <Activity className="h-3 w-3 text-sky-600 dark:text-sky-400" />,
+                  accent: "text-sky-700 dark:text-sky-400",
+                },
+              } as Record<string, any>)[s.id] || {
+                base: "border-border bg-muted/30",
+                active: "border-primary bg-primary/10",
+                icon: <Activity className="h-3 w-3 text-muted-foreground" />,
+                accent: "text-foreground",
+              }
               return (
                 <button
                   key={s.id}
