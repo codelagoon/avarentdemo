@@ -1,37 +1,53 @@
-import type { ThreatEvent } from "@/data/mockData"
-import { THREAT_EVENTS } from "@/data/mockData"
 import { emit } from "@/lib/sync"
+import { monitoringRepository, ThreatEvent as DomainThreatEvent } from "@/repositories/MonitoringRepository"
 
-const STORAGE_KEY = "avarent_threat_events"
+// Keep UI interface compatible
+export interface ThreatEvent {
+  id: string
+  timestamp: string
+  severity: "critical" | "high" | "medium" | "low"
+  attackVector: string
+  description: string
+  sourceIp: string
+  targetEndpoint: string
+  blocked: boolean
+}
+
+function mapToUI(event: DomainThreatEvent): ThreatEvent {
+  return {
+    id: event.id,
+    timestamp: event.timestamp || new Date().toISOString(),
+    severity: event.severity,
+    attackVector: event.type || "unknown",
+    description: event.description,
+    sourceIp: "192.168.1.1", // Mocked for UI compatibility until UI is refactored
+    targetEndpoint: "/api/v1/decisions",
+    blocked: event.status === "resolved",
+  }
+}
 
 export class ThreatService {
-  private events: ThreatEvent[]
+  private events: ThreatEvent[] = []
+  private isLoaded = false
 
   constructor() {
-    this.events = this.loadFromStorage()
+    this.initFromSupabase()
   }
 
-  private loadFromStorage(): ThreatEvent[] {
-    if (typeof window === "undefined") return THREAT_EVENTS
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch {
-        return THREAT_EVENTS
-      }
-    }
-    return THREAT_EVENTS
-  }
-
-  private saveToStorage() {
+  private async initFromSupabase() {
     if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.events))
-    emit("threat")
+    try {
+      const data = await monitoringRepository.getActiveThreats()
+      this.events = data.map(mapToUI)
+    } catch (err) {
+      console.error("Failed to load threats from repository", err)
+    } finally {
+      this.isLoaded = true
+      emit("threat")
+    }
   }
 
   getAll(): ThreatEvent[] {
-    this.events = this.loadFromStorage()
     return [...this.events].sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
@@ -45,31 +61,42 @@ export class ThreatService {
     return this.events.find(e => e.id === id)
   }
 
-  add(event: Omit<ThreatEvent, "id" | "timestamp">): ThreatEvent {
-    const now = new Date()
-    const id = `THREAT-${now.getTime()}`
-
-    const newEvent: ThreatEvent = {
-      ...event,
-      id,
-      timestamp: now.toISOString(),
+  async add(event: Omit<ThreatEvent, "id" | "timestamp">): Promise<ThreatEvent> {
+    try {
+      const inserted = await monitoringRepository.insertThreatEvent({
+        severity: event.severity,
+        type: event.attackVector,
+        description: event.description,
+        affected_features: [],
+        status: event.blocked ? "resolved" : "active"
+      })
+      const mapped = mapToUI(inserted as any)
+      this.events.unshift(mapped)
+      emit("threat")
+      return mapped
+    } catch (err) {
+      console.error("Failed to insert threat", err)
+      throw err
     }
-
-    this.events.unshift(newEvent)
-    this.saveToStorage()
-    return newEvent
   }
 
-  update(id: string, updates: Partial<ThreatEvent>): ThreatEvent | null {
+  async update(id: string, updates: Partial<ThreatEvent>): Promise<ThreatEvent | null> {
     const index = this.events.findIndex(e => e.id === id)
     if (index === -1) return null
 
-    this.events[index] = { ...this.events[index], ...updates }
-    this.saveToStorage()
+    if (updates.blocked) {
+      try {
+        await monitoringRepository.resolveThreat(id)
+        this.events[index].blocked = true
+        emit("threat")
+      } catch (err) {
+        console.error("Failed to resolve threat", err)
+      }
+    }
     return this.events[index]
   }
 
-  block(id: string): ThreatEvent | null {
+  async block(id: string): Promise<ThreatEvent | null> {
     return this.update(id, { blocked: true })
   }
 
@@ -93,9 +120,8 @@ export class ThreatService {
     }, {} as Record<string, number>)
   }
 
-  reset() {
-    this.events = [...THREAT_EVENTS]
-    this.saveToStorage()
+  async reset() {
+    await this.initFromSupabase()
   }
 }
 

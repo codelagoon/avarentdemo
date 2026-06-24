@@ -1,8 +1,34 @@
-import type { LedgerEntry } from "@/data/mockData"
-import { LEDGER_ENTRIES, generateHash } from "@/data/mockData"
 import { emit } from "@/lib/sync"
-import { supabase } from "@/lib/supabaseClient"
-import { companyService } from "./companyService"
+import { decisionRepository, DecisionRecord } from "@/repositories/DecisionRepository"
+
+// We keep the LedgerEntry interface to prevent the UI from breaking until we refactor the views
+export interface LedgerEntry {
+  id: string
+  timestamp: string
+  applicantId: string
+  applicantName: string
+  eventType: "decision" | "alert" | "intervention"
+  message: string
+  details?: any
+  hash: string
+  prevHash: string
+  fairnessScore: number
+}
+
+function mapToLedgerEntry(record: DecisionRecord): LedgerEntry {
+  return {
+    id: record.id,
+    timestamp: record.created_at,
+    applicantId: record.applicant_id,
+    applicantName: record.applicant_name,
+    eventType: record.circuit_breaker_triggered ? "intervention" : "decision",
+    message: `Application ${record.outcome.toUpperCase()}`,
+    details: { shap: record.shap_features, reasons: record.top_reasons },
+    hash: record.id,
+    prevHash: "0000000000000000000000000000000000000000000000000000000000000000",
+    fairnessScore: record.fairness_score || 0.9
+  }
+}
 
 export class LedgerService {
   private entries: LedgerEntry[] = []
@@ -15,45 +41,12 @@ export class LedgerService {
   private async initFromSupabase() {
     if (typeof window === "undefined") return
     
-    // We start with mock data, then merge/override with Supabase data
-    this.entries = [...LEDGER_ENTRIES]
-    
-    const companyId = companyService.getActiveCompanyId()
-    if (!companyId) {
-      this.isLoaded = true
-      return
-    }
-
     try {
-      const { data, error } = await supabase
-        .from("ledger_events")
-        .select("*")
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false })
-
-      if (data && !error) {
-        // Parse the decision_event JSON strings back into LedgerEntries
-        const remoteEntries = data.map(row => {
-          try {
-            const entry = JSON.parse(row.decision_event) as LedgerEntry
-            // Override with actual DB hashes
-            return {
-              ...entry,
-              hash: row.current_hash,
-              prevHash: row.previous_hash,
-            }
-          } catch {
-            return null
-          }
-        }).filter(Boolean) as LedgerEntry[]
-
-        // Merge remote entries with local mock entries (remote taking precedence)
-        // For a real app, you might only use remote entries, but for demo we mix them
-        const remoteIds = new Set(remoteEntries.map(e => e.id))
-        this.entries = [...remoteEntries, ...this.entries.filter(e => !remoteIds.has(e.id))]
-      }
+      // Load directly from the new DecisionRepository which enforces tenant isolation
+      const records = await decisionRepository.findRecent(500)
+      this.entries = records.map(mapToLedgerEntry)
     } catch (err) {
-      console.error("Failed to load ledger from Supabase", err)
+      console.error("Failed to load ledger from Supabase via decisionRepository", err)
     } finally {
       this.isLoaded = true
       emit("ledger")
@@ -74,72 +67,12 @@ export class LedgerService {
     return this.entries.find(e => e.id === id)
   }
 
-  async add(entry: Omit<LedgerEntry, "id" | "timestamp" | "hash" | "prevHash">): Promise<LedgerEntry> {
-    const now = new Date()
-    const id = `EVT-${now.toISOString().slice(0, 10).replace(/-/g, "")}-${String(this.entries.length + 1).padStart(4, "0")}`
-    const prevEntry = this.entries[0]
-
-    // Pre-calculate hash locally for optimistic UI updates
-    const prevHash = prevEntry?.hash ?? "0".repeat(64)
-    const newEntry: LedgerEntry = {
-      ...entry,
-      id,
-      timestamp: now.toISOString(),
-      hash: generateHash(id + entry.applicantId + now.toISOString()),
-      prevHash,
-    }
-
-    this.entries.unshift(newEntry)
-    emit("ledger") // Optimistic update
-
-    // Persist to Supabase
-    const companyId = companyService.getActiveCompanyId()
-    if (companyId) {
-      try {
-        const { data, error } = await supabase
-          .from("ledger_events")
-          .insert({
-            company_id: companyId,
-            applicant_id: newEntry.applicantId,
-            decision_event: JSON.stringify(newEntry),
-            // The DB trigger `chain_ledger_event` actually computes the hashes
-            // But we pass dummy values to satisfy NOT NULL constraints if needed
-            previous_hash: prevHash,
-            current_hash: newEntry.hash,
-            seal_signature: "optimistic_signature"
-          })
-          .select()
-          .single()
-
-        if (data && !error) {
-          // Update local entry with server-generated hashes from trigger
-          newEntry.hash = data.current_hash
-          newEntry.prevHash = data.previous_hash
-          emit("ledger")
-        }
-      } catch (err) {
-        console.error("Failed to persist ledger event to Supabase", err)
-      }
-    }
-
-    return newEntry
+  async add(entry: any): Promise<LedgerEntry> {
+    throw new Error("Cannot add to ledgerService directly. Use POST /api/v1/decisions instead.")
   }
 
   async update(id: string, updates: Partial<LedgerEntry>): Promise<LedgerEntry | null> {
-    const index = this.entries.findIndex(e => e.id === id)
-    if (index === -1) return null
-
-    this.entries[index] = { ...this.entries[index], ...updates }
-    emit("ledger") // Optimistic update
-
-    const companyId = companyService.getActiveCompanyId()
-    if (companyId) {
-      // Find the row to update based on applicant_id and decision_event content (hacky, ideally we have an id column)
-      // Since ledger is immutable, updates shouldn't really happen, but for demo we'll just update memory
-      console.warn("Ledger updates are not persisted to Supabase as it's an append-only ledger")
-    }
-
-    return this.entries[index]
+    throw new Error("Ledger is immutable.")
   }
 
   search(query: string): LedgerEntry[] {
@@ -170,9 +103,8 @@ export class LedgerService {
     }
   }
 
-  reset() {
-    this.entries = [...LEDGER_ENTRIES]
-    emit("ledger")
+  async reset() {
+    await this.initFromSupabase()
   }
 }
 

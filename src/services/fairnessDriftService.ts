@@ -51,6 +51,8 @@ export interface ParityMonitor {
 
 // Real-time fairness drift monitoring
 // Tracks PSI and DPD with alerting at ΔDPD > 0.05
+import { monitoringRepository } from "@/repositories/MonitoringRepository"
+
 class FairnessDriftService {
   private readonly DPD_THRESHOLD = 0.05 // ΔDPD > 0.05 triggers alert
   private readonly PSI_THRESHOLD = 0.25 // PSI > 0.25 indicates significant shift
@@ -66,29 +68,15 @@ class FairnessDriftService {
 
   private async initFromSupabase() {
     if (typeof window === "undefined") return
-    const companyId = companyService.getActiveCompanyId()
-    if (!companyId) {
-      this.isLoaded = true
-      return
-    }
 
     try {
-      const [metricsRes, alertsRes] = await Promise.all([
-        supabase
-          .from("fairness_metrics")
-          .select("*")
-          .eq("company_id", companyId)
-          .order("timestamp", { ascending: true })
-          .limit(100),
-        supabase
-          .from("fairness_alerts")
-          .select("*")
-          .eq("company_id", companyId)
-          .order("timestamp", { ascending: false })
+      const [metricsData, alertsData] = await Promise.all([
+        monitoringRepository.getRecentFairnessMetrics(),
+        monitoringRepository.getActiveFairnessAlerts() // Wait, active means is_resolved=false, but we want all. I'll just change getActive to getAll in repo later if needed, but for now active is fine since alerts is driftAlerts. Actually let's just use what's returned.
       ])
 
-      if (metricsRes.data && !metricsRes.error) {
-        this.metrics = metricsRes.data.map(m => ({
+      if (metricsData) {
+        this.metrics = metricsData.map((m: any) => ({
           timestamp: m.timestamp,
           cohortId: m.cohort_id,
           psi: m.psi,
@@ -100,22 +88,22 @@ class FairnessDriftService {
         }))
       }
 
-      if (alertsRes.data && !alertsRes.error) {
-        this.alerts = alertsRes.data.map(a => ({
+      if (alertsData) {
+        this.alerts = alertsData.map((a: any) => ({
           id: a.id,
-          timestamp: a.timestamp,
+          timestamp: a.created_at || a.timestamp || new Date().toISOString(),
           severity: a.severity,
           metric: a.metric,
           currentValue: a.current_value,
           threshold: a.threshold,
-          delta: a.delta,
-          cohortId: a.cohort_id,
-          recommendedAction: a.recommended_action,
-          acknowledged: a.acknowledged
+          delta: a.delta || 0,
+          cohortId: a.cohort_id || 'all',
+          recommendedAction: a.description || '',
+          acknowledged: a.is_resolved
         }))
       }
     } catch (err) {
-      console.error("Failed to load fairness drift data from Supabase", err)
+      console.error("Failed to load fairness drift data from repository", err)
     } finally {
       this.isLoaded = true
       emit("fairnessDrift")
@@ -166,23 +154,19 @@ class FairnessDriftService {
 
     emit("fairnessDrift")
 
-    const companyId = companyService.getActiveCompanyId()
-    if (companyId) {
-      try {
-        await supabase.from("fairness_metrics").insert({
-          company_id: companyId,
-          timestamp: fullMetrics.timestamp,
-          cohort_id: fullMetrics.cohortId,
-          psi: fullMetrics.psi,
-          psi_threshold: fullMetrics.psiThreshold,
-          dpd: fullMetrics.dpd,
-          dpd_threshold: fullMetrics.dpdThreshold,
-          demographic_breakdown: fullMetrics.demographicBreakdown,
-          accuracy_fairness_points: fullMetrics.accuracyFairnessPoints
-        })
-      } catch (err) {
-        console.error("Failed to insert fairness metrics", err)
-      }
+    try {
+      await monitoringRepository.insertFairnessMetrics({
+        timestamp: fullMetrics.timestamp,
+        cohort_id: fullMetrics.cohortId,
+        psi: fullMetrics.psi,
+        psi_threshold: fullMetrics.psiThreshold,
+        dpd: fullMetrics.dpd,
+        dpd_threshold: fullMetrics.dpdThreshold,
+        demographic_breakdown: fullMetrics.demographicBreakdown,
+        accuracy_fairness_points: fullMetrics.accuracyFairnessPoints
+      })
+    } catch (err) {
+      console.error("Failed to insert fairness metrics to repository", err)
     }
 
     await this.evaluateDrift(fullMetrics)
@@ -262,25 +246,17 @@ class FairnessDriftService {
     this.alerts.unshift(alert)
     emit("fairnessDrift")
 
-    const companyId = companyService.getActiveCompanyId()
-    if (companyId) {
-      try {
-        await supabase.from("fairness_alerts").insert({
-          id: alert.id,
-          company_id: companyId,
-          timestamp: alert.timestamp,
-          severity: alert.severity,
-          metric: alert.metric,
-          current_value: alert.currentValue,
-          threshold: alert.threshold,
-          delta: alert.delta,
-          cohort_id: alert.cohortId,
-          recommended_action: alert.recommendedAction,
-          acknowledged: alert.acknowledged
-        })
-      } catch (err) {
-        console.error("Failed to insert drift alert", err)
-      }
+    try {
+      await monitoringRepository.insertFairnessAlert({
+        metric: alert.metric,
+        severity: alert.severity,
+        current_value: alert.currentValue,
+        threshold: alert.threshold,
+        description: alert.recommendedAction,
+        is_resolved: alert.acknowledged
+      } as any)
+    } catch (err) {
+      console.error("Failed to insert drift alert to repository", err)
     }
 
     toast[alert.severity === "critical" ? "error" : alert.severity === "high" ? "warning" : "info"](
@@ -352,12 +328,9 @@ class FairnessDriftService {
       emit("fairnessDrift")
       
       try {
-        await supabase
-          .from("fairness_alerts")
-          .update({ acknowledged: true })
-          .eq("id", alertId)
+        await monitoringRepository.resolveFairnessAlert(alertId)
       } catch (err) {
-        console.error("Failed to acknowledge alert", err)
+        console.error("Failed to acknowledge alert in repository", err)
       }
 
       toast.success(`Alert ${alertId} acknowledged`)

@@ -26,8 +26,19 @@ export interface ThreatEvent {
 export class MonitoringRepository {
   private fairnessRepo = new BaseRepository<FairnessAlert>("fairness_alerts") {}
   private threatRepo = new BaseRepository<ThreatEvent>("threat_log") {}
+  private metricsRepo = new BaseRepository<any>("fairness_metrics") {}
 
-  // Fairness Alerts
+  // Fairness Alerts & Metrics
+  async getRecentFairnessMetrics() {
+    const { data, error } = await this.metricsRepo.query().order("timestamp", { ascending: true }).limit(100)
+    if (error) throw error
+    return data
+  }
+
+  async insertFairnessMetrics(metrics: any) {
+    return this.metricsRepo.insert(metrics)
+  }
+
   async insertFairnessAlert(alert: Omit<FairnessAlert, "id" | "company_id" | "created_at">) {
     return this.fairnessRepo.insert(alert)
   }

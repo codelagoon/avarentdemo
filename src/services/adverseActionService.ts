@@ -37,6 +37,8 @@ export interface AdverseActionReview {
   finalNarrative: string | null
 }
 
+import { adverseActionRepository } from "@/repositories/AdverseActionRepository"
+
 // Adverse Action Review Queue
 // Translator-only policy: UI shows raw SHAP alongside narrative
 class AdverseActionService {
@@ -49,45 +51,33 @@ class AdverseActionService {
 
   private async initFromSupabase() {
     if (typeof window === "undefined") return
-    const companyId = companyService.getActiveCompanyId()
-    if (!companyId) {
-      this.isLoaded = true
-      return
-    }
-
+    
     try {
-      const { data, error } = await supabase
-        .from("adverse_actions")
-        .select("*")
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false })
-
-      if (data && !error) {
-        this.reviews = data.map((row: any) => ({
-          id: row.id,
-          applicantId: row.applicant_id,
-          applicantName: row.applicant_name,
-          decisionDate: row.created_at,
-          shapFeatures: row.shap_features || [],
-          shapRankings: row.shap_rankings || [],
-          narrative: {
-            summary: row.narrative_summary,
-            keyFactors: row.custom_narrative ? [row.custom_narrative] : [],
-            behavioralExplanations: row.behavioral_explanations || [],
-            plainLanguageScore: row.plain_language_score,
-            cfpbCompliant: row.cfpb_compliant,
-          },
-          notice: row.notice || {} as AdverseActionNotice,
-          status: row.status,
-          reviewerNotes: row.reviewer_notes || "",
-          reviewedBy: row.reviewed_by,
-          reviewedAt: row.reviewed_at,
-          overrideReason: row.override_reason,
-          finalNarrative: row.custom_narrative,
-        }))
-      }
+      const data = await adverseActionRepository.findRecent()
+      this.reviews = data.map((row: any) => ({
+        id: row.id,
+        applicantId: row.applicant_id,
+        applicantName: row.applicant_name,
+        decisionDate: row.created_at,
+        shapFeatures: row.shap_features || [],
+        shapRankings: row.shap_rankings || [],
+        narrative: {
+          summary: row.narrative_summary,
+          keyFactors: row.custom_narrative ? [row.custom_narrative] : [],
+          behavioralExplanations: row.behavioral_explanations || [],
+          plainLanguageScore: row.plain_language_score,
+          cfpbCompliant: row.cfpb_compliant,
+        },
+        notice: row.notice || {} as AdverseActionNotice,
+        status: row.status,
+        reviewerNotes: row.reviewer_notes || "",
+        reviewedBy: row.reviewed_by,
+        reviewedAt: row.reviewed_at,
+        overrideReason: row.override_reason,
+        finalNarrative: row.custom_narrative,
+      }))
     } catch (err) {
-      console.error("Failed to load adverse actions from Supabase", err)
+      console.error("Failed to load adverse actions from repository", err)
     } finally {
       this.isLoaded = true
       emit("adverseAction")
@@ -153,30 +143,26 @@ class AdverseActionService {
     this.reviews.unshift(review)
     emit("adverseAction")
 
-    const companyId = companyService.getActiveCompanyId()
-    if (companyId) {
-      try {
-        const { data, error } = await supabase.from("adverse_actions").insert({
-          company_id: companyId,
-          applicant_name: applicantName,
-          applicant_id: applicantId,
-          plain_language_score: translation.plainLanguageScore,
-          cfpb_compliant: translation.cfpbCircular2023_03Compliant,
-          status: "pending_review",
-          narrative_summary: translation.summary,
-          behavioral_explanations: behavioralExplanations,
-          shap_features: shapFeatures,
-          shap_rankings: sortedSHAP,
-          notice: notice,
-        }).select().single()
+    try {
+      const data = await adverseActionRepository.insert({
+        applicant_name: applicantName,
+        applicant_id: applicantId,
+        plain_language_score: translation.plainLanguageScore,
+        cfpb_compliant: translation.cfpbCircular2023_03Compliant,
+        status: "pending_review",
+        narrative_summary: translation.summary,
+        behavioral_explanations: behavioralExplanations,
+        shap_features: shapFeatures,
+        shap_rankings: sortedSHAP,
+        notice: notice,
+      } as any)
 
-        if (data && !error) {
-          review.id = data.id
-          emit("adverseAction")
-        }
-      } catch (err) {
-        console.error("Failed to insert adverse action to Supabase", err)
+      if (data) {
+        review.id = data.id
+        emit("adverseAction")
       }
+    } catch (err) {
+      console.error("Failed to insert adverse action to repository", err)
     }
 
     toast.info(`New Adverse Action Review: ${applicantName}`, {
@@ -201,15 +187,15 @@ class AdverseActionService {
     emit("adverseAction")
 
     try {
-      await supabase.from("adverse_actions").update({
+      await adverseActionRepository.update(reviewId, {
         status: review.status,
         reviewed_by: review.reviewedBy,
         reviewed_at: review.reviewedAt,
         reviewer_notes: review.reviewerNotes,
         custom_narrative: review.finalNarrative,
-      }).eq("id", reviewId)
+      } as any)
     } catch (err) {
-      console.error("Failed to approve adverse action in Supabase", err)
+      console.error("Failed to approve adverse action in repository", err)
     }
 
     toast.success(`Adverse Action Approved: ${review.applicantName}`)
@@ -242,16 +228,16 @@ class AdverseActionService {
     emit("adverseAction")
 
     try {
-      await supabase.from("adverse_actions").update({
+      await adverseActionRepository.update(reviewId, {
         status: review.status,
         reviewed_by: review.reviewedBy,
         reviewed_at: review.reviewedAt,
         override_reason: review.overrideReason,
         custom_narrative: review.finalNarrative,
         reviewer_notes: review.reviewerNotes,
-      }).eq("id", reviewId)
+      } as any)
     } catch (err) {
-      console.error("Failed to override adverse action in Supabase", err)
+      console.error("Failed to override adverse action in repository", err)
     }
 
     toast.warning(`Adverse Action Overridden: ${review.applicantName}`, {
@@ -275,11 +261,11 @@ class AdverseActionService {
     emit("adverseAction")
 
     try {
-      await supabase.from("adverse_actions").update({
+      await adverseActionRepository.update(reviewId, {
         status: review.status,
-      }).eq("id", reviewId)
+      } as any)
     } catch (err) {
-      console.error("Failed to mark adverse action as sent in Supabase", err)
+      console.error("Failed to mark adverse action as sent in repository", err)
     }
 
     toast.success(`Adverse Action Notice sent to ${review.applicantName}`)
