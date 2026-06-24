@@ -1,11 +1,15 @@
 import { PostHog } from "posthog-node"
+import { getPostHogHost, getPostHogProjectToken } from "@/lib/posthog/env"
 
 let posthogClient: PostHog | null = null
 
-export function getPostHogClient(): PostHog {
+export function getPostHogClient(): PostHog | null {
+  const token = getPostHogProjectToken()
+  if (!token) return null
+
   if (!posthogClient) {
-    posthogClient = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
-      host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    posthogClient = new PostHog(token, {
+      host: getPostHogHost(),
       flushAt: 1,
       flushInterval: 0,
     })

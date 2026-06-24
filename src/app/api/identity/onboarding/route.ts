@@ -77,20 +77,22 @@ export async function POST(request: Request) {
     )
 
     const posthog = getPostHogClient()
-    posthog.capture({
-      distinctId: context.user_id,
-      event: "organization_onboarded",
-      properties: {
-        organization_id: organization.organization_id,
-        company_name: body.companyName.trim(),
-        industry: body.industry,
-        size: body.size,
-        primary_use_case: body.primaryUseCase,
-        regulatory_body: body.regulatoryBody,
-        data_volume_estimate: body.dataVolumeEstimate,
-        compliance_needs: body.complianceNeeds,
-      },
-    })
+    if (posthog) {
+      posthog.capture({
+        distinctId: context.user_id,
+        event: "organization_onboarded",
+        properties: {
+          organization_id: organization.organization_id,
+          company_name: body.companyName.trim(),
+          industry: body.industry,
+          size: body.size,
+          primary_use_case: body.primaryUseCase,
+          regulatory_body: body.regulatoryBody,
+          data_volume_estimate: body.dataVolumeEstimate,
+          compliance_needs: body.complianceNeeds,
+        },
+      })
+    }
 
     return NextResponse.json({
       organization,

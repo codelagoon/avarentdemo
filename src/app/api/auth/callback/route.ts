@@ -17,19 +17,21 @@ export const GET = handleAuth({
           : "workos_supabase_user_linked",
       })
       const posthog = getPostHogClient()
-      posthog.identify({
-        distinctId: result.supabaseUserId,
-        properties: { email: user.email, name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || undefined },
-      })
-      posthog.capture({
-        distinctId: result.supabaseUserId,
-        event: "user_signed_in",
-        properties: {
-          email: user.email,
-          is_new_user: result.created,
-          provider: "workos",
-        },
-      })
+      if (posthog) {
+        posthog.identify({
+          distinctId: result.supabaseUserId,
+          properties: { email: user.email, name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || undefined },
+        })
+        posthog.capture({
+          distinctId: result.supabaseUserId,
+          event: "user_signed_in",
+          properties: {
+            email: user.email,
+            is_new_user: result.created,
+            provider: "workos",
+          },
+        })
+      }
     } catch (error) {
       logAuthEvent({
         type: "auth.sign_in.failure",

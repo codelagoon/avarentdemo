@@ -88,18 +88,20 @@ export async function POST(req: Request) {
     } as any)
 
     const posthog = getPostHogClient()
-    posthog.capture({
-      distinctId: companyId,
-      event: "decision_ingested",
-      properties: {
-        company_id: companyId,
-        outcome,
-        has_circuit_breaker: circuit_breaker_triggered || false,
-        model_version: model_version || "v1.0.0",
-        loan_amount,
-        latency_ms,
-      },
-    })
+    if (posthog) {
+      posthog.capture({
+        distinctId: companyId,
+        event: "decision_ingested",
+        properties: {
+          company_id: companyId,
+          outcome,
+          has_circuit_breaker: circuit_breaker_triggered || false,
+          model_version: model_version || "v1.0.0",
+          loan_amount,
+          latency_ms,
+        },
+      })
+    }
 
     return NextResponse.json({
       status: "success",
