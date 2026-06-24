@@ -1,4 +1,5 @@
 import { emit } from "@/lib/sync"
+import { bindTenantInit } from "@/lib/tenant-init"
 import { supabase } from "@/lib/supabaseClient"
 import { companyService } from "./companyService"
 
@@ -159,7 +160,7 @@ export class AntiFairwashingService {
 
   constructor() {
     this.state = JSON.parse(JSON.stringify(DEFAULT_STATE))
-    this.initFromSupabase()
+    bindTenantInit(() => this.initFromSupabase())
   }
 
   private async initFromSupabase() {

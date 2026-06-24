@@ -38,6 +38,7 @@ export function setWorkflowCache(
   cache.loadedAt = Date.now()
   emit("threat")
   emit("ledger")
+  emit("tenant")
 }
 
 export function upsertThreatInCache(event: ThreatEvent): void {

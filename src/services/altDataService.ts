@@ -1,4 +1,5 @@
 import { emit } from "@/lib/sync"
+import { bindTenantInit } from "@/lib/tenant-init"
 import { tenantSettingsRepository } from "@/repositories/TenantSettingsRepository"
 import { companyService } from "./companyService"
 
@@ -172,7 +173,7 @@ export class AltDataService {
 
   constructor() {
     this.state = JSON.parse(JSON.stringify(DEFAULT_STATE))
-    this.initFromSupabase()
+    bindTenantInit(() => this.initFromSupabase())
   }
 
   private async initFromSupabase() {

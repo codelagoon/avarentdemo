@@ -1,6 +1,7 @@
 import { toast } from "sonner"
 import { emit } from "@/lib/sync"
 import { circuitBreakerRepository } from "@/repositories/MLRepositories"
+import { bindTenantInit } from "@/lib/tenant-init"
 import { companyService } from "./companyService"
 
 const STORAGE_KEY = "avarent_decision_gateway"
@@ -62,7 +63,7 @@ class DecisionGateway {
   private fairnessAuditLatency = 120 // Simulated latency
 
   constructor() {
-    this.initFromSupabase()
+    bindTenantInit(() => this.initFromSupabase())
   }
 
   private async initFromSupabase() {

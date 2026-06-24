@@ -72,7 +72,7 @@ function ModelsSparkline() {
           <Line
             type="monotone"
             dataKey="value"
-            stroke="var(--primary)"
+            stroke="var(--g-color-base-brand)"
             strokeWidth={1.5}
             dot={false}
           />
@@ -86,7 +86,7 @@ export function KpiRow({ kpis }: KpiRowProps) {
   const { activeFindings, investigations, modelsMonitored, topBreachMetric } = kpis
 
   return (
-    <div className="shrink-0 rounded-md border border-border bg-card">
+    <div className="shrink-0 rounded-md border border-border bg-card shadow-surface">
       <div className="flex flex-col gap-2 border-b border-border px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-1">
         <FairnessMetricLine metric={kpis.adverseImpactRatio} />
         <FairnessMetricLine metric={kpis.statisticalParityDifference} />

@@ -98,8 +98,8 @@ export function TenantTeamManager() {
   const getRoleIcon = (role: string) => {
     switch(role) {
       case 'owner': return <Shield className="h-3.5 w-3.5 text-rose-500" />
-      case 'compliance_officer': return <Shield className="h-3.5 w-3.5 text-indigo-500" />
-      case 'analyst': return <UserCog className="h-3.5 w-3.5 text-blue-500" />
+      case 'compliance_officer': return <Shield className="h-3.5 w-3.5 text-primary" />
+      case 'analyst': return <UserCog className="h-3.5 w-3.5 text-status-info" />
       default: return <User className="h-3.5 w-3.5 text-slate-500" />
     }
   }
@@ -146,7 +146,7 @@ export function TenantTeamManager() {
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
+      <div className="rounded-lg border border-border/60 bg-card shadow-surface overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>

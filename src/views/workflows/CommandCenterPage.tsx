@@ -74,7 +74,7 @@ function CollapsibleSection({
       open={open}
       onOpenChange={onOpenChange}
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card",
+        "flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface",
         fill ? "min-h-0 flex-1" : "shrink-0",
         className
       )}
@@ -247,7 +247,7 @@ export function CommandCenterPage({ onNavigate }: CommandCenterPageProps) {
     <ViewportPage testId="command-center-page" className="gap-2">
       {criticalFindingCount > 0 && (
         <div
-          className="flex shrink-0 items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2"
+          className="flex shrink-0 items-center gap-2 rounded-md border border-status-fail-border bg-status-fail-bg px-3 py-2"
           role="alert"
         >
           <AlertTriangle className="size-4 shrink-0 text-destructive" aria-hidden />

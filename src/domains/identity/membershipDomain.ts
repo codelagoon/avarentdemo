@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Membership, MembershipRole, Organization } from "@/lib/identity/types"
 import { normalizeMembershipRole } from "@/lib/identity/types"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -42,7 +43,21 @@ export async function createOrganization(
   input: CreateOrganizationInput
 ): Promise<Organization> {
   const supabase = await createUserServerClient()
+  return insertOrganization(supabase, input)
+}
 
+/** Bootstrap onboarding with service role after the caller verified the user session. */
+export async function createOrganizationAsAdmin(
+  input: CreateOrganizationInput
+): Promise<Organization> {
+  const supabase = createAdminClient()
+  return insertOrganization(supabase, input)
+}
+
+async function insertOrganization(
+  supabase: SupabaseClient,
+  input: CreateOrganizationInput
+): Promise<Organization> {
   const { data, error } = await supabase
     .from("companies")
     .insert({
@@ -90,7 +105,21 @@ export async function createMembership(
   input: CreateMembershipInput
 ): Promise<Membership> {
   const supabase = await createUserServerClient()
+  return insertMembership(supabase, input)
+}
 
+/** Bootstrap onboarding membership with service role. */
+export async function createMembershipAsAdmin(
+  input: CreateMembershipInput
+): Promise<Membership> {
+  const supabase = createAdminClient()
+  return insertMembership(supabase, input)
+}
+
+async function insertMembership(
+  supabase: SupabaseClient,
+  input: CreateMembershipInput
+): Promise<Membership> {
   const { data, error } = await supabase
     .from("company_members")
     .insert({

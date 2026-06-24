@@ -42,10 +42,10 @@ export interface MonitoringPanelProps {
 }
 
 const SEVERITY_BOX_STYLES = {
-  critical: "border-destructive/30 bg-destructive/5",
-  high: "border-orange-500/30 bg-orange-500/10",
-  medium: "border-amber-500/30 bg-amber-500/10",
-  low: "border-emerald-500/30 bg-emerald-500/10",
+  critical: "border-status-fail-border bg-status-fail-bg",
+  high: "border-status-review-border bg-status-review-bg",
+  medium: "border-status-review-border bg-status-review-bg",
+  low: "border-status-pass-border bg-status-pass-bg",
 } as const
 
 const AIR_REFERENCE_LINES = [
@@ -78,8 +78,8 @@ function getSignalHelp(technicalTerm: string): string | undefined {
 }
 
 function TrendIcon({ trend }: { trend: MonitoringSignal["trend"] }) {
-  if (trend === "up") return <TrendingUp className="size-3 text-destructive" />
-  if (trend === "down") return <TrendingDown className="size-3 text-emerald-400" />
+  if (trend === "up") return <TrendingUp className="size-3 text-delta-down" />
+  if (trend === "down") return <TrendingDown className="size-3 text-delta-up" />
   return <Minus className="size-3 text-muted-foreground" />
 }
 
@@ -299,35 +299,35 @@ function DisparityTrendSection({ trendData, compact, dense }: DisparityTrendSect
               <ReferenceLine
                 key={line.value}
                 y={line.value}
-                stroke="hsl(var(--muted-foreground))"
+              stroke="var(--g-color-text-hint)"
                 strokeDasharray="4 4"
               />
             ))}
             <Line
               type="monotone"
               dataKey="mortgage"
-              stroke="var(--primary)"
+              stroke="var(--chart-line-mortgage)"
               strokeWidth={1.5}
               dot={false}
             />
             <Line
               type="monotone"
               dataKey="auto"
-              stroke="#f97316"
+              stroke="var(--chart-line-auto)"
               strokeWidth={1.5}
               dot={false}
             />
             <Line
               type="monotone"
               dataKey="personal"
-              stroke="#eab308"
+              stroke="var(--chart-line-personal)"
               strokeWidth={1.5}
               dot={false}
             />
             <Line
               type="monotone"
               dataKey="creditCard"
-              stroke="#14b8a6"
+              stroke="var(--chart-line-card)"
               strokeWidth={1.5}
               dot={false}
             />
@@ -345,13 +345,13 @@ function DisparityTrendSection({ trendData, compact, dense }: DisparityTrendSect
           <span className="size-2 rounded-full bg-primary" /> Mortgage
         </span>
         <span className="flex items-center gap-1">
-          <span className="size-2 rounded-full bg-orange-500" /> Auto
+          <span className="size-2 rounded-full bg-status-review" /> Auto
         </span>
         <span className="flex items-center gap-1">
-          <span className="size-2 rounded-full bg-yellow-500" /> Personal
+          <span className="size-2 rounded-full bg-secondary-foreground" /> Personal
         </span>
         <span className="flex items-center gap-1">
-          <span className="size-2 rounded-full bg-teal-500" /> Card
+          <span className="size-2 rounded-full bg-status-info" /> Card
         </span>
       </div>
       {!dense ? (
@@ -469,7 +469,7 @@ export function MonitoringPanel({
         className={cn(
           "flex min-h-0 flex-col overflow-hidden",
           tabbedView && "h-full",
-          !hideHeader && "rounded-md border border-border bg-card"
+          !hideHeader && "rounded-md border border-border bg-card shadow-surface"
         )}
       >
         {!hideHeader && (

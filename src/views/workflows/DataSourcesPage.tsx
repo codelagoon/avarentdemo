@@ -159,7 +159,7 @@ export function DataSourcesPage() {
         ) : null}
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-card">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface">
         <p className="shrink-0 border-b border-border px-3 py-2 g-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
           Connected sources
         </p>

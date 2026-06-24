@@ -1,5 +1,6 @@
 "use client"
 
+import posthog from "posthog-js"
 import { useEffect, useMemo, useState } from "react"
 import { Crosshair, Lock } from "lucide-react"
 import { toast } from "sonner"
@@ -84,7 +85,7 @@ function EvidenceRow({ entry, isLast }: { entry: LedgerEntry; isLast: boolean })
       <div className="flex items-start justify-between gap-2">
         <p className="g-text-caption line-clamp-2 text-foreground">{entry.message}</p>
         {isSealed ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 g-text-caption text-emerald-300">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded border border-status-pass-border bg-status-pass-bg px-1.5 py-0.5 g-text-caption text-status-pass">
             <Lock className="size-3" aria-hidden />
             Audit Sealed
           </span>
@@ -117,16 +118,34 @@ function InvestigationDetail({ threat }: InvestigationDetailProps) {
 
   const handleAssign = () => {
     assignInvestigation(threat.id)
+    posthog.capture("investigation_assigned", {
+      investigation_id: threat.id,
+      finding_id: threat.findingId,
+      severity: threat.severity,
+      attack_vector: threat.attackVector,
+    })
     toast.success(`Investigation ${threat.id} assigned to you`)
   }
 
   const handleEscalate = () => {
     escalateInvestigation(threat)
+    posthog.capture("investigation_escalated", {
+      investigation_id: threat.id,
+      finding_id: threat.findingId,
+      severity: threat.severity,
+      attack_vector: threat.attackVector,
+    })
     toast.warning(`${threat.id} escalated to compliance review`)
   }
 
   const handleResolve = () => {
     resolveInvestigation(threat)
+    posthog.capture("investigation_resolved", {
+      investigation_id: threat.id,
+      finding_id: threat.findingId,
+      severity: threat.severity,
+      attack_vector: threat.attackVector,
+    })
     toast.success(`Investigation ${threat.id} resolved — mitigation recorded in ledger`)
   }
 

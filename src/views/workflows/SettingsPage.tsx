@@ -173,7 +173,7 @@ export function SettingsPage() {
           </Button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border bg-card">
+        <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border bg-card shadow-surface">
           {tab === "detection" ? (
             <div
               id="settings-panel-detection"

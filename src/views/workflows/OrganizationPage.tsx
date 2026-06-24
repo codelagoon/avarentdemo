@@ -110,7 +110,7 @@ export function OrganizationPage() {
           aria-label="Search team members"
         />
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-card">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface">
           <div className="min-h-0 flex-1 overflow-auto">
             <table className="w-full border-collapse text-left">
               <thead className="sticky top-0 z-10 bg-card">

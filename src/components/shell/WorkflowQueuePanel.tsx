@@ -32,7 +32,7 @@ export function WorkflowQueuePanel({
   return (
     <div
       className={cn(
-        "flex w-72 shrink-0 flex-col overflow-hidden rounded-md border border-border bg-card",
+        "flex w-72 shrink-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface",
         className
       )}
     >
@@ -97,7 +97,7 @@ export function WorkflowDetailPanel({
     return (
       <div
         className={cn(
-          "flex min-h-0 flex-1 items-center justify-center rounded-md border border-border bg-card p-6",
+          "flex min-h-0 flex-1 items-center justify-center rounded-md border border-border bg-card shadow-surface p-6",
           className
         )}
       >
@@ -109,7 +109,7 @@ export function WorkflowDetailPanel({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-card",
+        "flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface",
         className
       )}
     >

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { DecisionRepository } from "@/repositories/DecisionRepository"
 import { createHash } from "crypto"
+import { getPostHogClient } from "@/lib/posthog-server"
 
 export const dynamic = "force-dynamic"
 
@@ -86,10 +87,24 @@ export async function POST(req: Request) {
       model_version: model_version || "v1.0.0"
     } as any)
 
-    return NextResponse.json({ 
+    const posthog = getPostHogClient()
+    posthog.capture({
+      distinctId: companyId,
+      event: "decision_ingested",
+      properties: {
+        company_id: companyId,
+        outcome,
+        has_circuit_breaker: circuit_breaker_triggered || false,
+        model_version: model_version || "v1.0.0",
+        loan_amount,
+        latency_ms,
+      },
+    })
+
+    return NextResponse.json({
       status: "success",
       message: "Decision event ingested successfully",
-      event_id: data.id 
+      event_id: data.id
     }, { status: 201 })
 
   } catch (err) {

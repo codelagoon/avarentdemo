@@ -8,10 +8,10 @@ export interface SeverityBadgeProps {
 }
 
 const SEVERITY_STYLES: Record<ThreatSeverity, string> = {
-  critical: "border-destructive/30 bg-destructive/10 text-destructive",
-  high: "border-orange-500/30 bg-orange-500/10 text-orange-400",
-  medium: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  low: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+  critical: "border-status-fail-border bg-status-fail-bg text-status-fail",
+  high: "border-status-review-border bg-status-review-bg text-status-review",
+  medium: "border-status-review-border bg-status-review-bg text-status-review",
+  low: "border-status-pass-border bg-status-pass-bg text-status-pass",
 }
 
 export function SeverityBadge({ severity, className }: SeverityBadgeProps) {

@@ -34,7 +34,7 @@ export function ActivityFeed({ items, hideHeader }: ActivityFeedProps) {
     <div
       className={cn(
         "flex min-h-0 flex-col overflow-hidden",
-        !hideHeader && "rounded-md border border-border bg-card"
+        !hideHeader && "rounded-md border border-border bg-card shadow-surface"
       )}
     >
       {!hideHeader && (
@@ -56,8 +56,8 @@ export function ActivityFeed({ items, hideHeader }: ActivityFeedProps) {
                   "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
                   item.category === "finding" && "bg-destructive/10 text-destructive",
                   item.category === "analysis" && "bg-primary/10 text-primary",
-                  item.category === "investigation" && "bg-orange-500/10 text-orange-400",
-                  item.category === "audit" && "bg-emerald-500/10 text-emerald-400"
+                  item.category === "investigation" && "bg-status-review-bg text-status-review",
+                  item.category === "audit" && "bg-status-pass-bg text-status-pass"
                 )}
               >
                 <Icon className="size-3.5" />

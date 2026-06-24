@@ -38,7 +38,7 @@ export function ReadinessSnapshot({
       className={cn(
         "flex min-h-0 flex-col overflow-hidden",
         compact && "h-full overflow-y-auto overscroll-y-contain",
-        !hideHeader && "rounded-md border border-border bg-card"
+        !hideHeader && "rounded-md border border-border bg-card shadow-surface"
       )}
     >
       {!hideHeader && (
@@ -73,26 +73,26 @@ export function ReadinessSnapshot({
             "grid shrink-0 grid-cols-[1rem_1fr] items-center gap-x-2.5 rounded-md border",
             compact ? "px-2.5 py-2" : "px-3 py-2.5",
             hasCriticalFindings
-              ? "border-amber-500/30 bg-amber-500/10"
-              : "border-emerald-500/30 bg-emerald-500/10"
+              ? "border-status-review-border bg-status-review-bg"
+              : "border-status-pass-border bg-status-pass-bg"
           )}
           role="status"
         >
           {hasCriticalFindings ? (
             <AlertTriangle
-              className="size-4 shrink-0 text-amber-400"
+              className="size-4 shrink-0 text-status-review"
               aria-hidden
             />
           ) : (
             <CheckCircle
-              className="size-4 shrink-0 text-emerald-400"
+              className="size-4 shrink-0 text-status-pass"
               aria-hidden
             />
           )}
           <p
             className={cn(
               "min-w-0 g-text-caption leading-snug",
-              hasCriticalFindings ? "text-amber-200" : "text-emerald-300"
+              hasCriticalFindings ? "text-status-review" : "text-status-pass"
             )}
           >
             {hasCriticalFindings
@@ -111,7 +111,7 @@ export function ReadinessSnapshot({
             <button
               type="button"
               className={cn(
-                "inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-md bg-primary font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-md bg-primary font-medium text-primary-foreground transition-colors hover:bg-[var(--g-color-base-brand-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 compact ? "h-7 px-2.5 text-xs" : "h-8 px-3 text-sm"
               )}
             >

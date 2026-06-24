@@ -38,6 +38,7 @@ export interface AdverseActionReview {
 }
 
 import { adverseActionRepository } from "@/repositories/AdverseActionRepository"
+import { bindTenantInit } from "@/lib/tenant-init"
 
 // Adverse Action Review Queue
 // Translator-only policy: UI shows raw SHAP alongside narrative
@@ -46,12 +47,13 @@ class AdverseActionService {
   private isLoaded = false
 
   constructor() {
-    this.initFromSupabase()
+    bindTenantInit(() => this.initFromSupabase())
   }
 
   private async initFromSupabase() {
     if (typeof window === "undefined") return
-    
+    if (!companyService.getActiveCompanyId()) return
+
     try {
       const data = await adverseActionRepository.findRecent()
       this.reviews = data.map((row: any) => ({

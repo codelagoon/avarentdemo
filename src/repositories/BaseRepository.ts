@@ -1,5 +1,9 @@
 import { supabase } from "@/lib/supabaseClient"
+import { getCachedOrganizationId } from "@/lib/workflows/client-store"
 import { companyService } from "@/services/companyService"
+
+/** Impossible UUID — used for no-op reads before tenant context exists. */
+const EMPTY_TENANT_SENTINEL = "00000000-0000-0000-0000-000000000000"
 
 /**
  * BaseRepository enforces tenant isolation across all database operations.
@@ -15,28 +19,54 @@ export abstract class BaseRepository<T> {
   }
 
   /**
-   * Retrieves the current tenant's company_id securely.
-   * Throws an error if no tenant is active, preventing accidental cross-tenant queries.
+   * Resolves tenant scope. Server routes must pass `serverTenantId`.
+   * Client reads return null (not throw) when org context is not ready yet.
    */
-  protected getTenantId(): string {
+  protected resolveTenantId(required: boolean): string | null {
     if (this.serverTenantId) return this.serverTenantId
-    
+
     if (typeof window === "undefined") {
-      throw new Error(`Tenant Isolation Violation: Attempted to query ${this.tableName} on the server without injecting a tenant context.`)
+      if (required) {
+        throw new Error(
+          `Tenant Isolation Violation: Attempted to query ${this.tableName} on the server without injecting a tenant context.`
+        )
+      }
+      return null
     }
 
-    const companyId = companyService.getActiveCompanyId()
-    if (!companyId) {
-      throw new Error(`Tenant Isolation Violation: Attempted to query ${this.tableName} without an active tenant context.`)
+    const companyId =
+      companyService.getActiveCompanyId() ?? getCachedOrganizationId()
+
+    if (!companyId && required) {
+      throw new Error(
+        `Tenant Isolation Violation: Attempted to query ${this.tableName} without an active tenant context.`
+      )
     }
+
     return companyId
   }
 
   /**
+   * Retrieves the current tenant's company_id securely.
+   * Throws on mutations or server reads without injected tenant context.
+   */
+  protected getTenantId(): string {
+    return this.resolveTenantId(true) as string
+  }
+
+  /**
    * Returns a Supabase query builder pre-filtered by the active tenant.
+   * Before tenant context exists on the client, returns an empty-result query.
    */
   public query() {
-    return supabase.from(this.tableName).select("*").eq("company_id", this.getTenantId())
+    const tenantId = this.resolveTenantId(false)
+    if (!tenantId) {
+      return supabase
+        .from(this.tableName)
+        .select("*")
+        .eq("company_id", EMPTY_TENANT_SENTINEL)
+    }
+    return supabase.from(this.tableName).select("*").eq("company_id", tenantId)
   }
 
   /**

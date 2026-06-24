@@ -72,16 +72,16 @@ function queueLabel(entry: LedgerEntry): string {
 
 function queueBadgeVariant(entry: LedgerEntry): string {
   if (entry.decision === "escalated" || entry.severity === "critical") {
-    return "border-destructive/30 bg-destructive/10 text-destructive"
+    return "border-status-fail-border bg-status-fail-bg text-status-fail"
   }
   if (entry.decision === "denied") {
-    return "border-destructive/30 bg-destructive/10 text-destructive"
+    return "border-status-fail-border bg-status-fail-bg text-status-fail"
   }
   if (entry.eventType === "proof_signed") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+    return "border-status-pass-border bg-status-pass-bg text-status-pass"
   }
   if (entry.severity === "high" || entry.eventType === "alert") {
-    return "border-amber-500/30 bg-amber-500/10 text-amber-400"
+    return "border-status-review-border bg-status-review-bg text-status-review"
   }
   return "border-border bg-muted/50 text-muted-foreground"
 }
@@ -133,7 +133,7 @@ function DocumentationDetail({ entry }: DocumentationDetailProps) {
           </Badge>
           <span className="g-text-caption font-mono-data text-muted-foreground">{entry.id}</span>
           {isSealed ? (
-            <span className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 g-text-caption text-emerald-300">
+            <span className="inline-flex items-center gap-1 rounded border border-status-pass-border bg-status-pass-bg px-1.5 py-0.5 g-text-caption text-status-pass">
               <Lock className="size-3" aria-hidden />
               Audit Sealed
             </span>

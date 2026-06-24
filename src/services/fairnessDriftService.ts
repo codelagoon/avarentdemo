@@ -52,6 +52,7 @@ export interface ParityMonitor {
 // Real-time fairness drift monitoring
 // Tracks PSI and DPD with alerting at ΔDPD > 0.05
 import { monitoringRepository } from "@/repositories/MonitoringRepository"
+import { bindTenantInit } from "@/lib/tenant-init"
 
 class FairnessDriftService {
   private readonly DPD_THRESHOLD = 0.05 // ΔDPD > 0.05 triggers alert
@@ -63,11 +64,12 @@ class FairnessDriftService {
   private isLoaded = false
 
   constructor() {
-    this.initFromSupabase()
+    bindTenantInit(() => this.initFromSupabase())
   }
 
   private async initFromSupabase() {
     if (typeof window === "undefined") return
+    if (!companyService.getActiveCompanyId()) return
 
     try {
       const [metricsData, alertsData] = await Promise.all([

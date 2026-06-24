@@ -1,3 +1,6 @@
+"use client"
+
+import posthog from "posthog-js"
 import { useState, useEffect } from "react"
 import { useLiveData } from "@/hooks/useLiveData"
 import { CheckCircle, Shield, XCircle, FileWarning, Clock, UserCheck } from "lucide-react"
@@ -38,12 +41,14 @@ export function GovernancePage() {
   })
 
   const handleApprove = async (id: string) => {
+    posthog.capture("governance_mitigation_approved", { investigation_id: id })
     toast.success("Mitigation approved. Case cryptographically sealed to ledger.")
     // optimistic update
     setApprovals(prev => prev.map(a => a.id === id ? { ...a, status: "closed" } : a))
   }
 
   const handleReject = async (id: string) => {
+    posthog.capture("governance_mitigation_rejected", { investigation_id: id })
     toast.error("Mitigation rejected. Routed back to Analyst queue.")
     // optimistic update
     setApprovals(prev => prev.map(a => a.id === id ? { ...a, status: "in_progress" } : a))
@@ -54,8 +59,8 @@ export function GovernancePage() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/30 bg-card px-6 py-5 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10">
-            <CheckCircle className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent">
+            <CheckCircle className="h-4.5 w-4.5 text-primary" />
           </div>
           <div>
             <h1 className="text-base font-semibold text-foreground">Governance & Sign-Offs</h1>
@@ -64,9 +69,9 @@ export function GovernancePage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1.5 lg:flex border border-indigo-500/20">
-            <Shield className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
-            <span className="font-mono text-[0.6rem] font-semibold tracking-tight text-indigo-700 dark:text-indigo-300">CCO OVERSIGHT ACTIVE</span>
+          <div className="hidden items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 lg:flex border border-status-review-border">
+            <Shield className="h-3 w-3 text-primary" />
+            <span className="font-mono text-[0.6rem] font-semibold tracking-tight text-primary">CCO OVERSIGHT ACTIVE</span>
           </div>
 
           <div className="flex rounded-lg border border-border/60 bg-muted/60 p-0.5">
@@ -94,7 +99,7 @@ export function GovernancePage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-5">
-        <Card className="border-border/60 shadow-sm overflow-hidden min-h-[500px]">
+        <Card className="border-border/60 overflow-hidden min-h-[500px]">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
@@ -111,7 +116,7 @@ export function GovernancePage() {
                 <TableRow>
                   <TableCell colSpan={6} className="h-48 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground gap-2">
-                      <CheckCircle className="h-8 w-8 text-emerald-500/50" />
+                      <CheckCircle className="h-8 w-8 text-status-pass/50" />
                       <p className="text-sm font-medium text-foreground">Queue Empty</p>
                       <p className="text-xs">No pending compliance approvals require your signature.</p>
                     </div>
@@ -121,7 +126,7 @@ export function GovernancePage() {
                 filtered.map(item => (
                   <TableRow key={item.id} className="hover:bg-muted/30">
                     <TableCell className="text-center">
-                      <FileWarning className="h-4 w-4 mx-auto text-indigo-500" />
+                      <FileWarning className="h-4 w-4 mx-auto text-primary" />
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
@@ -131,7 +136,7 @@ export function GovernancePage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1 max-w-md">
-                        <Badge variant="outline" className="w-fit text-[0.6rem] bg-indigo-500/5 text-indigo-600 border-indigo-500/20">Do-Calculus Feature Severance</Badge>
+                        <Badge variant="outline" className="w-fit text-[0.6rem] bg-accent text-primary border-status-review-border">Do-Calculus Feature Severance</Badge>
                         <p className="text-xs text-muted-foreground truncate">
                           {item.notes || "Analyst recommended removing correlated zip codes."}
                         </p>
@@ -152,10 +157,10 @@ export function GovernancePage() {
                     <TableCell className="text-right">
                       {activeTab === "pending" ? (
                         <div className="flex items-center justify-end gap-1.5">
-                          <Button variant="outline" size="sm" className="h-7 text-[0.65rem] text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleReject(item.id)}>
+                          <Button variant="outline" size="sm" className="h-7 text-[0.65rem] text-status-fail hover:text-status-fail hover:bg-status-fail-bg" onClick={() => handleReject(item.id)}>
                             Reject
                           </Button>
-                          <Button size="sm" className="h-7 text-[0.65rem] bg-indigo-600 hover:bg-indigo-700" onClick={() => handleApprove(item.id)}>
+                          <Button size="sm" className="h-7 text-[0.65rem] bg-primary hover:bg-[var(--g-color-base-brand-hover)]" onClick={() => handleApprove(item.id)}>
                             Sign & Approve
                           </Button>
                         </div>

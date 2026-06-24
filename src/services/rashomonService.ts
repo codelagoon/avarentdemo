@@ -1,6 +1,7 @@
 import { toast } from "sonner"
 import { emit } from "@/lib/sync"
 import { rashomonRepository } from "@/repositories/MLRepositories"
+import { bindTenantInit } from "@/lib/tenant-init"
 import { companyService } from "./companyService"
 
 export interface RashomonModel {
@@ -45,7 +46,7 @@ class RashomonService {
   private isLoaded = false
 
   constructor() {
-    this.initFromSupabase()
+    bindTenantInit(() => this.initFromSupabase())
   }
 
   private async initFromSupabase() {

@@ -109,7 +109,7 @@ export function FloatingNav({
       data-testid="sidebar"
       aria-label="Main navigation"
     >
-      <Menubar className="flex h-full max-h-[calc(100vh-2.5rem)] w-12 flex-col rounded-[1.75rem] border border-border bg-card px-2 py-4 shadow-lg">
+      <Menubar className="flex h-full max-h-[calc(100vh-2.5rem)] w-12 flex-col rounded-[1.75rem] border border-border bg-sidebar px-2 py-4 shadow-nav">
         <div className="flex flex-col gap-1.5">
           <div className="mb-1 flex items-center justify-center border-b border-border pb-3">
             <AvarentLogo className="h-7 w-7" />

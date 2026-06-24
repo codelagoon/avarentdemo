@@ -45,9 +45,9 @@ export function MonitoringPage({ onNavigate = noopNavigate }: MonitoringPageProp
   return (
     <ViewportPage testId="monitoring-page">
       <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
-        <div className="flex shrink-0 items-center gap-2 rounded-md border border-border bg-card px-3 py-2">
+        <div className="flex shrink-0 items-center gap-2 rounded-md border border-border bg-card shadow-surface px-3 py-2">
           <span
-            className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 motion-reduce:animate-none"
+            className="h-2 w-2 animate-pulse rounded-full bg-status-pass motion-reduce:animate-none"
             aria-hidden
           />
           <p className="g-text-caption text-foreground">
@@ -63,7 +63,7 @@ export function MonitoringPage({ onNavigate = noopNavigate }: MonitoringPageProp
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_minmax(0,11rem)]">
           <section
             aria-labelledby="monitoring-alerts-heading"
-            className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card lg:row-span-2"
+            className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface lg:row-span-2"
           >
             <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
               <h2
@@ -101,7 +101,7 @@ export function MonitoringPage({ onNavigate = noopNavigate }: MonitoringPageProp
             </ul>
           </section>
 
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface">
             <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
               <p className="g-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                 Monitoring Center
@@ -127,7 +127,7 @@ export function MonitoringPage({ onNavigate = noopNavigate }: MonitoringPageProp
 
           <section
             aria-labelledby="emerging-risks-heading"
-            className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card lg:col-start-2"
+            className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface lg:col-start-2"
           >
             <h2
               id="emerging-risks-heading"

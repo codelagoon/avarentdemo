@@ -1,3 +1,6 @@
+"use client"
+
+import posthog from "posthog-js"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,11 +60,13 @@ export function TenantApiKeyManager() {
         setRawKey(data.raw_key)
         setKeys([data.key, ...keys])
         setNewKeyName("")
+        posthog.capture("api_key_generated", { key_name: newKeyName })
         toast.success("API Key generated successfully")
       } else {
         toast.error("Failed to generate API key")
       }
     } catch (err) {
+      posthog.captureException(err)
       console.error(err)
       toast.error("Error generating API key")
     } finally {
@@ -73,10 +78,12 @@ export function TenantApiKeyManager() {
     try {
       const res = await fetch(`/api/v1/keys?id=${id}`, { method: 'DELETE' })
       if (res.ok) {
+        posthog.capture("api_key_revoked", { key_id: id })
         toast.success("API Key revoked")
         fetchKeys()
       }
     } catch (err) {
+      posthog.captureException(err)
       console.error(err)
     }
   }
@@ -102,23 +109,23 @@ export function TenantApiKeyManager() {
       </div>
 
       {rawKey && (
-        <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-4 space-y-3">
-          <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+        <div className="rounded-lg border border-status-review-border bg-status-review-bg p-4 space-y-3">
+          <div className="flex items-center gap-2 text-status-review">
             <AlertTriangle className="h-4 w-4" />
             <span className="text-sm font-bold">Copy your new API key</span>
           </div>
-          <p className="text-xs text-orange-700/80 dark:text-orange-300/80">
+          <p className="text-xs text-status-review/80">
             Make sure to copy your personal access token now. You won't be able to see it again!
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded bg-background px-3 py-2 text-sm font-mono text-foreground border border-orange-500/30">
+            <code className="flex-1 rounded bg-background px-3 py-2 text-sm font-mono text-foreground border border-status-review-border">
               {rawKey}
             </code>
-            <Button variant="outline" size="icon" onClick={copyToClipboard} className="shrink-0 border-orange-500/30">
-              {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+            <Button variant="outline" size="icon" onClick={copyToClipboard} className="shrink-0 border-status-review-border">
+              {copied ? <Check className="h-4 w-4 text-status-pass" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
-          <Button variant="ghost" size="sm" className="w-full text-xs text-orange-700/80 hover:bg-orange-500/20" onClick={() => setRawKey(null)}>
+          <Button variant="ghost" size="sm" className="w-full text-xs text-status-review/80 hover:bg-status-review-bg" onClick={() => setRawKey(null)}>
             I have copied this key safely
           </Button>
         </div>
@@ -139,7 +146,7 @@ export function TenantApiKeyManager() {
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
+      <div className="rounded-lg border border-border/60 bg-card shadow-surface overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>
@@ -171,7 +178,7 @@ export function TenantApiKeyManager() {
                     {key.revoked_at ? (
                       <Badge variant="destructive" className="text-[0.6rem]">Revoked</Badge>
                     ) : (
-                      <Badge variant="default" className="text-[0.6rem] bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">Active</Badge>
+                      <Badge variant="default" className="text-[0.6rem] bg-status-pass-bg text-status-pass hover:bg-status-pass-bg border-status-pass-border">Active</Badge>
                     )}
                   </TableCell>
                   <TableCell>

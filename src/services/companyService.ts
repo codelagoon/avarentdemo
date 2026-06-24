@@ -20,6 +20,7 @@ export interface Company {
 }
 
 import { emit } from "@/lib/sync"
+import { getCachedOrganizationId } from "@/lib/workflows/client-store"
 import { supabase } from "@/lib/supabaseClient"
 
 export class CompanyService {
@@ -80,6 +81,7 @@ export class CompanyService {
     } finally {
       this.isLoaded = true
       emit("company")
+      if (this.company?.id) emit("tenant")
     }
   }
 
@@ -88,7 +90,7 @@ export class CompanyService {
   }
   
   getActiveCompanyId(): string | null {
-    return this.company?.id || null
+    return this.company?.id ?? getCachedOrganizationId()
   }
 
   async create(data: Omit<Company, "id" | "created_at" | "fairness_threshold" | "retention_period_years" | "model_version" | "owner_id">): Promise<Company> {

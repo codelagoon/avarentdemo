@@ -8,6 +8,7 @@ import {
   type ThreatLogRow,
 } from "@/domains/shared/adapters"
 import { createUserServerClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 const THREAT_PAGE_SIZE = 50
 const LEDGER_PAGE_SIZE = 50
@@ -116,6 +117,25 @@ export async function seedWorkflowDataIfEmpty(
   ledger: LedgerEntry[]
 ): Promise<{ seededThreats: number; seededLedger: number }> {
   const supabase = await createUserServerClient()
+  return seedWorkflowDataIfEmptyWithClient(supabase, organizationId, threats, ledger)
+}
+
+/** Service-role seeding during onboarding bootstrap. */
+export async function seedWorkflowDataIfEmptyAsAdmin(
+  organizationId: string,
+  threats: ThreatEvent[],
+  ledger: LedgerEntry[]
+): Promise<{ seededThreats: number; seededLedger: number }> {
+  const supabase = createAdminClient()
+  return seedWorkflowDataIfEmptyWithClient(supabase, organizationId, threats, ledger)
+}
+
+async function seedWorkflowDataIfEmptyWithClient(
+  supabase: Awaited<ReturnType<typeof createUserServerClient>>,
+  organizationId: string,
+  threats: ThreatEvent[],
+  ledger: LedgerEntry[]
+): Promise<{ seededThreats: number; seededLedger: number }> {
 
   const { count: threatCount, error: threatCountError } = await supabase
     .from("threat_log")

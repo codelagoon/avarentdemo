@@ -25,10 +25,10 @@ export function InboxPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'open': return <Badge variant="destructive" className="text-[0.6rem] bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20">Open</Badge>
-      case 'in_progress': return <Badge variant="outline" className="text-[0.6rem] bg-orange-500/10 text-orange-600 border-orange-500/20">In Progress</Badge>
-      case 'under_review': return <Badge variant="outline" className="text-[0.6rem] bg-indigo-500/10 text-indigo-600 border-indigo-500/20">Under Review</Badge>
-      case 'closed': return <Badge variant="outline" className="text-[0.6rem] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Resolved</Badge>
+      case 'open': return <Badge variant="destructive" className="text-[0.6rem] bg-status-fail-bg text-status-fail border-status-fail-border hover:bg-status-fail-bg">Open</Badge>
+      case 'in_progress': return <Badge variant="outline" className="text-[0.6rem] bg-status-review-bg text-status-review border-status-review-border">In Progress</Badge>
+      case 'under_review': return <Badge variant="outline" className="text-[0.6rem] bg-status-review-bg text-status-info border-status-review-border">Under Review</Badge>
+      case 'closed': return <Badge variant="outline" className="text-[0.6rem] bg-status-pass-bg text-status-pass border-status-pass-border">Resolved</Badge>
       default: return <Badge variant="outline" className="text-[0.6rem]">{status}</Badge>
     }
   }
@@ -71,7 +71,7 @@ export function InboxPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-5">
-        <Card className="border-border/60 shadow-sm overflow-hidden min-h-[500px]">
+        <Card className="border-border/60 overflow-hidden min-h-[500px]">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
@@ -88,7 +88,7 @@ export function InboxPage() {
                 <TableRow>
                   <TableCell colSpan={6} className="h-48 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground gap-2">
-                      <CheckCircle className="h-8 w-8 text-emerald-500/50" />
+                      <CheckCircle className="h-8 w-8 text-status-pass/50" />
                       <p className="text-sm font-medium text-foreground">Inbox Zero</p>
                       <p className="text-xs">No active investigations require your attention.</p>
                     </div>
@@ -98,7 +98,7 @@ export function InboxPage() {
                 filtered.map(inv => (
                   <TableRow key={inv.id} className="hover:bg-muted/30 cursor-pointer group">
                     <TableCell className="text-center">
-                      <ShieldAlert className={cn("h-4 w-4 mx-auto", inv.status === 'closed' ? "text-emerald-500" : "text-orange-500")} />
+                      <ShieldAlert className={cn("h-4 w-4 mx-auto", inv.status === 'closed' ? "text-status-pass" : "text-status-review")} />
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { BarChart, Code, Key, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,18 +22,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { isWorkOSClientEnabled } from "@/lib/workos/client";
 import { logAuthEvent } from "@/lib/security/auth-events";
 import { AvarentLogo } from "@/components/AvarentLogo";
 
 export interface LoginCardSectionProps {
   onLogin: () => void;
   onRegisterComplete?: () => void;
+  workosEnabled?: boolean;
 }
 
 export default function LoginCardSection({
   onLogin,
   onRegisterComplete,
+  workosEnabled = false,
 }: LoginCardSectionProps) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -44,6 +47,7 @@ export default function LoginCardSection({
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const router = useRouter();
 
   const resetErrors = () => setErrorMsg(null);
 
@@ -51,8 +55,6 @@ export default function LoginCardSection({
     setMode(next);
     resetErrors();
   };
-
-  const workosEnabled = isWorkOSClientEnabled();
 
   const redirectToWorkOS = (screenHint?: "sign-up") => {
     const url =
@@ -65,11 +67,6 @@ export default function LoginCardSection({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     resetErrors();
-
-    if (workosEnabled) {
-      redirectToWorkOS(mode === "signup" ? "sign-up" : undefined);
-      return;
-    }
 
     if (!email.trim()) {
       setErrorMsg("Please enter an email address.");
@@ -106,6 +103,12 @@ export default function LoginCardSection({
           userId: data.user?.id,
           email: email.trim(),
         });
+        if (data.user) {
+          posthog.identify(data.user.id, { email: email.trim() });
+          posthog.capture("user_signed_in", { method: "email", email: email.trim() });
+        }
+        await supabase.auth.getSession();
+        router.refresh();
         onLogin();
       } else {
         const { error, data } = await supabase.auth.signUp({
@@ -133,7 +136,13 @@ export default function LoginCardSection({
           userId: data.user?.id,
           email: email.trim(),
         });
+        if (data.user) {
+          posthog.identify(data.user.id, { email: email.trim(), role });
+          posthog.capture("user_signed_up", { method: "email", email: email.trim(), role });
+        }
         if (data.session) {
+          await supabase.auth.getSession();
+          router.refresh();
           onRegisterComplete?.();
         } else {
           setErrorMsg(
@@ -156,7 +165,7 @@ export default function LoginCardSection({
       data-testid="login-screen"
     >
       <div className="w-full max-w-md">
-        <Card className="border-none pb-0 shadow-lg">
+        <Card className="border-none pb-0 shadow-elevated">
           {mode === "signin" ? (
             <>
               <CardHeader className="mb-2 mt-4 space-y-1 text-center">
@@ -177,14 +186,13 @@ export default function LoginCardSection({
                     <Input
                       id="email"
                       type="email"
-                      placeholder="you@organization.com"
+                      placeholder="you@example.com"
                       value={email}
                       onUpdate={setEmail}
                       disabled={loading}
                       autoComplete="email"
                     />
                   </div>
-                  {!workosEnabled ? (
                   <div className="space-y-0">
                     <div className="mb-2 flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
@@ -207,12 +215,11 @@ export default function LoginCardSection({
                       autoComplete="current-password"
                     />
                   </div>
-                  ) : (
+                  {workosEnabled ? (
                     <p className="text-sm text-muted-foreground">
-                      Continue with your work email. We will send a secure sign-in link
-                      via WorkOS AuthKit.
+                      Or use Enterprise SSO below for organization sign-in.
                     </p>
-                  )}
+                  ) : null}
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="remember"
@@ -238,7 +245,7 @@ export default function LoginCardSection({
                       data-testid="login-submit"
                       loading={loading}
                     >
-                      {workosEnabled ? "Continue with email" : "Sign In"}
+                      {workosEnabled ? "Sign in with email" : "Sign In"}
                     </Button>
                     <Button
                       variant="outline"
@@ -346,7 +353,7 @@ export default function LoginCardSection({
                     <Input
                       id="signup-email"
                       type="email"
-                      placeholder="you@organization.com"
+                      placeholder="you@example.com"
                       value={email}
                       onUpdate={setEmail}
                       disabled={loading}
@@ -354,7 +361,6 @@ export default function LoginCardSection({
                     />
                   </div>
 
-                  {!workosEnabled ? (
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
                     <Input
@@ -367,12 +373,12 @@ export default function LoginCardSection({
                       autoComplete="new-password"
                     />
                   </div>
-                  ) : (
+
+                  {workosEnabled ? (
                     <p className="text-sm text-muted-foreground">
-                      Create your account with a secure email link. Organization setup
-                      follows immediately after verification.
+                      Prefer organization SSO? Use Enterprise SSO after creating your account.
                     </p>
-                  )}
+                  ) : null}
 
                   <div className="flex items-center space-x-2">
                     <Checkbox

@@ -1,6 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import dynamic from "next/dynamic"
+import posthog from "posthog-js"
 import { AppShell } from "@/components/shell/AppShell"
 import { IdentityProvider } from "@/contexts/IdentityContext"
 import { getInvestigationIdForFinding } from "@/domains/investigations/investigationDomain"
@@ -9,18 +11,80 @@ import {
   type ApplicationContext,
 } from "@/lib/identity/types"
 import { WORKFLOW_KEYS, type NavigateOptions, type WorkflowId } from "@/lib/navigation"
-import { isWorkOSClientEnabled } from "@/lib/workos/client"
 import LoginCardSection from "@/components/ui/login-signup"
 import { OnboardingPage } from "@/views/OnboardingPage"
-import { CommandCenterPage } from "@/views/workflows/CommandCenterPage"
-import { InvestigationsPage } from "@/views/workflows/InvestigationsPage"
-import { AnalysesPage } from "@/views/workflows/AnalysesPage"
-import { DocumentationPage } from "@/views/workflows/DocumentationPage"
-import { MonitoringPage } from "@/views/workflows/MonitoringPage"
-import { DataSourcesPage } from "@/views/workflows/DataSourcesPage"
-import { AuditHistoryPage } from "@/views/workflows/AuditHistoryPage"
-import { OrganizationPage } from "@/views/workflows/OrganizationPage"
-import { SettingsPage } from "@/views/workflows/SettingsPage"
+
+function DashboardLoading() {
+  return (
+    <div className="flex h-screen w-screen items-center justify-center bg-background">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>
+  )
+}
+
+const CommandCenterPage = dynamic(
+  () =>
+    import("@/views/workflows/CommandCenterPage").then((m) => ({
+      default: m.CommandCenterPage,
+    })),
+  { loading: DashboardLoading }
+)
+const InvestigationsPage = dynamic(
+  () =>
+    import("@/views/workflows/InvestigationsPage").then((m) => ({
+      default: m.InvestigationsPage,
+    })),
+  { loading: DashboardLoading }
+)
+const AnalysesPage = dynamic(
+  () =>
+    import("@/views/workflows/AnalysesPage").then((m) => ({
+      default: m.AnalysesPage,
+    })),
+  { loading: DashboardLoading }
+)
+const DocumentationPage = dynamic(
+  () =>
+    import("@/views/workflows/DocumentationPage").then((m) => ({
+      default: m.DocumentationPage,
+    })),
+  { loading: DashboardLoading }
+)
+const MonitoringPage = dynamic(
+  () =>
+    import("@/views/workflows/MonitoringPage").then((m) => ({
+      default: m.MonitoringPage,
+    })),
+  { loading: DashboardLoading }
+)
+const DataSourcesPage = dynamic(
+  () =>
+    import("@/views/workflows/DataSourcesPage").then((m) => ({
+      default: m.DataSourcesPage,
+    })),
+  { loading: DashboardLoading }
+)
+const AuditHistoryPage = dynamic(
+  () =>
+    import("@/views/workflows/AuditHistoryPage").then((m) => ({
+      default: m.AuditHistoryPage,
+    })),
+  { loading: DashboardLoading }
+)
+const OrganizationPage = dynamic(
+  () =>
+    import("@/views/workflows/OrganizationPage").then((m) => ({
+      default: m.OrganizationPage,
+    })),
+  { loading: DashboardLoading }
+)
+const SettingsPage = dynamic(
+  () =>
+    import("@/views/workflows/SettingsPage").then((m) => ({
+      default: m.SettingsPage,
+    })),
+  { loading: DashboardLoading }
+)
 
 function WorkflowView({
   workflow,
@@ -66,37 +130,49 @@ export default function NextApp() {
   const [selectedInvestigationId, setSelectedInvestigationId] = useState<string | null>(null)
   const [identity, setIdentity] = useState<ApplicationContext>(EMPTY_APPLICATION_CONTEXT)
   const [identityLoaded, setIdentityLoaded] = useState(false)
+  const [workosEnabled, setWorkosEnabled] = useState(false)
+  const [authStatusLoaded, setAuthStatusLoaded] = useState(false)
 
   const refreshIdentity = useCallback(async () => {
-    try {
-      const response = await fetch("/api/identity/context")
-      if (!response.ok) {
-        setIdentity({ ...EMPTY_APPLICATION_CONTEXT, is_loading: false })
-        return
+    const delays = [0, 150, 350, 700]
+
+    for (const delay of delays) {
+      if (delay > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, delay))
       }
-      const data = (await response.json()) as ApplicationContext
-      setIdentity({ ...data, is_loading: false })
-    } catch {
-      setIdentity({ ...EMPTY_APPLICATION_CONTEXT, is_loading: false })
-    } finally {
-      setIdentityLoaded(true)
+
+      try {
+        const response = await fetch("/api/identity/context", { cache: "no-store" })
+        if (!response.ok) continue
+
+        const data = (await response.json()) as ApplicationContext
+        setIdentity({ ...data, is_loading: false })
+        setIdentityLoaded(true)
+        return
+      } catch {
+        // Retry while Supabase session cookies propagate to the server.
+      }
     }
+
+    setIdentity({ ...EMPTY_APPLICATION_CONTEXT, is_loading: false })
+    setIdentityLoaded(true)
   }, [])
 
   useEffect(() => {
     setMounted(true)
     void refreshIdentity()
+    void fetch("/api/auth/status")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { workos_enabled?: boolean } | null) => {
+        setWorkosEnabled(Boolean(data?.workos_enabled))
+      })
+      .catch(() => setWorkosEnabled(false))
+      .finally(() => setAuthStatusLoaded(true))
   }, [refreshIdentity])
 
   const hasLinkedSession = Boolean(identity.user_id)
   const hasWorkOSSession = Boolean(identity.workos_user_id)
   const isSignedIn = hasLinkedSession || hasWorkOSSession
-  const workosEnabled = isWorkOSClientEnabled()
-
-  useEffect(() => {
-    if (!mounted || !identityLoaded || isSignedIn || !workosEnabled) return
-    window.location.replace("/api/auth/signin")
-  }, [mounted, identityLoaded, isSignedIn, workosEnabled])
 
   useEffect(() => {
     if (!mounted || !identityLoaded || hasLinkedSession || !hasWorkOSSession) return
@@ -108,6 +184,7 @@ export default function NextApp() {
 
   const handleNavigate = useCallback((id: WorkflowId, options?: NavigateOptions) => {
     setActiveWorkflow(id)
+    posthog.capture("workflow_navigated", { workflow: id })
     if (id === "investigations") {
       const investigationId =
         options?.investigationId ??
@@ -138,7 +215,7 @@ export default function NextApp() {
     window.location.href = "/api/auth/signout"
   }
 
-  if (!mounted || !identityLoaded) {
+  if (!mounted || !identityLoaded || !authStatusLoaded) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -167,17 +244,9 @@ export default function NextApp() {
       )
     }
 
-    if (workosEnabled) {
-      return (
-        <div className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-background">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Redirecting to sign in…</p>
-        </div>
-      )
-    }
-
     return (
       <LoginCardSection
+        workosEnabled={workosEnabled}
         onLogin={() => {
           void refreshIdentity()
         }}

@@ -1,5 +1,6 @@
 "use client"
 
+import posthog from "posthog-js"
 import { useState, type ReactNode } from "react"
 import {
   Building2,
@@ -152,7 +153,7 @@ function StepCard({
   footer,
 }: StepCardProps) {
   return (
-    <Card className="border border-border shadow-lg">
+    <Card className="border border-border shadow-elevated">
       <CardHeader className="space-y-3 border-b border-border pb-4">
         {stepLabel ? (
           <p className="g-text-caption font-medium uppercase tracking-wide text-muted-foreground">
@@ -272,6 +273,9 @@ export function OnboardingPage({ userEmail, onComplete }: OnboardingPageProps) {
   const handleNext = () => {
     const index = STEPS.indexOf(step)
     if (index < STEPS.length - 1) {
+      if (step === "welcome") {
+        posthog.capture("onboarding_started", { email: data.email || undefined })
+      }
       setStep(STEPS[index + 1])
     }
   }
@@ -318,9 +322,28 @@ export function OnboardingPage({ userEmail, onComplete }: OnboardingPageProps) {
 
       syncLocalCompanyProfile(data, result.organization.organization_id)
 
+      posthog.identify(result.organization.organization_id, {
+        email: data.email || undefined,
+        company_name: data.companyName,
+        industry: data.industry,
+        size: data.size,
+        regulatory_body: data.regulatoryBody,
+      })
+      posthog.capture("onboarding_completed", {
+        company_name: data.companyName,
+        industry: data.industry,
+        size: data.size,
+        primary_use_case: data.primaryUseCase,
+        regulatory_body: data.regulatoryBody,
+        compliance_needs_count: data.complianceNeeds.length,
+        compliance_needs: data.complianceNeeds,
+        data_volume_estimate: data.dataVolumeEstimate,
+      })
+
       toast.success(`Welcome, ${data.companyName}! Your Meridian dashboard is ready.`)
       await onComplete()
     } catch (error) {
+      posthog.captureException(error)
       const message =
         error instanceof Error ? error.message : "Failed to complete onboarding."
       setSubmitError(message)
@@ -333,7 +356,7 @@ export function OnboardingPage({ userEmail, onComplete }: OnboardingPageProps) {
   if (step === "welcome") {
     return (
       <OnboardingShell>
-        <Card className="border border-border shadow-lg">
+        <Card className="border border-border shadow-elevated">
           <CardHeader className="space-y-4 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <AvarentLogo className="h-8 w-8" title="Meridian" />

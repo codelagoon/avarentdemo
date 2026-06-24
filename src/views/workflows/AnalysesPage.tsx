@@ -1,5 +1,6 @@
 "use client"
 
+import posthog from "posthog-js"
 import { useEffect, useMemo, useState } from "react"
 import { Database, Play, Shield } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -51,8 +52,8 @@ function ThresholdChip({ status }: { status: ThresholdStatus }) {
       className={cn(
         "rounded px-1.5 py-0 text-[0.65rem] font-medium",
         status.passing
-          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-          : "border-destructive/30 bg-destructive/10 text-destructive"
+          ? "border-status-pass-border bg-status-pass-bg text-status-pass"
+          : "border-status-fail-border bg-status-fail-bg text-status-fail"
       )}
     >
       {status.label}
@@ -67,8 +68,8 @@ function SourceStatusBadge({ status }: { status: "ready" | "pending" }) {
       className={cn(
         "rounded px-1.5 py-0 text-[0.65rem] font-medium capitalize",
         status === "ready"
-          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-          : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+          ? "border-status-pass-border bg-status-pass-bg text-status-pass"
+          : "border-status-review-border bg-status-review-bg text-status-review"
       )}
     >
       {status}
@@ -106,6 +107,10 @@ export function AnalysesPage({ onNavigate = noopNavigate }: AnalysesPageProps) {
       setProgress(100)
       setRunning(false)
       setComplete(true)
+      posthog.capture("fairness_analysis_completed", {
+        protected_classes_count: FAIRNESS_METRICS.length,
+        observations_in_scope: DATA_VOLUME.causalDiscoveryObservations,
+      })
     }, 1500)
 
     return () => {
@@ -119,6 +124,11 @@ export function AnalysesPage({ onNavigate = noopNavigate }: AnalysesPageProps) {
     setComplete(false)
     setProgress(0)
     setRunning(true)
+    posthog.capture("fairness_analysis_started", {
+      data_sources_ready: readyCount,
+      data_sources_total: DATA_SOURCES.length,
+      protected_classes_count: FAIRNESS_METRICS.length,
+    })
   }
 
   return (
@@ -126,7 +136,7 @@ export function AnalysesPage({ onNavigate = noopNavigate }: AnalysesPageProps) {
       <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
         {/* Posture strip — sources, scope, protected classes */}
         <div className="grid shrink-0 grid-cols-3 gap-3">
-          <div className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2">
+          <div className="flex items-center gap-3 rounded-md border border-border bg-card shadow-surface px-3 py-2">
             <Database className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <div className="min-w-0">
               <p className="g-text-caption text-muted-foreground">Data sources ready</p>
@@ -135,7 +145,7 @@ export function AnalysesPage({ onNavigate = noopNavigate }: AnalysesPageProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2">
+          <div className="flex items-center gap-3 rounded-md border border-border bg-card shadow-surface px-3 py-2">
             <Shield className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <div className="min-w-0">
               <p className="g-text-caption text-muted-foreground">Observations in scope</p>
@@ -144,7 +154,7 @@ export function AnalysesPage({ onNavigate = noopNavigate }: AnalysesPageProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2">
+          <div className="flex items-center gap-3 rounded-md border border-border bg-card shadow-surface px-3 py-2">
             <Shield className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <div className="min-w-0">
               <p className="g-text-caption text-muted-foreground">Protected classes</p>
@@ -158,7 +168,7 @@ export function AnalysesPage({ onNavigate = noopNavigate }: AnalysesPageProps) {
         {/* Pipeline: controls left, findings right */}
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[280px_1fr]">
           {/* Control rail */}
-          <aside className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card">
+          <aside className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface">
             <p className="shrink-0 border-b border-border px-3 py-2 g-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               Analysis pipeline
             </p>
@@ -224,7 +234,7 @@ export function AnalysesPage({ onNavigate = noopNavigate }: AnalysesPageProps) {
 
           {/* Findings panel */}
           <section
-            className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card"
+            className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface"
             aria-live={complete ? "polite" : undefined}
             aria-atomic={complete ? "true" : undefined}
           >

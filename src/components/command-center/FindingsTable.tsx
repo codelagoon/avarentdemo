@@ -27,22 +27,22 @@ const STATUS_CONFIG: Record<
   investigating: {
     label: "Investigating",
     icon: Search,
-    className: "border-primary/30 bg-primary/10 text-primary",
+    className: "border-status-review-border bg-status-review-bg text-status-review",
   },
   review: {
     label: "Review",
     icon: Eye,
-    className: "border-violet-500/30 bg-violet-500/10 text-violet-400",
+    className: "border-status-review-border bg-status-review-bg text-status-review",
   },
   monitoring: {
     label: "Monitoring",
     icon: Activity,
-    className: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+    className: "border-status-review-border bg-status-review-bg text-status-review",
   },
   resolved: {
     label: "Resolved",
     icon: Activity,
-    className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+    className: "border-status-pass-border bg-status-pass-bg text-status-pass",
   },
 }
 
@@ -80,7 +80,7 @@ export function FindingsTable({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card",
+        "flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-surface",
         className
       )}
     >

@@ -14,7 +14,7 @@ export function WorkflowStepper({ workflow, hideHeader }: WorkflowStepperProps) 
     <div
       className={cn(
         "flex min-h-0 flex-col overflow-hidden",
-        !hideHeader && "rounded-md border border-border bg-card"
+        !hideHeader && "rounded-md border border-border bg-card shadow-surface"
       )}
     >
       {!hideHeader && (
@@ -32,9 +32,9 @@ export function WorkflowStepper({ workflow, hideHeader }: WorkflowStepperProps) 
                   className={cn(
                     "flex size-8 items-center justify-center rounded-full border-2",
                     step.status === "completed" &&
-                      "border-emerald-500/60 bg-emerald-500/10 text-emerald-400",
+                      "border-status-pass-border bg-status-pass-bg text-status-pass",
                     step.status === "active" &&
-                      "border-primary bg-primary/10 text-primary",
+                      "border-status-review-border bg-status-review-bg text-status-review",
                     (step.status === "queued" || step.status === "pending") &&
                       "border-dashed border-muted-foreground/40 text-muted-foreground"
                   )}
@@ -67,7 +67,7 @@ export function WorkflowStepper({ workflow, hideHeader }: WorkflowStepperProps) 
                 <div
                   className={cn(
                     "mx-1 h-px flex-1",
-                    step.status === "completed" ? "bg-emerald-500/40" : "bg-border"
+                    step.status === "completed" ? "bg-status-pass-border" : "bg-border"
                   )}
                 />
               )}
@@ -81,7 +81,7 @@ export function WorkflowStepper({ workflow, hideHeader }: WorkflowStepperProps) 
           <p className="mt-1 g-text-caption text-muted-foreground">
             {workflow.recordCount.toLocaleString()} decisions
           </p>
-          <p className="g-text-caption font-medium text-emerald-400">
+          <p className="g-text-caption font-medium text-status-pass">
             Est. completion: {workflow.etaMinutes} min
           </p>
         </div>

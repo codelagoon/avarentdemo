@@ -14,7 +14,7 @@ export function AvarentLogo({ className, title = "Meridian" }: AvarentLogoProps)
       role="img"
       aria-label={title}
       className={cn("shrink-0", className)}
-      fill="#E65100"
+      fill="#C4601E"
       xmlns="http://www.w3.org/2000/svg"
     >
       <path d="M50 15 L86 78 H67 L50 48 L33 78 H14 L50 15 Z M50 37 L59 53 H41 L50 37 Z" />
