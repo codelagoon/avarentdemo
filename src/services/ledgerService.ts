@@ -1,61 +1,74 @@
+import type { LedgerEntry } from "@/domains/shared/types"
+import { LEDGER_ENTRIES, generateHash } from "@/data/mockData"
 import { emit } from "@/lib/sync"
-import { decisionRepository, DecisionRecord } from "@/repositories/DecisionRepository"
+import {
+  getCachedLedger,
+  getCachedOrganizationId,
+  upsertLedgerInCache,
+} from "@/lib/workflows/client-store"
+import { toast } from "sonner"
 
-// We keep the LedgerEntry interface to prevent the UI from breaking until we refactor the views
-export interface LedgerEntry {
-  id: string
-  timestamp: string
-  applicantId: string
-  applicantName: string
-  eventType: "decision" | "alert" | "intervention"
-  message: string
-  details?: any
-  hash: string
-  prevHash: string
-  fairnessScore: number
-}
+const STORAGE_KEY = "avarent_ledger_entries"
 
-function mapToLedgerEntry(record: DecisionRecord): LedgerEntry {
-  return {
-    id: record.id,
-    timestamp: record.created_at,
-    applicantId: record.applicant_id,
-    applicantName: record.applicant_name,
-    eventType: record.circuit_breaker_triggered ? "intervention" : "decision",
-    message: `Application ${record.outcome.toUpperCase()}`,
-    details: { shap: record.shap_features, reasons: record.top_reasons },
-    hash: record.id,
-    prevHash: "0000000000000000000000000000000000000000000000000000000000000000",
-    fairnessScore: record.fairness_score || 0.9
+async function persistLedgerToApi(entry: LedgerEntry): Promise<void> {
+  if (typeof window === "undefined" || !getCachedOrganizationId()) return
+  try {
+    const response = await fetch("/api/workflows/ledger", {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entry }),
+    })
+    if (!response.ok) {
+      throw new Error(`Ledger sync failed (${response.status})`)
+    }
+    upsertLedgerInCache(entry)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to sync ledger entry"
+    toast.error(message)
   }
 }
 
 export class LedgerService {
-  private entries: LedgerEntry[] = []
-  private isLoaded = false
+  private entries: LedgerEntry[]
 
   constructor() {
-    this.initFromSupabase()
+    this.entries = this.loadFromStorage()
   }
 
-  private async initFromSupabase() {
-    if (typeof window === "undefined") return
-    
-    try {
-      // Load directly from the new DecisionRepository which enforces tenant isolation
-      const records = await decisionRepository.findRecent(500)
-      this.entries = records.map(mapToLedgerEntry)
-    } catch (err) {
-      console.error("Failed to load ledger from Supabase via decisionRepository", err)
-    } finally {
-      this.isLoaded = true
-      emit("ledger")
+  private loadFromStorage(): LedgerEntry[] {
+    if (typeof window === "undefined") return LEDGER_ENTRIES
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      try {
+        return JSON.parse(stored)
+      } catch {
+        return LEDGER_ENTRIES
+      }
     }
+    return LEDGER_ENTRIES
+  }
+
+  /** Single source for reads and writes — prefers Supabase-hydrated cache. */
+  private resolveEntries(): LedgerEntry[] {
+    const cached = getCachedLedger()
+    if (cached) {
+      this.entries = [...cached]
+      return this.entries
+    }
+    this.entries = this.loadFromStorage()
+    return this.entries
+  }
+
+  private saveToStorage() {
+    if (typeof window === "undefined") return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.entries))
+    emit("ledger")
   }
 
   getAll(): LedgerEntry[] {
-    return [...this.entries].sort((a, b) =>
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    return [...this.resolveEntries()].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
   }
 
@@ -64,47 +77,75 @@ export class LedgerService {
   }
 
   getById(id: string): LedgerEntry | undefined {
-    return this.entries.find(e => e.id === id)
+    return this.resolveEntries().find((e) => e.id === id)
   }
 
-  async add(entry: any): Promise<LedgerEntry> {
-    throw new Error("Cannot add to ledgerService directly. Use POST /api/v1/decisions instead.")
+  add(entry: Omit<LedgerEntry, "id" | "timestamp" | "hash" | "prevHash">): LedgerEntry {
+    const now = new Date()
+    const sorted = this.getAll()
+    const id = `EVT-${now.toISOString().slice(0, 10).replace(/-/g, "")}-${String(sorted.length + 1).padStart(4, "0")}`
+    const prevEntry = sorted[0]
+
+    const newEntry: LedgerEntry = {
+      ...entry,
+      id,
+      timestamp: now.toISOString(),
+      hash: generateHash(id + entry.applicantId + now.toISOString()),
+      prevHash: prevEntry?.hash ?? "0".repeat(64),
+    }
+
+    const entries = this.resolveEntries()
+    entries.unshift(newEntry)
+    this.saveToStorage()
+    upsertLedgerInCache(newEntry)
+    void persistLedgerToApi(newEntry)
+    return newEntry
   }
 
-  async update(id: string, updates: Partial<LedgerEntry>): Promise<LedgerEntry | null> {
-    throw new Error("Ledger is immutable.")
+  update(id: string, updates: Partial<LedgerEntry>): LedgerEntry | null {
+    const entries = this.resolveEntries()
+    const index = entries.findIndex((e) => e.id === id)
+    if (index === -1) return null
+
+    entries[index] = { ...entries[index], ...updates }
+    this.saveToStorage()
+    upsertLedgerInCache(entries[index])
+    return entries[index]
   }
 
   search(query: string): LedgerEntry[] {
     const lower = query.toLowerCase()
-    return this.getAll().filter(e =>
-      e.applicantName.toLowerCase().includes(lower) ||
-      e.applicantId.toLowerCase().includes(lower) ||
-      e.message.toLowerCase().includes(lower) ||
-      e.id.toLowerCase().includes(lower)
+    return this.getAll().filter(
+      (e) =>
+        e.applicantName.toLowerCase().includes(lower) ||
+        e.applicantId.toLowerCase().includes(lower) ||
+        e.message.toLowerCase().includes(lower) ||
+        e.id.toLowerCase().includes(lower)
     )
   }
 
   filterByType(type: string): LedgerEntry[] {
     if (type === "all") return this.getAll()
-    return this.getAll().filter(e => e.eventType === type)
+    return this.getAll().filter((e) => e.eventType === type)
   }
 
   getStats() {
     const all = this.getAll()
     return {
       total: all.length,
-      interventions: all.filter(e => e.eventType === "intervention").length,
-      alerts: all.filter(e => e.eventType === "alert").length,
-      decisions: all.filter(e => e.eventType === "decision").length,
-      avgFairness: all.length > 0
-        ? all.reduce((sum, e) => sum + e.fairnessScore, 0) / all.length
-        : 0,
+      interventions: all.filter((e) => e.eventType === "intervention").length,
+      alerts: all.filter((e) => e.eventType === "alert").length,
+      decisions: all.filter((e) => e.eventType === "decision").length,
+      avgFairness:
+        all.length > 0
+          ? all.reduce((sum, e) => sum + e.fairnessScore, 0) / all.length
+          : 0,
     }
   }
 
-  async reset() {
-    await this.initFromSupabase()
+  reset() {
+    this.entries = [...LEDGER_ENTRIES]
+    this.saveToStorage()
   }
 }
 

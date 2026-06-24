@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import "@gravity-ui/uikit/styles/fonts.css"
+import "@gravity-ui/uikit/styles/styles.css"
 import "../index.css"
+import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Meridian",
@@ -17,17 +17,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-background antialiased`}>
-        <ThemeProvider
-          defaultTheme="system"
-          storageKey="theme"
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster position="top-right" richColors />
-        </ThemeProvider>
+    <html lang="en" suppressHydrationWarning className="h-full overflow-hidden">
+      <body className="h-full overflow-hidden antialiased">
+        <AuthKitProvider>
+          <ThemeProvider defaultTheme="dark" storageKey="theme">
+            {children}
+            <Toaster position="top-right" richColors />
+          </ThemeProvider>
+        </AuthKitProvider>
       </body>
     </html>
   )
 }
+

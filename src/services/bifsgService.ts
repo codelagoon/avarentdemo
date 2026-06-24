@@ -1,11 +1,17 @@
 import { toast } from "sonner"
 import { createClient } from "@supabase/supabase-js"
 
-// Initialize Supabase connection for persistent caching (Option B)
-// Enforces a 24-hour TTL shared cache across all Next.js/Vercel serverless instances
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://zpjjoskdaouhzinijztf.supabase.co"
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpwampvc2tkYW91aHppbmlqenRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTc2NzEsImV4cCI6MjA4OTM3MzY3MX0.pYrFFQfM2IDg9r1rs-HLDUAeFXQ3fBGhJS6ZB9oenW4"
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env"
+import type { SupabaseClient } from "@supabase/supabase-js"
+
+let supabaseClient: SupabaseClient | null = null
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseClient) {
+    supabaseClient = createClient(getSupabaseUrl(), getSupabaseAnonKey())
+  }
+  return supabaseClient
+}
 
 export interface BIFSGInput {
   firstName: string
@@ -298,7 +304,7 @@ class BIFSGService {
    */
   async getCachedResult(surname: string, zipCode: string): Promise<{ calculated_air: number; calculated_spd: number } | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("bisg_cache")
         .select("calculated_air, calculated_spd")
         .eq("surname", surname.toUpperCase())
@@ -322,7 +328,7 @@ class BIFSGService {
    */
   async setCachedResult(surname: string, zipCode: string, air: number, spd: number): Promise<void> {
     try {
-      await supabase
+      await getSupabase()
         .from("bisg_cache")
         .upsert({
           surname: surname.toUpperCase(),

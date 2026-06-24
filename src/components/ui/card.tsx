@@ -1,15 +1,14 @@
 import * as React from "react"
-
+import { Card as GravityCard } from "@gravity-ui/uikit"
 import { cn } from "@/lib/utils"
 
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
+    <GravityCard
+      type="container"
+      view="outlined"
       data-slot="card"
-      className={cn(
-        "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm",
-        className
-      )}
+      className={cn("flex flex-col gap-6 py-6 text-card-foreground", className)}
       {...props}
     />
   )
@@ -32,7 +31,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      className={cn("g-text-header-1 leading-none", className)}
       {...props}
     />
   )
@@ -42,7 +41,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("g-text-body-1 text-muted-foreground", className)}
       {...props}
     />
   )
