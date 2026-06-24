@@ -2,10 +2,16 @@ import { toast } from "sonner"
 import { createClient } from "@supabase/supabase-js"
 
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env"
+import type { SupabaseClient } from "@supabase/supabase-js"
 
-// Initialize Supabase connection for persistent caching (Option B)
-// Enforces a 24-hour TTL shared cache across all Next.js/Vercel serverless instances
-const supabase = createClient(getSupabaseUrl(), getSupabaseAnonKey())
+let supabaseClient: SupabaseClient | null = null
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseClient) {
+    supabaseClient = createClient(getSupabaseUrl(), getSupabaseAnonKey())
+  }
+  return supabaseClient
+}
 
 export interface BIFSGInput {
   firstName: string
@@ -298,7 +304,7 @@ class BIFSGService {
    */
   async getCachedResult(surname: string, zipCode: string): Promise<{ calculated_air: number; calculated_spd: number } | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("bisg_cache")
         .select("calculated_air, calculated_spd")
         .eq("surname", surname.toUpperCase())
@@ -322,7 +328,7 @@ class BIFSGService {
    */
   async setCachedResult(surname: string, zipCode: string, air: number, spd: number): Promise<void> {
     try {
-      await supabase
+      await getSupabase()
         .from("bisg_cache")
         .upsert({
           surname: surname.toUpperCase(),

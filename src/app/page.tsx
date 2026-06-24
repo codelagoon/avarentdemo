@@ -9,6 +9,7 @@ import {
   type ApplicationContext,
 } from "@/lib/identity/types"
 import { WORKFLOW_KEYS, type NavigateOptions, type WorkflowId } from "@/lib/navigation"
+import { isWorkOSClientEnabled } from "@/lib/workos/client"
 import LoginCardSection from "@/components/ui/login-signup"
 import { OnboardingPage } from "@/views/OnboardingPage"
 import { CommandCenterPage } from "@/views/workflows/CommandCenterPage"
@@ -88,6 +89,12 @@ export default function NextApp() {
   }, [refreshIdentity])
 
   const isAuthenticated = Boolean(identity.user_id || identity.workos_user_id)
+  const workosEnabled = isWorkOSClientEnabled()
+
+  useEffect(() => {
+    if (!mounted || !identityLoaded || isAuthenticated || !workosEnabled) return
+    window.location.replace("/api/auth/signin")
+  }, [mounted, identityLoaded, isAuthenticated, workosEnabled])
 
   const handleNavigate = useCallback((id: WorkflowId, options?: NavigateOptions) => {
     setActiveWorkflow(id)
@@ -141,6 +148,15 @@ export default function NextApp() {
   }
 
   if (!isAuthenticated) {
+    if (workosEnabled) {
+      return (
+        <div className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-background">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Redirecting to sign in…</p>
+        </div>
+      )
+    }
+
     return (
       <LoginCardSection
         onLogin={() => {
