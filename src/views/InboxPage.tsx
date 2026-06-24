@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react"
-import { useLiveData } from "@/hooks/useLiveData"
 import { Inbox, Filter, Clock, CheckCircle, ShieldAlert, ArrowRight, UserCog } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,10 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { investigationService } from "@/services/investigationService"
+import { Investigation } from "@/repositories/InvestigationRepository"
 
 export function InboxPage() {
-  const investigations = useLiveData(() => investigationService.getAll(), ["investigations"])
+  const [investigations, setInvestigations] = useState<Investigation[]>([])
   const [activeTab, setActiveTab] = useState<"assigned" | "open" | "resolved">("assigned")
+
+  useEffect(() => {
+    investigationService.getAll().then(setInvestigations).catch(console.error)
+  }, [])
 
   const filtered = investigations.filter(inv => {
     if (activeTab === "assigned") return inv.status !== "closed" && inv.status !== "under_review"
