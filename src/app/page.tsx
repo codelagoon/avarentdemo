@@ -22,6 +22,8 @@ import {
   LogOut,
   User,
   ChevronDown,
+  Inbox,
+  CheckCircle,
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -49,17 +51,21 @@ import { AnalyticsPage } from "@/views/AnalyticsPage"
 import { AccessControlPage } from "@/views/AccessControlPage"
 import { SettingsPage } from "@/views/SettingsPage"
 import { OnboardingPage } from "@/views/OnboardingPage"
+import { InboxPage } from "@/views/InboxPage"
+import { GovernancePage } from "@/views/GovernancePage"
 import AdverseActionReviewPage from "@/views/AdverseActionReviewPage"
 import { SyntheticDataStudioPage } from "@/views/SyntheticDataStudioPage"
 import { AltDataHubPage } from "@/views/AltDataHubPage"
 
 const PASSWORD = "197704"
 
-export type Page = "dashboard" | "threats" | "ledger" | "analytics" | "adverse-action" | "synthetic-studio" | "alt-data" | "access" | "settings"
+export type Page = "dashboard" | "inbox" | "governance" | "threats" | "ledger" | "analytics" | "adverse-action" | "synthetic-studio" | "alt-data" | "access" | "settings"
 
 const NAV_ITEMS: { id: Page; label: string; short: string; icon: React.ComponentType<{ className?: string }>; badge?: number }[] = [
   { id: "dashboard",        label: "Operational Dashboard",  short: "Dashboard", icon: LayoutDashboard },
-  { id: "threats",          label: "Threat Analysis",        short: "Threats",   icon: ShieldAlert, badge: 3 },
+  { id: "inbox",            label: "Investigation Inbox",    short: "Inbox",     icon: Inbox, badge: 3 },
+  { id: "governance",       label: "Governance Queue",       short: "Governance",icon: CheckCircle },
+  { id: "threats",          label: "Threat Analysis",        short: "Threats",   icon: ShieldAlert },
   { id: "ledger",           label: "Evidence Ledger",        short: "Ledger",    icon: BookOpen },
   { id: "analytics",        label: "Analytics & Fairness",   short: "Analytics", icon: BarChart3 },
   { id: "adverse-action",   label: "Adverse Action Review",  short: "Adverse",   icon: Scale },
@@ -71,14 +77,15 @@ const NAV_ITEMS: { id: Page; label: string; short: string; icon: React.Component
 
 const PAGE_KEYS: Record<string, Page> = {
   "1": "dashboard",
-  "2": "threats",
-  "3": "ledger",
-  "4": "analytics",
-  "5": "adverse-action",
-  "6": "synthetic-studio",
-  "7": "alt-data",
-  "8": "access",
-  "9": "settings",
+  "2": "inbox",
+  "3": "governance",
+  "4": "threats",
+  "5": "ledger",
+  "6": "analytics",
+  "7": "adverse-action",
+  "8": "synthetic-studio",
+  "9": "alt-data",
+  "0": "settings",
 }
 
 function InfoMenu() {
@@ -352,6 +359,8 @@ export default function NextApp() {
         />
         <main className="flex-1 overflow-hidden" data-testid="main-content">
           {activePage === "dashboard"        && <DashboardPage />}
+          {activePage === "inbox"            && <InboxPage />}
+          {activePage === "governance"       && <GovernancePage />}
           {activePage === "threats"          && <ThreatAnalysisPage />}
           {activePage === "ledger"           && <EvidenceLedgerPage />}
           {activePage === "analytics"        && <AnalyticsPage />}

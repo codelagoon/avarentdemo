@@ -109,11 +109,11 @@ export function EvidenceLedgerPage() {
       cell: ({ row }) => {
         const d = new Date(row.getValue('timestamp'))
         return (
-          <div>
-            <p className="font-mono text-[0.72rem] tabular-nums text-foreground">
+          <div suppressHydrationWarning>
+            <p suppressHydrationWarning className="font-mono text-[0.72rem] tabular-nums text-foreground">
               {d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
             </p>
-            <p className="font-mono text-[0.62rem] text-muted-foreground">
+            <p suppressHydrationWarning className="font-mono text-[0.62rem] text-muted-foreground">
               {d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
             </p>
           </div>

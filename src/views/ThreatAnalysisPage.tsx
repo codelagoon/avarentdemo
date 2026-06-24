@@ -128,20 +128,29 @@ export function ThreatAnalysisPage() {
     }, 1500)
   }
 
+  const handleOpenInvestigation = () => {
+    toast.success("Investigation Case opened. Routed to Compliance Officer for Rashomon mitigation review.")
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/30 bg-card px-6 py-4 shrink-0">
+      <div className="flex items-center justify-between border-b border-border/30 bg-card px-6 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <ShieldAlert className="h-4.5 w-4.5 text-primary" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10">
+            <ShieldAlert className="h-4 w-4 text-orange-600 dark:text-orange-400" />
           </div>
           <div>
-            <h1 className="text-base font-semibold text-foreground">Threat Analysis & Fairwashing Auditor</h1>
-            <p className="text-[0.7rem] text-muted-foreground">Real-time adversarial proxy screening & mathematical fairwashing audit pipelines</p>
+            <h1 className="text-base font-semibold text-foreground">Proxy Threat Detection</h1>
+            <p className="text-[0.7rem] text-muted-foreground">
+              Sequential Correlation Analysis · 1,248 vectors scanned/sec
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400" onClick={handleOpenInvestigation}>
+            <FileWarning className="h-3.5 w-3.5" />Open Investigation
+          </Button>
           <div className="flex rounded-lg border border-border/60 bg-muted/60 p-0.5" data-testid="threat-tabs">
             <button onClick={() => setActiveTab("feed")} className={cn("rounded-md px-3 py-1 text-xs font-semibold transition-all", activeTab === "feed" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               Adversarial Feed

@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { TenantApiKeyManager } from "@/components/TenantApiKeyManager"
+import { TenantTeamManager } from "@/components/TenantTeamManager"
 import { cn } from "@/lib/utils"
 const DAILY_STATS: any = { modelVersion: "v1.0" }
 
@@ -65,7 +67,7 @@ function ComplianceStatusRow({ label, status, detail }: { label: string; status:
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme()
-  const [subTab, setSubTab] = useState<"detection" | "model" | "compliance" | "system">("detection")
+  const [subTab, setSubTab] = useState<"detection" | "model" | "compliance" | "system" | "team">("detection")
 
   const [detection, setDetection] = useState<ToggleSetting[]>([
     { id: "proxy-scan", label: "Real-Time Proxy Variable Scanning", description: "Continuously scan incoming features for protected-class proxy correlations", value: true, critical: true },
@@ -138,6 +140,12 @@ export function SettingsPage() {
             className={cn("rounded-md px-3 py-1 text-[0.72rem] font-semibold transition-all", subTab === "compliance" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
           >
             Compliance & Reports
+          </button>
+          <button
+            onClick={() => setSubTab("team")}
+            className={cn("rounded-md px-3 py-1 text-[0.72rem] font-semibold transition-all", subTab === "team" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+          >
+            Team & Roles
           </button>
           <button
             onClick={() => setSubTab("system")}
@@ -217,28 +225,11 @@ export function SettingsPage() {
               </div>
             </Card>
 
-            <Card className="border-primary/20 bg-primary/[0.02] shadow-sm p-5 flex flex-col justify-between overflow-hidden">
-              <div className="space-y-4">
-                <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5 border-b border-primary/10 pb-2">
-                  <Shield className="h-4 w-4 text-primary" />
-                  Integration Credentials
-                </h2>
-                <p className="text-xs text-muted-foreground leading-relaxed font-sans">
-                  Manage secure API integration credentials for external credit decision engines, OpenAI models, and Supabase connections.
-                </p>
-                <div className="rounded-lg bg-card border border-border p-4 space-y-2">
-                  <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Active Keys</p>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Supabase Client Connection</span>
-                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">CONNECTED</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">LLM Inference API Key</span>
-                    <span className="font-mono text-amber-600 dark:text-amber-400 font-bold">LOCAL FALLBACK</span>
-                  </div>
-                </div>
-              </div>
-              <div className="pt-4 border-t border-border/40 shrink-0">
+            <Card className="border-border/60 shadow-sm p-5 flex flex-col justify-between overflow-hidden">
+              <TenantApiKeyManager />
+              
+              <div className="pt-4 mt-6 border-t border-border/40 shrink-0">
+                <p className="text-[0.65rem] font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Third-Party LLM Integrations</p>
                 <ApiKeyDialog />
               </div>
             </Card>
@@ -292,6 +283,12 @@ export function SettingsPage() {
                 </div>
               </Card>
             </div>
+          </div>
+        )}
+
+        {subTab === "team" && (
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <TenantTeamManager />
           </div>
         )}
 
