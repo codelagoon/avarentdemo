@@ -9,4 +9,25 @@ const supabaseAnonKey =
   (import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
   ""
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const createMockSupabaseClient = () => ({
+  auth: {
+    getSession: async () => ({ data: { session: null }, error: null }),
+    onAuthStateChange: () => ({
+      data: { subscription: { unsubscribe: () => {} } },
+    }),
+    signInWithPassword: async () => ({
+      data: { session: null, user: null },
+      error: new Error("Supabase auth is not configured for this environment."),
+    }),
+    signUp: async () => ({
+      data: { session: null, user: null },
+      error: new Error("Supabase auth is not configured for this environment."),
+    }),
+    signOut: async () => ({ error: null }),
+  },
+})
+
+export const supabase =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : createMockSupabaseClient()
