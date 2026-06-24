@@ -1,0 +1,23 @@
+{
+  "date": "2026-06-24",
+  "url": "http://127.0.0.1:5174",
+  "healthScore": 98,
+  "issues": [
+    {
+      "id": "ISSUE-001",
+      "title": "Login page surfaced a 500 on /api/identity/context",
+      "severity": "high",
+      "category": "functional"
+    }
+  ],
+  "categoryScores": {
+    "console": 100,
+    "links": 100,
+    "visual": 100,
+    "functional": 100,
+    "ux": 98,
+    "performance": 100,
+    "content": 100,
+    "accessibility": 95
+  }
+}
