@@ -23,10 +23,20 @@ export interface ThreatEvent {
   status: "active" | "investigating" | "resolved"
 }
 
+class FairnessAlertRepository extends BaseRepository<FairnessAlert> { constructor(serverTenantId?: string) { super("fairness_alerts", serverTenantId) } }
+class ThreatEventRepository extends BaseRepository<ThreatEvent> { constructor(serverTenantId?: string) { super("threat_log", serverTenantId) } }
+class FairnessMetricsRepository extends BaseRepository<any> { constructor(serverTenantId?: string) { super("fairness_metrics", serverTenantId) } }
+
 export class MonitoringRepository {
-  private fairnessRepo = new BaseRepository<FairnessAlert>("fairness_alerts") {}
-  private threatRepo = new BaseRepository<ThreatEvent>("threat_log") {}
-  private metricsRepo = new BaseRepository<any>("fairness_metrics") {}
+  private fairnessRepo: FairnessAlertRepository
+  private threatRepo: ThreatEventRepository
+  private metricsRepo: FairnessMetricsRepository
+
+  constructor(serverTenantId?: string) {
+    this.fairnessRepo = new FairnessAlertRepository(serverTenantId)
+    this.threatRepo = new ThreatEventRepository(serverTenantId)
+    this.metricsRepo = new FairnessMetricsRepository(serverTenantId)
+  }
 
   // Fairness Alerts & Metrics
   async getRecentFairnessMetrics() {

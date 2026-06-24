@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts"
 import { cn } from "@/lib/utils"
-import { type ThreatSeverity } from "@/data/mockData"
+type ThreatSeverity = "critical" | "high" | "medium" | "low"
 import { threatService } from "@/services/threatService"
 import { antiFairwashingService } from "@/services/antiFairwashingService"
 

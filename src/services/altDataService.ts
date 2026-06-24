@@ -1,5 +1,5 @@
 import { emit } from "@/lib/sync"
-import { supabase } from "@/lib/supabaseClient"
+import { tenantSettingsRepository } from "@/repositories/TenantSettingsRepository"
 import { companyService } from "./companyService"
 
 export interface AltConnector {
@@ -184,16 +184,12 @@ export class AltDataService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("tenant_settings")
-        .select("alt_data_state")
-        .eq("company_id", companyId)
-        .single()
+      const { data, error } = await tenantSettingsRepository.query().single()
 
-      if (data && !error && Object.keys(data.alt_data_state).length > 0) {
+      if (data && !error && data.alt_data_state && Object.keys(data.alt_data_state).length > 0) {
         this.state = data.alt_data_state as AltDataState
       } else {
-        // If not found, use defaults and possibly insert it
+        // If not found, use defaults
         this.state = JSON.parse(JSON.stringify(DEFAULT_STATE))
       }
     } catch (err) {
@@ -212,14 +208,12 @@ export class AltDataService {
     if (!companyId) return
 
     try {
-      const { error } = await supabase
-        .from("tenant_settings")
-        .upsert({
-          company_id: companyId,
-          alt_data_state: this.state
-        }, { onConflict: "company_id" })
-        
-      if (error) throw error
+      const { data, error } = await tenantSettingsRepository.query().single()
+      if (data && !error) {
+        await tenantSettingsRepository.update(data.id, { alt_data_state: this.state })
+      } else {
+        await tenantSettingsRepository.insert({ alt_data_state: this.state } as any)
+      }
     } catch (err) {
       console.error("Failed to save alt data state to Supabase", err)
     }

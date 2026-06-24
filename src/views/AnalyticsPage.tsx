@@ -11,7 +11,10 @@ import {
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { cn } from "@/lib/utils"
-import { FAIRNESS_METRICS, APPROVAL_LIFT_DATA, PROXY_DETECTION_DATA, DATA_VOLUME } from "@/data/mockData"
+const FAIRNESS_METRICS: any[] = []
+const APPROVAL_LIFT_DATA: any[] = []
+const PROXY_DETECTION_DATA: any[] = []
+const DATA_VOLUME: any[] = []
 
 // Data Volume vs Accuracy & Fairness chart data
 const DATA_VOLUME_CHART = [

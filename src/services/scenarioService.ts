@@ -1,5 +1,97 @@
-import type { DemoScenario, ScenarioConfig } from "@/data/mockData"
-import { DEMO_SCENARIOS } from "@/data/mockData"
+export type DemoScenario = "fairwashing" | "proxy" | "drift" | "baseline"
+
+export interface ScenarioConfig {
+  id: DemoScenario
+  applicantName: string
+  applicantId: string
+  age: number
+  income: number
+  creditScore: number
+  loanAmount: number
+  loanType: string
+  employmentYears: number
+  zipCode: string
+  expectedOutcome: "approved" | "denied" | "escalated" | "under_review"
+  fairnessScore: number
+  proxiesDetected: number
+  interventions: string[]
+  graphSeveredEdges: string[]
+  alertSeverity?: "critical" | "high" | "medium" | "low"
+}
+
+export const DEMO_SCENARIOS: Record<DemoScenario, ScenarioConfig> = {
+  baseline: {
+    id: "baseline",
+    applicantName: "Baseline Applicant",
+    applicantId: "APP-001",
+    age: 35,
+    income: 85000,
+    creditScore: 720,
+    loanAmount: 250000,
+    loanType: "mortgage",
+    employmentYears: 5,
+    zipCode: "10001",
+    expectedOutcome: "approved",
+    fairnessScore: 0.95,
+    proxiesDetected: 0,
+    interventions: [],
+    graphSeveredEdges: []
+  },
+  fairwashing: {
+    id: "fairwashing",
+    applicantName: "Fairwashing Target",
+    applicantId: "APP-FW-102",
+    age: 28,
+    income: 65000,
+    creditScore: 680,
+    loanAmount: 15000,
+    loanType: "personal",
+    employmentYears: 2,
+    zipCode: "33101",
+    expectedOutcome: "escalated",
+    fairnessScore: 0.81,
+    proxiesDetected: 2,
+    interventions: ["Adversarial Mitigation Blocked", "SHAP Feature Quarantined"],
+    graphSeveredEdges: ["ZipCode -> CreditScore", "ZipCode -> Risk"],
+    alertSeverity: "critical"
+  },
+  proxy: {
+    id: "proxy",
+    applicantName: "Proxy Victim",
+    applicantId: "APP-PR-204",
+    age: 45,
+    income: 92000,
+    creditScore: 690,
+    loanAmount: 45000,
+    loanType: "auto",
+    employmentYears: 10,
+    zipCode: "90001",
+    expectedOutcome: "under_review",
+    fairnessScore: 0.74,
+    proxiesDetected: 1,
+    interventions: ["Proxy Correlation Flagged"],
+    graphSeveredEdges: ["ZipCode -> Income"],
+    alertSeverity: "high"
+  },
+  drift: {
+    id: "drift",
+    applicantName: "Drift Applicant",
+    applicantId: "APP-DR-305",
+    age: 52,
+    income: 110000,
+    creditScore: 780,
+    loanAmount: 350000,
+    loanType: "mortgage",
+    employmentYears: 15,
+    zipCode: "60601",
+    expectedOutcome: "approved",
+    fairnessScore: 0.88,
+    proxiesDetected: 0,
+    interventions: ["Population PSI Alert", "Threshold Adjusted"],
+    graphSeveredEdges: [],
+    alertSeverity: "medium"
+  }
+}
 import { ledgerService } from "./ledgerService"
 import { threatService } from "./threatService"
 import { getAIDecision, type ApplicationData } from "./aiModelService"

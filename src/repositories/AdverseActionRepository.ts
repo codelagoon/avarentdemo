@@ -22,8 +22,8 @@ export interface AdverseActionRecord {
 }
 
 export class AdverseActionRepository extends BaseRepository<AdverseActionRecord> {
-  constructor() {
-    super("adverse_actions")
+  constructor(serverTenantId?: string) {
+    super("adverse_actions", serverTenantId)
   }
 
   async findRecent(limit = 100): Promise<AdverseActionRecord[]> {

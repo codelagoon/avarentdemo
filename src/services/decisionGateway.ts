@@ -1,6 +1,6 @@
 import { toast } from "sonner"
 import { emit } from "@/lib/sync"
-import { supabase } from "@/lib/supabaseClient"
+import { circuitBreakerRepository } from "@/repositories/MLRepositories"
 import { companyService } from "./companyService"
 
 const STORAGE_KEY = "avarent_decision_gateway"
@@ -74,11 +74,7 @@ class DecisionGateway {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("circuit_breakers")
-        .select("*")
-        .eq("company_id", companyId)
-        .single()
+      const { data, error } = await circuitBreakerRepository.query().single()
 
       if (data && !error) {
         this.circuitBreaker = {
@@ -89,13 +85,12 @@ class DecisionGateway {
         }
       } else if (error && error.code === 'PGRST116') {
         // Not found, create one
-        await supabase.from("circuit_breakers").insert({
-          company_id: companyId,
+        await circuitBreakerRepository.insert({
           failures: 0,
           last_failure_time: 0,
           is_open: false,
           consecutive_successes: 0
-        })
+        } as any)
       }
     } catch (err) {
       console.error("Failed to load circuit breaker from Supabase", err)
@@ -113,13 +108,16 @@ class DecisionGateway {
     if (!companyId) return
 
     try {
-      await supabase.from("circuit_breakers").update({
-        failures: this.circuitBreaker.failures,
-        last_failure_time: this.circuitBreaker.lastFailureTime,
-        is_open: this.circuitBreaker.isOpen,
-        consecutive_successes: this.circuitBreaker.consecutiveSuccesses,
-        updated_at: new Date().toISOString()
-      }).eq("company_id", companyId)
+      const { data } = await circuitBreakerRepository.query().single()
+      if (data) {
+        await circuitBreakerRepository.update(data.id, {
+          failures: this.circuitBreaker.failures,
+          last_failure_time: this.circuitBreaker.lastFailureTime,
+          is_open: this.circuitBreaker.isOpen,
+          consecutive_successes: this.circuitBreaker.consecutiveSuccesses,
+          updated_at: new Date().toISOString()
+        } as any)
+      }
     } catch (err) {
       console.error("Failed to save circuit breaker to Supabase", err)
     }

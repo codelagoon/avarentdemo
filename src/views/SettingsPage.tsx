@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
-import { DAILY_STATS } from "@/data/mockData"
+const DAILY_STATS: any = { modelVersion: "v1.0" }
 
 interface ToggleSetting {
   id: string

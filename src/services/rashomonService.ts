@@ -1,6 +1,6 @@
 import { toast } from "sonner"
 import { emit } from "@/lib/sync"
-import { supabase } from "@/lib/supabaseClient"
+import { rashomonRepository } from "@/repositories/MLRepositories"
 import { companyService } from "./companyService"
 
 export interface RashomonModel {
@@ -98,25 +98,27 @@ class RashomonService {
 
     try {
       // For simplicity in this demo, we'll clear and rewrite the cache for this company
-      await supabase.from("rashomon_models").delete().eq("company_id", companyId)
+      const { data: existing } = await rashomonRepository.query()
+      if (existing && existing.length > 0) {
+        await Promise.all(existing.map((row: any) => rashomonRepository.delete(row.id)))
+      }
 
       if (this.rashomonCache.length > 0) {
-        const rows = this.rashomonCache.map(m => ({
-          company_id: companyId,
-          model_id: m.id,
-          name: m.name,
-          accuracy: m.accuracy,
-          fairness_score: m.fairnessScore,
-          feature_count: m.featureCount,
-          calibration: m.calibration,
-          latency_ms: m.latencyMs,
-          complexity: m.complexity,
-          description: m.description,
-          parameters: m.parameters,
-          is_current: this.currentModel?.id === m.id
-        }))
-
-        await supabase.from("rashomon_models").insert(rows)
+        for (const m of this.rashomonCache) {
+          await rashomonRepository.insert({
+            model_id: m.id,
+            name: m.name,
+            accuracy: m.accuracy,
+            fairness_score: m.fairnessScore,
+            feature_count: m.featureCount,
+            calibration: m.calibration,
+            latency_ms: m.latencyMs,
+            complexity: m.complexity,
+            description: m.description,
+            parameters: m.parameters,
+            is_current: this.currentModel?.id === m.id
+          } as any)
+        }
       }
     } catch (err) {
       console.error("Failed to save rashomon models to Supabase", err)

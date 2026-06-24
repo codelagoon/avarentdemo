@@ -22,8 +22,8 @@ export interface DecisionRecord {
 }
 
 export class DecisionRepository extends BaseRepository<DecisionRecord> {
-  constructor() {
-    super("decision_events")
+  constructor(serverTenantId?: string) {
+    super("decision_events", serverTenantId)
   }
 
   async findRecent(limit = 100): Promise<DecisionRecord[]> {

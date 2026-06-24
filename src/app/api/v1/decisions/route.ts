@@ -1,22 +1,45 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { DecisionRepository } from "@/repositories/DecisionRepository"
+import { createHash } from "crypto"
 
-// We use the service role key to bypass RLS since this is a server-to-server API
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+export const dynamic = "force-dynamic"
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321"
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "dummy-key"
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 export async function POST(req: Request) {
   try {
-    // Basic authentication (in production, validate a proper Bearer token)
-    const authHeader = req.headers.get("Authorization")
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Missing or invalid authorization header" }, { status: 401 })
+    // API Key Authentication (replaces insecure Bearer token UUID)
+    const apiKey = req.headers.get("X-API-Key") || req.headers.get("x-api-key")
+    if (!apiKey) {
+      return NextResponse.json({ error: "Missing X-API-Key header" }, { status: 401 })
     }
 
-    // For this prototype, we'll assume the Bearer token is the company_id
-    const companyId = authHeader.replace("Bearer ", "").trim()
+    // Hash the incoming key to match the database
+    const keyHash = createHash("sha256").update(apiKey).digest("hex")
+
+    // Lookup the key in the database using service role (bypassing RLS since the caller isn't an authenticated user yet)
+    const { data: keyData, error: keyError } = await supabase
+      .from("api_keys")
+      .select("company_id, revoked_at")
+      .eq("key_hash", keyHash)
+      .single()
+
+    if (keyError || !keyData) {
+      return NextResponse.json({ error: "Invalid API Key" }, { status: 401 })
+    }
+
+    if (keyData.revoked_at) {
+      return NextResponse.json({ error: "API Key has been revoked" }, { status: 401 })
+    }
+
+    const companyId = keyData.company_id
+    
+    // Asynchronously update last_used_at (fire and forget)
+    supabase.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("key_hash", keyHash).then()
+    const decisionRepository = new DecisionRepository(companyId)
 
     // Parse the request body
     const body = await req.json()
@@ -44,34 +67,24 @@ export async function POST(req: Request) {
       model_version
     } = body
 
-    // Insert the decision event
-    const { data, error } = await supabase
-      .from("decision_events")
-      .insert({
-        company_id: companyId,
-        applicant_id,
-        applicant_name,
-        credit_score,
-        income,
-        loan_amount,
-        debt_to_income,
-        outcome,
-        primary_score,
-        fairness_score,
-        tower,
-        shap_features: shap_features || [],
-        top_reasons: top_reasons || [],
-        circuit_breaker_triggered: circuit_breaker_triggered || false,
-        latency_ms,
-        model_version: model_version || "v1.0.0"
-      })
-      .select("id")
-      .single()
-
-    if (error) {
-      console.error("Database error inserting decision event:", error)
-      return NextResponse.json({ error: "Failed to persist decision event" }, { status: 500 })
-    }
+    // Insert the decision event using the repository
+    const data = await decisionRepository.insert({
+      applicant_id,
+      applicant_name,
+      credit_score,
+      income,
+      loan_amount,
+      debt_to_income,
+      outcome,
+      primary_score,
+      fairness_score,
+      tower,
+      shap_features: shap_features || [],
+      top_reasons: top_reasons || [],
+      circuit_breaker_triggered: circuit_breaker_triggered || false,
+      latency_ms,
+      model_version: model_version || "v1.0.0"
+    } as any)
 
     return NextResponse.json({ 
       status: "success",

@@ -7,9 +7,11 @@ import { companyService } from "@/services/companyService"
  */
 export abstract class BaseRepository<T> {
   protected tableName: string
+  protected serverTenantId?: string
 
-  constructor(tableName: string) {
+  constructor(tableName: string, serverTenantId?: string) {
     this.tableName = tableName
+    this.serverTenantId = serverTenantId
   }
 
   /**
@@ -17,6 +19,12 @@ export abstract class BaseRepository<T> {
    * Throws an error if no tenant is active, preventing accidental cross-tenant queries.
    */
   protected getTenantId(): string {
+    if (this.serverTenantId) return this.serverTenantId
+    
+    if (typeof window === "undefined") {
+      throw new Error(`Tenant Isolation Violation: Attempted to query ${this.tableName} on the server without injecting a tenant context.`)
+    }
+
     const companyId = companyService.getActiveCompanyId()
     if (!companyId) {
       throw new Error(`Tenant Isolation Violation: Attempted to query ${this.tableName} without an active tenant context.`)

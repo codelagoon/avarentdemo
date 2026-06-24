@@ -38,7 +38,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { DAILY_STATS } from "@/data/mockData"
 import { ModeToggle } from "@/components/mode-toggle"
 import { supabase } from "@/lib/supabaseClient"
 import LoginCardSection from "@/components/ui/login-signup"
@@ -112,7 +111,7 @@ function InfoMenu() {
 }
 
 function NotificationMenu() {
-  const count = DAILY_STATS.openIncidents
+  const count = 3 // Fallback until connected to MonitoringRepository
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -264,7 +263,7 @@ function TopBar({ activePage, onNavigate, onLogout }: {
       <div className="flex items-center gap-1.5">
         <div className="hidden items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5 lg:flex">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-          <span className="font-mono text-[0.6rem] tracking-tight text-muted-foreground">{DAILY_STATS.modelVersion}</span>
+          <span className="font-mono text-[0.6rem] tracking-tight text-muted-foreground">v4.2.1-meridian</span>
           <span className="font-mono text-[0.6rem] text-muted-foreground/50">{timeStr}</span>
         </div>
         <div className="flex items-center gap-0.5">

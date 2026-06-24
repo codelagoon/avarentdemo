@@ -17,10 +17,10 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import {
-  DEMO_SCENARIOS, DAILY_STATS, DATA_VOLUME,
-  type DemoScenario, type ScenarioConfig, type LedgerEntry, type LedgerEventType
-} from "@/data/mockData"
+import { type LedgerEntry } from "@/services/ledgerService"
+import { type LedgerEventType } from "@/data/mockData" // Temporarily retained for type only, will remove later
+const DAILY_STATS: any = { appsToday: 0, modelsActive: 0, modelVersion: "v1.0" }
+const DATA_VOLUME: any[] = []
 import { ledgerService } from "@/services/ledgerService"
 import { scenarioService } from "@/services/scenarioService"
 import { DataImportDialog } from "@/components/DataImportDialog"

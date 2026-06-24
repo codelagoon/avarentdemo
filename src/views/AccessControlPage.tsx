@@ -8,7 +8,16 @@ import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
-import { USER_ROLES, type UserRole } from "@/data/mockData"
+export interface UserRole {
+  id: string
+  name: string
+  email: string
+  role: "admin" | "compliance" | "auditor" | "viewer"
+  status: "active" | "inactive" | "suspended"
+  lastLogin: string
+  mfaEnabled: boolean
+}
+const USER_ROLES: UserRole[] = []
 
 function StatusBadge({ status }: { status: UserRole["status"] }) {
   const map = {

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { useLiveData } from "@/hooks/useLiveData"
-import { BookOpen, Search, Download, Hash, ChevronDown, ChevronUp, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, FileText, Lock, RefreshCw } from "lucide-react"
+import { BookOpen, Search, Download, Hash, ChevronDown, ChevronUp, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, FileText, Lock, RefreshCw, SlidersHorizontal } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,38 +10,54 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { DATA_VOLUME, type LedgerEventType } from "@/data/mockData"
+import {
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  ColumnDef,
+  flexRender,
+  SortingState,
+  ColumnFiltersState,
+} from "@tanstack/react-table"
+
+type LedgerEventType = "decision" | "alert" | "intervention" | "proof_signed" | "audit" | "governance_action"
+const DATA_VOLUME: any[] = []
 import { ledgerService } from "@/services/ledgerService"
 
-function EventTypeIcon({ type }: { type: LedgerEventType }) {
-  const map: Record<LedgerEventType, React.ComponentType<{ className?: string }>> = {
+function EventTypeIcon({ type }: { type: LedgerEventType | string }) {
+  const map: Record<string, React.ComponentType<{ className?: string }>> = {
     decision: FileText,
     intervention: AlertTriangle,
     proof_signed: CheckCircle,
     alert: AlertTriangle,
     audit: RefreshCw,
+    governance_action: Lock,
   }
-  const Icon = map[type]
-  const colors: Record<LedgerEventType, string> = {
+  const Icon = map[type as string] || FileText
+  const colors: Record<string, string> = {
     decision: "text-blue-600",
     intervention: "text-orange-600",
     proof_signed: "text-emerald-600",
     alert: "text-destructive",
     audit: "text-muted-foreground",
+    governance_action: "text-indigo-600",
   }
-  return <Icon className={cn("h-3.5 w-3.5", colors[type])} />
+  return <Icon className={cn("h-3.5 w-3.5", colors[type as string] || "text-foreground")} />
 }
 
-function EventTypeBadge({ type }: { type: LedgerEventType }) {
-  const map: Record<LedgerEventType, { label: string; cls: string }> = {
+function EventTypeBadge({ type }: { type: LedgerEventType | string }) {
+  const map: Record<string, { label: string; cls: string }> = {
     decision: { label: "Decision", cls: "bg-blue-50 text-blue-700 border-blue-200" },
     intervention: { label: "Intervention", cls: "bg-orange-50 text-orange-700 border-orange-200" },
     proof_signed: { label: "Audit Sealed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     alert: { label: "Alert", cls: "bg-destructive/10 text-destructive border-destructive/20" },
     audit: { label: "Audit", cls: "bg-secondary text-muted-foreground border-border" },
+    governance_action: { label: "Governance", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
   }
-  const { label, cls } = map[type]
-  return <span className={cn("rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold", cls)}>{label}</span>
+  const match = map[type as string] || { label: type, cls: "bg-secondary text-muted-foreground border-border" }
+  return <span className={cn("rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold", match.cls)}>{match.label}</span>
 }
 
 function DecisionBadge({ decision }: { decision?: string }) {
@@ -53,78 +69,159 @@ function DecisionBadge({ decision }: { decision?: string }) {
     escalated: "bg-orange-50 text-orange-700 border-orange-200",
   }
   return (
-    <span className={cn("rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold uppercase", map[decision] ?? "bg-secondary text-muted-foreground border-border")}>
+    <span className={cn("rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold uppercase", map[decision.toLowerCase()] ?? "bg-secondary text-muted-foreground border-border")}>
       {decision.replace("_", " ")}
     </span>
   )
 }
 
 export function EvidenceLedgerPage() {
-  const [search, setSearch] = useState("")
-  const [typeFilter, setTypeFilter] = useState("all")
-  const [sortField, setSortField] = useState<"timestamp" | "fairnessScore">("timestamp")
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
   const entries = useLiveData(() => ledgerService.getAll(), ["ledger"])
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [search, typeFilter, pageSize])
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'timestamp', desc: true }])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [globalFilter, setGlobalFilter] = useState("")
+  
   const stats = useMemo(() => {
     const all = entries
     return {
       total: all.length,
       proofs: all.filter(e => e.eventType === "proof_signed").length,
       interventions: all.filter(e => e.eventType === "intervention").length,
-      avgFairness: all.length > 0 ? all.reduce((s, e) => s + e.fairnessScore, 0) / all.length : 0,
+      avgFairness: all.length > 0 ? all.reduce((s, e) => s + (e.fairnessScore || 0), 0) / all.length : 0,
     }
   }, [entries])
 
-  const filtered = useMemo(() => {
-    const arr = entries.filter(e => {
-      const matchSearch = !search ||
-        e.applicantName.toLowerCase().includes(search.toLowerCase()) ||
-        e.applicantId.toLowerCase().includes(search.toLowerCase()) ||
-        e.hash.includes(search.toLowerCase()) ||
-        e.message.toLowerCase().includes(search.toLowerCase())
-      const matchType = typeFilter === "all" || e.eventType === typeFilter
-      return matchSearch && matchType
-    })
-    arr.sort((a, b) => {
-      const va = sortField === "timestamp" ? new Date(a.timestamp).getTime() : a.fairnessScore
-      const vb = sortField === "timestamp" ? new Date(b.timestamp).getTime() : b.fairnessScore
-      return sortDir === "desc" ? vb - va : va - vb
-    })
-    return arr
-  }, [entries, search, typeFilter, sortField, sortDir])
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+    {
+      id: 'icon',
+      header: '',
+      cell: ({ row }) => <div className="pl-5"><EventTypeIcon type={row.original.eventType} /></div>,
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'timestamp',
+      header: ({ column }) => (
+        <div className="cursor-pointer flex items-center gap-1" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+          Timestamp
+          {column.getIsSorted() === "asc" ? <ChevronUp className="h-3 w-3" /> : column.getIsSorted() === "desc" ? <ChevronDown className="h-3 w-3" /> : null}
+        </div>
+      ),
+      cell: ({ row }) => {
+        const d = new Date(row.getValue('timestamp'))
+        return (
+          <div>
+            <p className="font-mono text-[0.72rem] tabular-nums text-foreground">
+              {d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+            </p>
+            <p className="font-mono text-[0.62rem] text-muted-foreground">
+              {d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            </p>
+          </div>
+        )
+      }
+    },
+    {
+      accessorKey: 'id',
+      header: 'Event ID',
+      cell: ({ row }) => <span className="font-mono text-[0.68rem] text-muted-foreground">{row.getValue('id')}</span>
+    },
+    {
+      accessorKey: 'applicantName',
+      header: 'Subject / Entity',
+      cell: ({ row }) => (
+        <div>
+          <p className="text-[0.8rem] font-medium text-foreground">{row.getValue('applicantName') || "System Action"}</p>
+          <p className="font-mono text-[0.62rem] text-muted-foreground">{row.original.applicantId}</p>
+        </div>
+      )
+    },
+    {
+      accessorKey: 'eventType',
+      header: 'Type',
+      cell: ({ row }) => <EventTypeBadge type={row.getValue('eventType') as string} />
+    },
+    {
+      accessorKey: 'decision',
+      header: 'Decision',
+      cell: ({ row }) => <DecisionBadge decision={row.getValue('decision') as string} />
+    },
+    {
+      accessorKey: 'fairnessScore',
+      header: ({ column }) => (
+        <div className="cursor-pointer flex items-center gap-1" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+          Score <span className="text-[0.55rem] font-normal tracking-normal normal-case text-muted-foreground">(AIR / SPD)</span>
+          {column.getIsSorted() === "asc" ? <ChevronUp className="h-3 w-3" /> : column.getIsSorted() === "desc" ? <ChevronDown className="h-3 w-3" /> : null}
+        </div>
+      ),
+      cell: ({ row }) => {
+        const val = row.getValue('fairnessScore') as number
+        if (val === undefined || val === null) return <span className="text-muted-foreground text-[0.68rem]">-</span>
+        return (
+          <span className={cn("font-mono text-[0.78rem] font-bold tabular-nums", val >= 0.8 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+            {val.toFixed(2)} / {Math.max(0, 1 - val).toFixed(2)}
+          </span>
+        )
+      }
+    },
+    {
+      accessorKey: 'hash',
+      header: 'Hash',
+      cell: ({ row }) => {
+        const h = row.getValue('hash') as string
+        if (!h) return null
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="cursor-help rounded bg-muted/60 px-1.5 py-0.5 font-mono text-[0.62rem] text-muted-foreground">
+                {h.slice(0, 12)}…
+              </span>
+            </TooltipTrigger>
+            <TooltipContent><span className="font-mono text-[0.65rem]">{h}</span></TooltipContent>
+          </Tooltip>
+        )
+      }
+    }
+  ], [])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const paginated = useMemo(() => {
-    return filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-  }, [filtered, currentPage, pageSize])
-
-  const toggleSort = (field: typeof sortField) => {
-    if (sortField === field) setSortDir(d => d === "desc" ? "asc" : "desc")
-    else { setSortField(field); setSortDir("desc") }
-  }
+  const table = useReactTable({
+    data: entries,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 25,
+      },
+    },
+  })
 
   const handleExport = () => {
-    // Generate CSV content
     const csv = [
       ["ID", "Timestamp", "Type", "Applicant", "Decision", "Fairness", "Message"].join(","),
-      ...filtered.map(e => [
-        e.id,
-        e.timestamp,
-        e.eventType,
-        `"${e.applicantName}"`,
-        e.decision || "-",
-        e.fairnessScore,
-        `"${e.message}"`,
-      ].join(","))
+      ...table.getFilteredRowModel().rows.map(row => {
+        const e = row.original
+        return [
+          e.id,
+          e.timestamp,
+          e.eventType,
+          `"${e.applicantName || ""}"`,
+          e.decision || "-",
+          e.fairnessScore || "",
+          `"${e.message || ""}"`,
+        ].join(",")
+      })
     ].join("\n")
 
-    // Download
     const blob = new Blob([csv], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -132,14 +229,8 @@ export function EvidenceLedgerPage() {
     a.download = `evidence-ledger-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
-
-    toast.success(`Exported ${filtered.length} entries to CSV`)
+    toast.success(`Exported ${table.getFilteredRowModel().rows.length} entries to CSV`)
   }
-
-  const SortIcon = ({ field }: { field: typeof sortField }) =>
-    sortField === field
-      ? sortDir === "desc" ? <ChevronDown className="ml-1 inline h-3 w-3" /> : <ChevronUp className="ml-1 inline h-3 w-3" />
-      : null
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -152,7 +243,7 @@ export function EvidenceLedgerPage() {
           <div>
             <h1 className="text-base font-semibold text-foreground">Evidence Ledger</h1>
             <p className="text-[0.7rem] text-muted-foreground">
-              Immutable hash-chained audit log · {DATA_VOLUME.featuresPerDecision} features/decision · {(DATA_VOLUME.trainingRecords / 1000000).toFixed(1)}M training records
+              Immutable hash-chained audit log
             </p>
           </div>
         </div>
@@ -200,21 +291,26 @@ export function EvidenceLedgerPage() {
 
         {/* Table card */}
         <Card className="flex-1 flex flex-col border-border/60 shadow-sm overflow-hidden min-h-0">
-          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3 shrink-0">
-            <p className="text-sm font-semibold text-foreground">Ledger Entries</p>
+          <div className="flex items-center justify-between border-b border-border/40 px-5 py-3 shrink-0 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-semibold text-foreground">Filter & Sort</p>
+            </div>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search name, ID, hash…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="h-7 w-56 pl-8 text-xs"
-                  data-testid="ledger-search"
+                  placeholder="Search globally..."
+                  value={globalFilter ?? ''}
+                  onChange={e => setGlobalFilter(e.target.value)}
+                  className="h-8 w-64 pl-8 text-xs bg-background"
                 />
               </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-7 w-36 text-xs" data-testid="ledger-type-filter">
+              <Select 
+                value={(table.getColumn('eventType')?.getFilterValue() as string) ?? "all"} 
+                onValueChange={(val) => table.getColumn('eventType')?.setFilterValue(val === "all" ? "" : val)}
+              >
+                <SelectTrigger className="h-8 w-40 text-xs bg-background">
                   <SelectValue placeholder="Event Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -224,124 +320,87 @@ export function EvidenceLedgerPage() {
                   <SelectItem value="proof_signed">Audit Sealed</SelectItem>
                   <SelectItem value="alert">Alert</SelectItem>
                   <SelectItem value="audit">Audit</SelectItem>
+                  <SelectItem value="governance_action">Governance</SelectItem>
                 </SelectContent>
               </Select>
-              <Badge variant="secondary" className="text-[0.65rem]">{filtered.length} records</Badge>
+              <Badge variant="secondary" className="text-[0.65rem] h-8 flex items-center">{table.getFilteredRowModel().rows.length} records</Badge>
             </div>
           </div>
           <div className="flex-1 overflow-auto min-h-0">
-            <Table data-testid="ledger-table">
-              <TableHeader>
-                <TableRow className="border-border/40 hover:bg-transparent">
-                  <TableHead className="w-8 pl-5" />
-                  <TableHead className="cursor-pointer text-[0.68rem] font-semibold uppercase tracking-wider" onClick={() => toggleSort("timestamp")}>
-                    Timestamp <SortIcon field="timestamp" />
-                  </TableHead>
-                  <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Event ID</TableHead>
-                  <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Applicant</TableHead>
-                  <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Type</TableHead>
-                  <TableHead className="text-[0.68rem] font-semibold uppercase tracking-wider">Decision</TableHead>
-                  <TableHead className="cursor-pointer text-[0.68rem] font-semibold uppercase tracking-wider" onClick={() => toggleSort("fairnessScore")}>
-                    AIR / SPD <SortIcon field="fairnessScore" />
-                  </TableHead>
-                  <TableHead className="pr-5 text-[0.68rem] font-semibold uppercase tracking-wider">Hash</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginated.map(entry => (
-                  <TableRow key={entry.id} className="border-border/30 transition-colors hover:bg-muted/30" data-testid={`ledger-row-${entry.id}`}>
-                    <TableCell className="pl-5"><EventTypeIcon type={entry.eventType} /></TableCell>
-                    <TableCell>
-                      <p className="font-mono text-[0.72rem] tabular-nums text-foreground">
-                        {new Date(entry.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
-                      </p>
-                      <p className="font-mono text-[0.62rem] text-muted-foreground">
-                        {new Date(entry.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-[0.68rem] text-muted-foreground">{entry.id}</span>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-[0.8rem] font-medium text-foreground">{entry.applicantName}</p>
-                      <p className="font-mono text-[0.62rem] text-muted-foreground">{entry.applicantId}</p>
-                    </TableCell>
-                    <TableCell><EventTypeBadge type={entry.eventType} /></TableCell>
-                    <TableCell><DecisionBadge decision={entry.decision} /></TableCell>
-                    <TableCell>
-                      <span className={cn("font-mono text-[0.78rem] font-bold tabular-nums", entry.fairnessScore >= 0.8 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
-                        {entry.fairnessScore.toFixed(2)} / {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="pr-5">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help rounded bg-muted/60 px-1.5 py-0.5 font-mono text-[0.62rem] text-muted-foreground">
-                            {entry.hash.slice(0, 12)}…
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent><span className="font-mono text-[0.65rem]">{entry.hash}</span></TooltipContent>
-                      </Tooltip>
-                    </TableCell>
+            <Table>
+              <TableHeader className="sticky top-0 bg-card z-10">
+                {table.getHeaderGroups().map(headerGroup => (
+                  <TableRow key={headerGroup.id} className="border-border/40 hover:bg-transparent shadow-[0_1px_0_0_hsl(var(--border)/0.4)]">
+                    {headerGroup.headers.map(header => (
+                      <TableHead key={header.id} className="text-[0.68rem] font-semibold uppercase tracking-wider h-10">
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
                   </TableRow>
                 ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map(row => (
+                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} className="border-border/30 hover:bg-muted/30">
+                      {row.getVisibleCells().map(cell => (
+                        <TableCell key={cell.id} className="py-2.5">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      No results.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
           
           {/* Pagination Toolbar */}
-          <div className="flex items-center justify-between border-t border-border/40 px-5 py-3 bg-card shrink-0">
+          <div className="flex items-center justify-between border-t border-border/40 px-5 py-3 bg-muted/20 shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-[0.7rem] text-muted-foreground">Rows per page:</span>
-              <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setCurrentPage(1); }}>
-                <SelectTrigger className="h-7 w-[70px] text-xs">
-                  <SelectValue />
+              <Select 
+                value={`${table.getState().pagination.pageSize}`}
+                onValueChange={(value) => table.setPageSize(Number(value))}
+              >
+                <SelectTrigger className="h-7 w-[70px] text-xs bg-background">
+                  <SelectValue placeholder={table.getState().pagination.pageSize} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
+                  {[10, 25, 50, 100, 500].map(pageSize => (
+                    <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <span className="text-[0.7rem] text-muted-foreground ml-3">
-                Showing {filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(filtered.length, currentPage * pageSize)} of {filtered.length} entries
+                Showing {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}–{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} of {table.getFilteredRowModel().rows.length} entries
               </span>
             </div>
             <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 px-2 text-xs"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="h-7 px-2 text-xs bg-background"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
               >
                 Previous
               </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                .map((p, i, arr) => {
-                  const showEllipsis = i > 0 && p - arr[i - 1] > 1;
-                  return (
-                    <div key={p} className="flex items-center gap-1">
-                      {showEllipsis && <span className="text-xs text-muted-foreground px-1">...</span>}
-                      <Button
-                        variant={currentPage === p ? "default" : "outline"}
-                        size="sm"
-                        className={cn("h-7 w-7 p-0 text-xs", currentPage === p && "bg-primary text-primary-foreground")}
-                        onClick={() => setCurrentPage(p)}
-                      >
-                        {p}
-                      </Button>
-                    </div>
-                  );
-                })}
+              <span className="text-[0.7rem] text-muted-foreground px-2">
+                Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 px-2 text-xs"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="h-7 px-2 text-xs bg-background"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
               >
                 Next
               </Button>
