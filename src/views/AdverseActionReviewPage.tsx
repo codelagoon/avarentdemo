@@ -144,28 +144,28 @@ export default function AdverseActionReviewPage() {
 
   const stats = useLiveData(() => adverseActionService.getStats(), ["adverseAction"])
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!selectedReview) return
-    adverseActionService.approveReview(selectedReview.id, "Sarah Chen", "Approved as generated - CFPB compliant")
+    await adverseActionService.approveReview(selectedReview.id, "Sarah Chen", "Approved as generated - CFPB compliant")
     toast.success("Review approved")
     setSelectedReview(prev => prev ? adverseActionService.getReview(prev.id) || null : null)
   }
 
-  const handleOverride = () => {
+  const handleOverride = async () => {
     if (!selectedReview || !customNarrative || !overrideReason) {
       toast.error("Please provide custom narrative and override reason")
       return
     }
-    adverseActionService.overrideReview(selectedReview.id, "Sarah Chen", customNarrative, overrideReason)
+    await adverseActionService.overrideReview(selectedReview.id, "Sarah Chen", customNarrative, overrideReason)
     toast.success("Review overridden")
     setOverrideReason("")
     setCustomNarrative("")
     setSelectedReview(prev => prev ? adverseActionService.getReview(prev.id) || null : null)
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!selectedReview) return
-    adverseActionService.markAsSent(selectedReview.id)
+    await adverseActionService.markAsSent(selectedReview.id)
     toast.success("Adverse Action Notice sent")
     setSelectedReview(prev => prev ? adverseActionService.getReview(prev.id) || null : null)
   }

@@ -1,7 +1,7 @@
 import { toast } from "sonner"
 import { emit } from "@/lib/sync"
-
-const STORAGE_KEY = "avarent_rashomon"
+import { supabase } from "@/lib/supabaseClient"
+import { companyService } from "./companyService"
 
 export interface RashomonModel {
   id: string
@@ -38,69 +38,111 @@ export interface RashomonSearchResult {
   certified: boolean // True if no fairer alternative within slack
 }
 
-// Rashomon Set: Set of models with nearly-equivalent performance
-// Used to find Less Discriminatory Alternatives (LDA) per regulation
 class RashomonService {
-  // Performance slack threshold: 0.5% (500 basis points)
   private readonly PERFORMANCE_SLACK = 0.005 // 0.5%
   private currentModel: RashomonModel | null = null
   private rashomonCache: RashomonModel[] = []
+  private isLoaded = false
 
   constructor() {
-    this.loadFromStorage()
+    this.initFromSupabase()
   }
 
-  private loadFromStorage() {
+  private async initFromSupabase() {
     if (typeof window === "undefined") return
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        this.currentModel = parsed.currentModel || null
-        this.rashomonCache = parsed.rashomonCache || []
-      } catch {
-        // ignore
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) {
+      this.isLoaded = true
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("rashomon_models")
+        .select("*")
+        .eq("company_id", companyId)
+
+      if (data && !error) {
+        this.rashomonCache = data.map(d => ({
+          id: d.model_id,
+          name: d.name,
+          accuracy: d.accuracy,
+          fairnessScore: d.fairness_score,
+          featureCount: d.feature_count,
+          calibration: d.calibration,
+          latencyMs: d.latency_ms,
+          complexity: d.complexity as "low" | "medium" | "high",
+          description: d.description,
+          parameters: d.parameters
+        }))
+
+        const currentData = data.find(d => d.is_current)
+        if (currentData) {
+          this.currentModel = this.rashomonCache.find(m => m.id === currentData.model_id) || null
+        }
       }
+    } catch (err) {
+      console.error("Failed to load rashomon models from Supabase", err)
+    } finally {
+      this.isLoaded = true
+      emit("rashomon")
     }
   }
 
-  private saveToStorage() {
+  private async saveToSupabase() {
     if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentModel: this.currentModel, rashomonCache: this.rashomonCache }))
     emit("rashomon")
+
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) return
+
+    try {
+      // For simplicity in this demo, we'll clear and rewrite the cache for this company
+      await supabase.from("rashomon_models").delete().eq("company_id", companyId)
+
+      if (this.rashomonCache.length > 0) {
+        const rows = this.rashomonCache.map(m => ({
+          company_id: companyId,
+          model_id: m.id,
+          name: m.name,
+          accuracy: m.accuracy,
+          fairness_score: m.fairnessScore,
+          feature_count: m.featureCount,
+          calibration: m.calibration,
+          latency_ms: m.latencyMs,
+          complexity: m.complexity,
+          description: m.description,
+          parameters: m.parameters,
+          is_current: this.currentModel?.id === m.id
+        }))
+
+        await supabase.from("rashomon_models").insert(rows)
+      }
+    } catch (err) {
+      console.error("Failed to save rashomon models to Supabase", err)
+    }
   }
 
-  /**
-   * Search for Less Discriminatory Alternative (LDA)
-   * Per ECOA and fair lending regulations
-   *
-   * Goal: Prove that current model is among the least discriminatory
-   * in the Rashomon set (models within 0.5% performance of optimal)
-   */
   async searchForLDA(currentModel: RashomonModel): Promise<LessDiscriminatoryAlternative> {
     const startTime = performance.now()
 
     this.currentModel = currentModel
-    void this.currentModel // Mark as used
 
     // Step 1: Generate Rashomon set
-    // Find all models within 0.5% performance of current model
     const rashomonSet = await this.generateRashomonSet(currentModel)
     this.rashomonCache = rashomonSet
-    this.saveToStorage()
+    
+    // Save state concurrently
+    void this.saveToSupabase()
 
     // Step 2: Find fairest model in Rashomon set
     const fairestModel = this.findFairestModel(rashomonSet)
-    this.saveToStorage()
 
     // Step 3: Compare current model to fairest
     const accuracyGap = currentModel.accuracy - (fairestModel?.accuracy || currentModel.accuracy)
     const fairnessGain = (fairestModel?.fairnessScore || currentModel.fairnessScore) - currentModel.fairnessScore
 
     const slackWithin = Math.abs(accuracyGap) <= this.PERFORMANCE_SLACK
-
-    const searchTime = Math.round(performance.now() - startTime)
-    void searchTime // Analysis completed in this time
 
     // Step 4: Generate certification
     const result: LessDiscriminatoryAlternative = {
@@ -123,10 +165,6 @@ class RashomonService {
     return result
   }
 
-  /**
-   * Certify that no fairer alternative exists within performance slack
-   * This is the "Refutation Defense" against discrimination claims
-   */
   async certifyNoFairerAlternative(currentModel: RashomonModel): Promise<RashomonSearchResult> {
     const startTime = performance.now()
 
@@ -169,21 +207,12 @@ class RashomonService {
     }
   }
 
-  /**
-   * Generate Rashomon set: models within epsilon performance slack
-   *
-   * Uses grid search over hyperparameter space
-   * In production, use formal methods or Bayesian optimization
-   */
   private async generateRashomonSet(anchor: RashomonModel): Promise<RashomonModel[]> {
     const models: RashomonModel[] = []
 
-    // Anchor model
     models.push(anchor)
 
-    // Generate variations by perturbing hyperparameters
     const variations = [
-      // Add/remove features (simulate feature selection)
       this.createVariation(anchor, "conservative", {
         featureCount: Math.max(5, anchor.featureCount - 5),
         regularization: 0.1,
@@ -218,7 +247,6 @@ class RashomonService {
       }),
     ]
 
-    // Filter to those within performance slack
     for (const model of variations) {
       if (Math.abs(model.accuracy - anchor.accuracy) <= this.PERFORMANCE_SLACK * 2) {
         models.push(model)
@@ -233,7 +261,6 @@ class RashomonService {
     strategy: string,
     params: Record<string, number>
   ): RashomonModel {
-    // Simulate model variation based on hyperparameter changes
     const accuracyDelta = this.simulateAccuracyImpact(params)
     const fairnessDelta = this.simulateFairnessImpact(params)
     const latencyDelta = this.simulateLatencyImpact(params)
@@ -255,72 +282,47 @@ class RashomonService {
 
   private simulateAccuracyImpact(params: Record<string, number>): number {
     let delta = 0
-
-    // Fewer features typically reduces accuracy slightly
     if (params.featureCount !== undefined) {
       delta -= Math.abs(params.featureCount - 25) * 0.002
     }
-
-    // Strong regularization can hurt accuracy
     if (params.regularization) {
       delta -= params.regularization * 0.01
     }
-
-    // Fairness constraints can reduce accuracy (accuracy-fairness tradeoff)
     if (params.fairnessPenalty) {
       delta -= params.fairnessPenalty * 0.02
     }
-
-    // Ensembles typically improve accuracy
     if (params.ensembleSize) {
       delta += 0.005
     }
-
-    // Add small random noise (simulate stochasticity)
     delta += (Math.random() - 0.5) * 0.01
-
     return delta
   }
 
   private simulateFairnessImpact(params: Record<string, number>): number {
     let delta = 0
-
-    // Fairness penalties improve fairness
     if (params.fairnessPenalty) {
       delta += params.fairnessPenalty * 0.05
     }
-
-    // Calibration focus helps fairness
     if (params.calibrationBoost) {
       delta += params.calibrationBoost * 0.02
     }
-
-    // Equalized odds constraint
     if (params.equalizedOdds) {
       delta += 0.08
     }
-
-    // Sparse models can be less fair (less data to smooth disparities)
     if (params.l1Penalty) {
       delta -= 0.01
     }
-
     return delta
   }
 
   private simulateLatencyImpact(params: Record<string, number>): number {
     let delta = 0
-
-    // More features = more latency
     if (params.featureCount !== undefined) {
       delta += (params.featureCount - 25) * 2
     }
-
-    // Ensembles are slower
     if (params.ensembleSize) {
       delta += params.ensembleSize * 20
     }
-
     return delta
   }
 
@@ -337,28 +339,19 @@ class RashomonService {
     if (!slackWithin) {
       return `Current model (${(current.fairnessScore * 100).toFixed(1)}% fairness) is Pareto-optimal. Any fairer alternative exceeds ${(this.PERFORMANCE_SLACK * 100).toFixed(1)}% performance slack.`
     }
-
     if (fairnessGain <= 0) {
       return `Current model is among the fairest in the Rashomon set. No Less Discriminatory Alternative exists.`
     }
-
     if (alternative) {
       return `LESS DISCRIMINATORY ALTERNATIVE FOUND: ${alternative.name} improves fairness by ${(fairnessGain * 100).toFixed(2)}% with only ${(Math.abs(current.accuracy - alternative.accuracy) * 100).toFixed(2)}% accuracy loss. RECOMMENDATION: Switch to alternative model.`
     }
-
     return `Analysis complete. Current model is ${fairnessGain > 0 ? "suboptimal" : "optimal"} within Rashomon set.`
   }
 
-  /**
-   * Get Pareto frontier: models that can't be improved in one metric
-   * without worsening another
-   */
   getParetoFrontier(models: RashomonModel[] = this.rashomonCache): RashomonModel[] {
     return models.filter(model => {
-      // Model is on Pareto frontier if no other model dominates it
       return !models.some(other => {
         if (other.id === model.id) return false
-        // Other dominates model if it's better or equal in all metrics
         return (
           other.accuracy >= model.accuracy &&
           other.fairnessScore >= model.fairnessScore &&
@@ -371,9 +364,6 @@ class RashomonService {
     })
   }
 
-  /**
-   * Export Rashomon analysis for regulatory documentation
-   */
   exportAnalysis(result: LessDiscriminatoryAlternative): string {
     const lines = [
       "RASHOMON SET ANALYSIS - LESS DISCRIMINATORY ALTERNATIVE SEARCH",

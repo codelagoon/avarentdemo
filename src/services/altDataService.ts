@@ -1,6 +1,6 @@
 import { emit } from "@/lib/sync"
-
-const STORAGE_KEY = "avarent_alt_data_hub"
+import { supabase } from "@/lib/supabaseClient"
+import { companyService } from "./companyService"
 
 export interface AltConnector {
   id: string
@@ -159,50 +159,77 @@ const DEFAULT_APPLICANT: ThinFileApplicant = {
   reasonAlt: "24 months consistent rent ($1,400/mo) and positive cash-flow buffer ($650 avg) verified.",
 }
 
+const DEFAULT_STATE: AltDataState = {
+  connectors: DEFAULT_CONNECTORS,
+  features: DEFAULT_FEATURES,
+  applicantDemo: DEFAULT_APPLICANT,
+  quarantineCount: 2,
+}
+
 export class AltDataService {
   private state: AltDataState
+  private isLoaded = false
 
   constructor() {
-    this.state = this.loadFromStorage()
+    this.state = JSON.parse(JSON.stringify(DEFAULT_STATE))
+    this.initFromSupabase()
   }
 
-  private loadFromStorage(): AltDataState {
-    if (typeof window === "undefined") {
-      return {
-        connectors: DEFAULT_CONNECTORS,
-        features: DEFAULT_FEATURES,
-        applicantDemo: DEFAULT_APPLICANT,
-        quarantineCount: 2,
-      }
-    }
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch {
-        // Fallback
-      }
-    }
-    return {
-      connectors: DEFAULT_CONNECTORS,
-      features: DEFAULT_FEATURES,
-      applicantDemo: DEFAULT_APPLICANT,
-      quarantineCount: 2,
-    }
-  }
-
-  private saveToStorage() {
+  private async initFromSupabase() {
     if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state))
-    emit("altData")
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) {
+      this.isLoaded = true
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("tenant_settings")
+        .select("alt_data_state")
+        .eq("company_id", companyId)
+        .single()
+
+      if (data && !error && Object.keys(data.alt_data_state).length > 0) {
+        this.state = data.alt_data_state as AltDataState
+      } else {
+        // If not found, use defaults and possibly insert it
+        this.state = JSON.parse(JSON.stringify(DEFAULT_STATE))
+      }
+    } catch (err) {
+      console.error("Failed to load alt data state from Supabase", err)
+    } finally {
+      this.isLoaded = true
+      emit("altData")
+    }
+  }
+
+  private async saveToSupabase() {
+    if (typeof window === "undefined") return
+    emit("altData") // Optimistic update
+    
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) return
+
+    try {
+      const { error } = await supabase
+        .from("tenant_settings")
+        .upsert({
+          company_id: companyId,
+          alt_data_state: this.state
+        }, { onConflict: "company_id" })
+        
+      if (error) throw error
+    } catch (err) {
+      console.error("Failed to save alt data state to Supabase", err)
+    }
   }
 
   getState(): AltDataState {
-    this.state = this.loadFromStorage()
     return { ...this.state }
   }
 
-  toggleConnectorStatus(id: string) {
+  async toggleConnectorStatus(id: string) {
     const conn = this.state.connectors.find(c => c.id === id)
     if (conn) {
       if (conn.status === "connected") {
@@ -211,22 +238,22 @@ export class AltDataService {
         conn.status = "connected"
         conn.lastSynced = new Date().toISOString()
       }
-      this.saveToStorage()
+      await this.saveToSupabase()
     }
     return this.getState()
   }
 
-  toggleFeatureQuarantine(id: string, status: "approved" | "quarantined") {
+  async toggleFeatureQuarantine(id: string, status: "approved" | "quarantined") {
     const feat = this.state.features.find(f => f.id === id)
     if (feat) {
       feat.status = status
       this.state.quarantineCount = this.state.features.filter(f => f.status === "quarantined").length
-      this.saveToStorage()
+      await this.saveToSupabase()
     }
     return this.getState()
   }
 
-  screenNewFeature(name: string, source: string, correlation: number, iv: number) {
+  async screenNewFeature(name: string, source: string, correlation: number, iv: number) {
     const riskScore = Math.round(correlation * 120)
     const id = `af-${Date.now()}`
     const newFeature: AltFeature = {
@@ -242,18 +269,13 @@ export class AltDataService {
     }
     this.state.features.unshift(newFeature)
     this.state.quarantineCount = this.state.features.filter(f => f.status === "quarantined").length
-    this.saveToStorage()
+    await this.saveToSupabase()
     return { state: this.getState(), feature: newFeature }
   }
 
-  reset() {
-    this.state = {
-      connectors: JSON.parse(JSON.stringify(DEFAULT_CONNECTORS)),
-      features: JSON.parse(JSON.stringify(DEFAULT_FEATURES)),
-      applicantDemo: JSON.parse(JSON.stringify(DEFAULT_APPLICANT)),
-      quarantineCount: 2,
-    }
-    this.saveToStorage()
+  async reset() {
+    this.state = JSON.parse(JSON.stringify(DEFAULT_STATE))
+    await this.saveToSupabase()
     return this.getState()
   }
 }

@@ -108,22 +108,22 @@ export function OnboardingPage({ onComplete }: { onComplete: () => void }) {
     setIsSubmitting(true)
     try {
       // Create company
-      companyService.create({
+      await companyService.create({
         name: data.companyName,
-        shortName: data.shortName || data.companyName.slice(0, 10),
+        short_name: data.shortName || data.companyName.slice(0, 10),
         email: data.email,
         phone: data.phone,
         address: data.address,
         industry: data.industry,
         size: data.size,
-        regulatoryBody: data.regulatoryBody,
-        primaryUseCase: data.primaryUseCase,
-        dataVolumeEstimate: data.dataVolumeEstimate,
-        complianceNeeds: data.complianceNeeds,
+        regulatory_body: data.regulatoryBody,
+        primary_use_case: data.primaryUseCase,
+        data_volume_estimate: data.dataVolumeEstimate,
+        compliance_needs: data.complianceNeeds,
       })
 
       // Mark onboarding complete
-      companyService.setOnboardingComplete(true)
+      companyService.completeOnboarding()
 
       toast.success(`Welcome, ${data.companyName}! Your Meridian dashboard is ready.`)
       onComplete()

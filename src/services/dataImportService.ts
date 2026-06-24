@@ -107,7 +107,7 @@ function getLoanTypeLabel(type: LoanType): string {
 }
 
 // Import applications to the ledger
-export function importApplications(applications: ImportedApplication[]): ImportResult {
+export async function importApplications(applications: ImportedApplication[]): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     imported: 0,
@@ -121,7 +121,7 @@ export function importApplications(applications: ImportedApplication[]): ImportR
       const fairnessScore = calculateFairnessScore(app)
 
       // Add to ledger (id, timestamp, hash, prevHash auto-generated)
-      ledgerService.add({
+      await ledgerService.add({
         eventType: "decision",
         applicantId: app.applicantId,
         applicantName: app.applicantName,

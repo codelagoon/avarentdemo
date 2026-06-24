@@ -2,8 +2,8 @@ import { toast } from "sonner"
 import { emit } from "@/lib/sync"
 import type { SHAPFeature } from "./decisionGateway"
 import { narrativeTranslator, type AdverseActionNotice } from "./narrativeTranslator"
-
-const STORAGE_KEY = "avarent_adverse_actions"
+import { supabase } from "@/lib/supabaseClient"
+import { companyService } from "./companyService"
 
 export interface AdverseActionReview {
   id: string
@@ -40,37 +40,70 @@ export interface AdverseActionReview {
 // Adverse Action Review Queue
 // Translator-only policy: UI shows raw SHAP alongside narrative
 class AdverseActionService {
-  private reviews: AdverseActionReview[] = this.loadFromStorage()
+  private reviews: AdverseActionReview[] = []
+  private isLoaded = false
 
-  private loadFromStorage(): AdverseActionReview[] {
-    if (typeof window === "undefined") return []
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch {
-        return []
-      }
-    }
-    return []
+  constructor() {
+    this.initFromSupabase()
   }
 
-  private saveToStorage() {
+  private async initFromSupabase() {
     if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.reviews))
-    emit("adverseAction")
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) {
+      this.isLoaded = true
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("adverse_actions")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false })
+
+      if (data && !error) {
+        this.reviews = data.map((row: any) => ({
+          id: row.id,
+          applicantId: row.applicant_id,
+          applicantName: row.applicant_name,
+          decisionDate: row.created_at,
+          shapFeatures: row.shap_features || [],
+          shapRankings: row.shap_rankings || [],
+          narrative: {
+            summary: row.narrative_summary,
+            keyFactors: row.custom_narrative ? [row.custom_narrative] : [],
+            behavioralExplanations: row.behavioral_explanations || [],
+            plainLanguageScore: row.plain_language_score,
+            cfpbCompliant: row.cfpb_compliant,
+          },
+          notice: row.notice || {} as AdverseActionNotice,
+          status: row.status,
+          reviewerNotes: row.reviewer_notes || "",
+          reviewedBy: row.reviewed_by,
+          reviewedAt: row.reviewed_at,
+          overrideReason: row.override_reason,
+          finalNarrative: row.custom_narrative,
+        }))
+      }
+    } catch (err) {
+      console.error("Failed to load adverse actions from Supabase", err)
+    } finally {
+      this.isLoaded = true
+      emit("adverseAction")
+    }
   }
 
   /**
    * Create new adverse action review
    * Enforces translator-only policy
    */
-  createReview(
+  async createReview(
     applicantId: string,
     applicantName: string,
     shapFeatures: SHAPFeature[],
     creditBureau: string = "Experian, TransUnion, Equifax"
-  ): AdverseActionReview {
+  ): Promise<AdverseActionReview> {
     // Sort SHAP by absolute contribution for ranking
     const sortedSHAP = [...shapFeatures]
       .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
@@ -118,7 +151,34 @@ class AdverseActionService {
     }
 
     this.reviews.unshift(review)
-    this.saveToStorage()
+    emit("adverseAction")
+
+    const companyId = companyService.getActiveCompanyId()
+    if (companyId) {
+      try {
+        const { data, error } = await supabase.from("adverse_actions").insert({
+          company_id: companyId,
+          applicant_name: applicantName,
+          applicant_id: applicantId,
+          plain_language_score: translation.plainLanguageScore,
+          cfpb_compliant: translation.cfpbCircular2023_03Compliant,
+          status: "pending_review",
+          narrative_summary: translation.summary,
+          behavioral_explanations: behavioralExplanations,
+          shap_features: shapFeatures,
+          shap_rankings: sortedSHAP,
+          notice: notice,
+        }).select().single()
+
+        if (data && !error) {
+          review.id = data.id
+          emit("adverseAction")
+        }
+      } catch (err) {
+        console.error("Failed to insert adverse action to Supabase", err)
+      }
+    }
+
     toast.info(`New Adverse Action Review: ${applicantName}`, {
       description: "Awaiting Compliance Officer approval",
     })
@@ -129,7 +189,7 @@ class AdverseActionService {
   /**
    * Approve narrative (no changes)
    */
-  approveReview(reviewId: string, reviewerName: string, notes?: string): boolean {
+  async approveReview(reviewId: string, reviewerName: string, notes?: string): Promise<boolean> {
     const review = this.reviews.find(r => r.id === reviewId)
     if (!review) return false
 
@@ -138,7 +198,19 @@ class AdverseActionService {
     review.reviewedAt = new Date().toISOString()
     review.reviewerNotes = notes || "Approved as generated"
     review.finalNarrative = review.narrative.summary
-    this.saveToStorage()
+    emit("adverseAction")
+
+    try {
+      await supabase.from("adverse_actions").update({
+        status: review.status,
+        reviewed_by: review.reviewedBy,
+        reviewed_at: review.reviewedAt,
+        reviewer_notes: review.reviewerNotes,
+        custom_narrative: review.finalNarrative,
+      }).eq("id", reviewId)
+    } catch (err) {
+      console.error("Failed to approve adverse action in Supabase", err)
+    }
 
     toast.success(`Adverse Action Approved: ${review.applicantName}`)
     return true
@@ -147,12 +219,12 @@ class AdverseActionService {
   /**
    * Override narrative (with required reason)
    */
-  overrideReview(
+  async overrideReview(
     reviewId: string,
     reviewerName: string,
     finalNarrative: string,
     overrideReason: string
-  ): boolean {
+  ): Promise<boolean> {
     const review = this.reviews.find(r => r.id === reviewId)
     if (!review) return false
 
@@ -167,7 +239,20 @@ class AdverseActionService {
     review.overrideReason = overrideReason
     review.finalNarrative = finalNarrative
     review.reviewerNotes = `OVERRIDE: ${overrideReason}`
-    this.saveToStorage()
+    emit("adverseAction")
+
+    try {
+      await supabase.from("adverse_actions").update({
+        status: review.status,
+        reviewed_by: review.reviewedBy,
+        reviewed_at: review.reviewedAt,
+        override_reason: review.overrideReason,
+        custom_narrative: review.finalNarrative,
+        reviewer_notes: review.reviewerNotes,
+      }).eq("id", reviewId)
+    } catch (err) {
+      console.error("Failed to override adverse action in Supabase", err)
+    }
 
     toast.warning(`Adverse Action Overridden: ${review.applicantName}`, {
       description: `Reason: ${overrideReason.substring(0, 50)}...`,
@@ -178,7 +263,7 @@ class AdverseActionService {
   /**
    * Mark as sent to applicant
    */
-  markAsSent(reviewId: string): boolean {
+  async markAsSent(reviewId: string): Promise<boolean> {
     const review = this.reviews.find(r => r.id === reviewId)
     if (!review) return false
     if (review.status !== "approved" && review.status !== "overridden") {
@@ -187,7 +272,16 @@ class AdverseActionService {
     }
 
     review.status = "sent"
-    this.saveToStorage()
+    emit("adverseAction")
+
+    try {
+      await supabase.from("adverse_actions").update({
+        status: review.status,
+      }).eq("id", reviewId)
+    } catch (err) {
+      console.error("Failed to mark adverse action as sent in Supabase", err)
+    }
+
     toast.success(`Adverse Action Notice sent to ${review.applicantName}`)
     return true
   }
@@ -196,7 +290,6 @@ class AdverseActionService {
    * Get pending reviews
    */
   getPendingReviews(): AdverseActionReview[] {
-    this.reviews = this.loadFromStorage()
     return this.reviews.filter(r => r.status === "pending_review")
   }
 
@@ -204,7 +297,6 @@ class AdverseActionService {
    * Get all reviews
    */
   getAllReviews(): AdverseActionReview[] {
-    this.reviews = this.loadFromStorage()
     return [...this.reviews]
   }
 
@@ -212,7 +304,6 @@ class AdverseActionService {
    * Get review by ID
    */
   getReview(id: string): AdverseActionReview | undefined {
-    this.reviews = this.loadFromStorage()
     return this.reviews.find(r => r.id === id)
   }
 
@@ -220,7 +311,6 @@ class AdverseActionService {
    * Get review statistics
    */
   getStats() {
-    this.reviews = this.loadFromStorage()
     return {
       total: this.reviews.length,
       pending: this.reviews.filter(r => r.status === "pending_review").length,

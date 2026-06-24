@@ -1,5 +1,7 @@
 import { toast } from "sonner"
 import { emit } from "@/lib/sync"
+import { supabase } from "@/lib/supabaseClient"
+import { companyService } from "./companyService"
 
 const STORAGE_KEY = "avarent_decision_gateway"
 
@@ -53,30 +55,74 @@ const FAIRNESS_AUDIT_TIMEOUT = 150 // ms
 const MAX_LATENCY = 400 // ms
 
 class DecisionGateway {
-  private circuitBreaker: CircuitBreakerState = this.loadCircuitBreaker()
+  private circuitBreaker: CircuitBreakerState = { failures: 0, lastFailureTime: 0, isOpen: false, consecutiveSuccesses: 0 }
+  private isLoaded = false
 
   private primaryModelLatency = 80 // Simulated latency
   private fairnessAuditLatency = 120 // Simulated latency
 
-  private loadCircuitBreaker(): CircuitBreakerState {
-    if (typeof window === "undefined") {
-      return { failures: 0, lastFailureTime: 0, isOpen: false, consecutiveSuccesses: 0 }
-    }
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch {
-        return { failures: 0, lastFailureTime: 0, isOpen: false, consecutiveSuccesses: 0 }
-      }
-    }
-    return { failures: 0, lastFailureTime: 0, isOpen: false, consecutiveSuccesses: 0 }
+  constructor() {
+    this.initFromSupabase()
   }
 
-  private saveCircuitBreaker() {
+  private async initFromSupabase() {
     if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.circuitBreaker))
-    emit("decisionGateway")
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) {
+      this.isLoaded = true
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("circuit_breakers")
+        .select("*")
+        .eq("company_id", companyId)
+        .single()
+
+      if (data && !error) {
+        this.circuitBreaker = {
+          failures: data.failures,
+          lastFailureTime: Number(data.last_failure_time),
+          isOpen: data.is_open,
+          consecutiveSuccesses: data.consecutive_successes
+        }
+      } else if (error && error.code === 'PGRST116') {
+        // Not found, create one
+        await supabase.from("circuit_breakers").insert({
+          company_id: companyId,
+          failures: 0,
+          last_failure_time: 0,
+          is_open: false,
+          consecutive_successes: 0
+        })
+      }
+    } catch (err) {
+      console.error("Failed to load circuit breaker from Supabase", err)
+    } finally {
+      this.isLoaded = true
+      emit("decisionGateway")
+    }
+  }
+
+  private async saveCircuitBreaker() {
+    if (typeof window === "undefined") return
+    emit("decisionGateway") // optimistic UI update
+
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) return
+
+    try {
+      await supabase.from("circuit_breakers").update({
+        failures: this.circuitBreaker.failures,
+        last_failure_time: this.circuitBreaker.lastFailureTime,
+        is_open: this.circuitBreaker.isOpen,
+        consecutive_successes: this.circuitBreaker.consecutiveSuccesses,
+        updated_at: new Date().toISOString()
+      }).eq("company_id", companyId)
+    } catch (err) {
+      console.error("Failed to save circuit breaker to Supabase", err)
+    }
   }
 
   async evaluate(input: DecisionInput): Promise<DecisionResult> {
@@ -123,7 +169,6 @@ class DecisionGateway {
 
       // Record success
       this.recordSuccess()
-      this.saveCircuitBreaker()
 
       return {
         outcome,
@@ -138,7 +183,6 @@ class DecisionGateway {
       }
     } catch (error) {
       this.recordFailure()
-      this.saveCircuitBreaker()
       const latency = Math.round(performance.now() - startTime)
       return this.createReferralResult(input, { score: 0.5, riskLevel: "medium" }, latency, "error")
     }
@@ -367,7 +411,7 @@ class DecisionGateway {
       this.circuitBreaker.isOpen = true
       toast.warning("Circuit breaker opened - fairness audit failing")
     }
-    this.saveCircuitBreaker()
+    void this.saveCircuitBreaker()
   }
 
   private recordSuccess() {
@@ -376,7 +420,7 @@ class DecisionGateway {
       this.circuitBreaker.failures = 0
       this.circuitBreaker.isOpen = false
     }
-    this.saveCircuitBreaker()
+    void this.saveCircuitBreaker()
   }
 
   private async createTimeout(ms: number): Promise<never> {
@@ -390,7 +434,6 @@ class DecisionGateway {
   }
 
   getCircuitBreakerStatus() {
-    this.circuitBreaker = this.loadCircuitBreaker()
     return {
       isOpen: this.circuitBreaker.isOpen,
       failures: this.circuitBreaker.failures,

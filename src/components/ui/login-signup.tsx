@@ -60,19 +60,6 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
     e.preventDefault();
     setErrorMsg(null);
 
-    // E2E Test Suite Bypass / Demo Check — triggers onboarding instead of direct login
-    if (password === "197704") {
-      if (rememberMe) {
-        localStorage.setItem("avarent_auth", "demo")
-      }
-      if (onTryNewCompany) {
-        onTryNewCompany();
-      } else {
-        onLogin();
-      }
-      return;
-    }
-
     if (!email) {
       setErrorMsg("Please enter an email address.");
       return;
@@ -212,7 +199,7 @@ export default function LoginCardSection({ onLogin, onTryNewCompany }: LoginCard
 
             <div className="text-center bg-muted rounded-lg p-2.5">
               <p className="text-[10px] text-muted-foreground font-mono">
-                Demo code: <span className="text-primary font-bold">197704</span>
+                System requires secure WorkOS / Supabase credentials.
               </p>
             </div>
           </CardContent>

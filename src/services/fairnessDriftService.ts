@@ -1,7 +1,7 @@
 import { toast } from "sonner"
 import { emit } from "@/lib/sync"
-
-const STORAGE_KEY = "avarent_fairness_drift"
+import { supabase } from "@/lib/supabaseClient"
+import { companyService } from "./companyService"
 
 export interface FairnessDriftMetrics {
   timestamp: string
@@ -58,29 +58,68 @@ class FairnessDriftService {
   private alerts: DriftAlert[] = []
   private isMonitoring = false
   private monitoringInterval: ReturnType<typeof setInterval> | null = null
+  private isLoaded = false
 
   constructor() {
-    this.loadFromStorage()
+    this.initFromSupabase()
   }
 
-  private loadFromStorage() {
+  private async initFromSupabase() {
     if (typeof window === "undefined") return
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        this.metrics = parsed.metrics || []
-        this.alerts = parsed.alerts || []
-      } catch {
-        // ignore
-      }
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) {
+      this.isLoaded = true
+      return
     }
-  }
 
-  private saveToStorage() {
-    if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ metrics: this.metrics, alerts: this.alerts }))
-    emit("fairnessDrift")
+    try {
+      const [metricsRes, alertsRes] = await Promise.all([
+        supabase
+          .from("fairness_metrics")
+          .select("*")
+          .eq("company_id", companyId)
+          .order("timestamp", { ascending: true })
+          .limit(100),
+        supabase
+          .from("fairness_alerts")
+          .select("*")
+          .eq("company_id", companyId)
+          .order("timestamp", { ascending: false })
+      ])
+
+      if (metricsRes.data && !metricsRes.error) {
+        this.metrics = metricsRes.data.map(m => ({
+          timestamp: m.timestamp,
+          cohortId: m.cohort_id,
+          psi: m.psi,
+          psiThreshold: m.psi_threshold,
+          dpd: m.dpd,
+          dpdThreshold: m.dpd_threshold,
+          demographicBreakdown: m.demographic_breakdown || [],
+          accuracyFairnessPoints: m.accuracy_fairness_points || []
+        }))
+      }
+
+      if (alertsRes.data && !alertsRes.error) {
+        this.alerts = alertsRes.data.map(a => ({
+          id: a.id,
+          timestamp: a.timestamp,
+          severity: a.severity,
+          metric: a.metric,
+          currentValue: a.current_value,
+          threshold: a.threshold,
+          delta: a.delta,
+          cohortId: a.cohort_id,
+          recommendedAction: a.recommended_action,
+          acknowledged: a.acknowledged
+        }))
+      }
+    } catch (err) {
+      console.error("Failed to load fairness drift data from Supabase", err)
+    } finally {
+      this.isLoaded = true
+      emit("fairnessDrift")
+    }
   }
 
   /**
@@ -114,30 +153,46 @@ class FairnessDriftService {
   /**
    * Record new cohort metrics
    */
-  recordMetrics(metrics: Omit<FairnessDriftMetrics, "timestamp">): FairnessDriftMetrics {
+  async recordMetrics(metrics: Omit<FairnessDriftMetrics, "timestamp">): Promise<FairnessDriftMetrics> {
     const fullMetrics: FairnessDriftMetrics = {
       ...metrics,
       timestamp: new Date().toISOString(),
     }
 
     this.metrics.push(fullMetrics)
-
-    // Keep only last 100 records
     if (this.metrics.length > 100) {
       this.metrics = this.metrics.slice(-100)
     }
 
-    // Check for drift
-    this.evaluateDrift(fullMetrics)
-    this.saveToStorage()
+    emit("fairnessDrift")
 
+    const companyId = companyService.getActiveCompanyId()
+    if (companyId) {
+      try {
+        await supabase.from("fairness_metrics").insert({
+          company_id: companyId,
+          timestamp: fullMetrics.timestamp,
+          cohort_id: fullMetrics.cohortId,
+          psi: fullMetrics.psi,
+          psi_threshold: fullMetrics.psiThreshold,
+          dpd: fullMetrics.dpd,
+          dpd_threshold: fullMetrics.dpdThreshold,
+          demographic_breakdown: fullMetrics.demographicBreakdown,
+          accuracy_fairness_points: fullMetrics.accuracyFairnessPoints
+        })
+      } catch (err) {
+        console.error("Failed to insert fairness metrics", err)
+      }
+    }
+
+    await this.evaluateDrift(fullMetrics)
     return fullMetrics
   }
 
   /**
    * Check current drift status
    */
-  private checkDrift() {
+  private async checkDrift() {
     if (this.metrics.length < 2) return
 
     const latest = this.metrics[this.metrics.length - 1]
@@ -146,7 +201,7 @@ class FairnessDriftService {
     const dpdDelta = Math.abs(latest.dpd - previous.dpd)
 
     if (dpdDelta > this.DPD_THRESHOLD) {
-      this.createAlert({
+      await this.createAlert({
         severity: dpdDelta > 0.10 ? "critical" : "high",
         metric: "DPD",
         currentValue: latest.dpd,
@@ -160,7 +215,7 @@ class FairnessDriftService {
     }
 
     if (latest.psi > this.PSI_THRESHOLD) {
-      this.createAlert({
+      await this.createAlert({
         severity: latest.psi > 0.35 ? "critical" : "warning",
         metric: "PSI",
         currentValue: latest.psi,
@@ -175,8 +230,7 @@ class FairnessDriftService {
   /**
    * Evaluate drift and create alerts
    */
-  private evaluateDrift(metrics: FairnessDriftMetrics) {
-    // Calculate baseline from first 10 records
+  private async evaluateDrift(metrics: FairnessDriftMetrics) {
     const baselineRecords = this.metrics.slice(0, Math.min(10, this.metrics.length))
     const baselineDPD = baselineRecords.length > 0
       ? baselineRecords.reduce((sum, m) => sum + m.dpd, 0) / baselineRecords.length
@@ -185,7 +239,7 @@ class FairnessDriftService {
     const delta = Math.abs(metrics.dpd - baselineDPD)
 
     if (delta > this.DPD_THRESHOLD) {
-      this.createAlert({
+      await this.createAlert({
         severity: delta > 0.10 ? "critical" : "high",
         metric: "DPD",
         currentValue: metrics.dpd,
@@ -197,7 +251,7 @@ class FairnessDriftService {
     }
   }
 
-  private createAlert(params: Omit<DriftAlert, "id" | "timestamp" | "acknowledged">): DriftAlert {
+  private async createAlert(params: Omit<DriftAlert, "id" | "timestamp" | "acknowledged">): Promise<DriftAlert> {
     const alert: DriftAlert = {
       ...params,
       id: `ALERT-${Date.now()}`,
@@ -206,9 +260,29 @@ class FairnessDriftService {
     }
 
     this.alerts.unshift(alert)
-    this.saveToStorage()
+    emit("fairnessDrift")
 
-    // Show toast
+    const companyId = companyService.getActiveCompanyId()
+    if (companyId) {
+      try {
+        await supabase.from("fairness_alerts").insert({
+          id: alert.id,
+          company_id: companyId,
+          timestamp: alert.timestamp,
+          severity: alert.severity,
+          metric: alert.metric,
+          current_value: alert.currentValue,
+          threshold: alert.threshold,
+          delta: alert.delta,
+          cohort_id: alert.cohortId,
+          recommended_action: alert.recommendedAction,
+          acknowledged: alert.acknowledged
+        })
+      } catch (err) {
+        console.error("Failed to insert drift alert", err)
+      }
+    }
+
     toast[alert.severity === "critical" ? "error" : alert.severity === "high" ? "warning" : "info"](
       `Fairness Drift Alert: ${alert.metric} = ${(alert.currentValue * 100).toFixed(2)}%`,
       { description: alert.recommendedAction }
@@ -228,11 +302,7 @@ class FairnessDriftService {
     return `WARNING: ΔDPD = ${(delta * 100).toFixed(1)}%. Schedule routine bias audit within 48 hours.`
   }
 
-  /**
-   * Get current parity monitor status
-   */
   getParityMonitor(): ParityMonitor {
-    this.loadFromStorage()
     if (this.metrics.length === 0) {
       return {
         currentDPD: 0,
@@ -244,7 +314,6 @@ class FairnessDriftService {
     }
 
     const latest = this.metrics[this.metrics.length - 1]
-    void latest // Used for status calculation
     const historical = this.metrics.slice(-30).map(m => m.dpd)
     const baseline = this.metrics.slice(0, Math.min(10, this.metrics.length))
       .reduce((sum, m) => sum + m.dpd, 0) / Math.min(10, this.metrics.length)
@@ -255,7 +324,6 @@ class FairnessDriftService {
         ? "warning"
         : "normal"
 
-    // Calculate trend
     const recent = historical.slice(-5).reduce((a, b) => a + b, 0) / 5
     const older = historical.slice(0, 5).reduce((a, b) => a + b, 0) / 5
     const trend: ParityMonitor["trend"] = recent < older * 0.95
@@ -273,33 +341,32 @@ class FairnessDriftService {
     }
   }
 
-  /**
-   * Get all unacknowledged alerts
-   */
   getActiveAlerts(): DriftAlert[] {
-    this.loadFromStorage()
     return this.alerts.filter(a => !a.acknowledged)
   }
 
-  /**
-   * Acknowledge alert
-   */
-  acknowledgeAlert(alertId: string): boolean {
+  async acknowledgeAlert(alertId: string): Promise<boolean> {
     const alert = this.alerts.find(a => a.id === alertId)
     if (alert) {
       alert.acknowledged = true
-      this.saveToStorage()
+      emit("fairnessDrift")
+      
+      try {
+        await supabase
+          .from("fairness_alerts")
+          .update({ acknowledged: true })
+          .eq("id", alertId)
+      } catch (err) {
+        console.error("Failed to acknowledge alert", err)
+      }
+
       toast.success(`Alert ${alertId} acknowledged`)
       return true
     }
     return false
   }
 
-  /**
-   * Get metrics for scatter plot (Accuracy vs Fairness)
-   */
   getAccuracyFairnessData(): { x: number; y: number; label: string }[] {
-    this.loadFromStorage()
     return this.metrics.flatMap(m =>
       m.accuracyFairnessPoints.map(p => ({
         x: p.accuracy,
@@ -309,25 +376,14 @@ class FairnessDriftService {
     )
   }
 
-  /**
-   * Get all historical metrics
-   */
   getMetrics(): FairnessDriftMetrics[] {
-    this.loadFromStorage()
     return [...this.metrics]
   }
 
-  /**
-   * Get latest cohort metrics
-   */
   getLatestMetrics(): FairnessDriftMetrics | null {
-    this.loadFromStorage()
     return this.metrics[this.metrics.length - 1] || null
   }
 
-  /**
-   * Generate summary report
-   */
   generateDriftReport(): string {
     const monitor = this.getParityMonitor()
     const activeAlerts = this.getActiveAlerts()

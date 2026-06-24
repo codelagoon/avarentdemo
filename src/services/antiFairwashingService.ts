@@ -1,6 +1,6 @@
 import { emit } from "@/lib/sync"
-
-const STORAGE_KEY = "avarent_anti_fairwashing"
+import { supabase } from "@/lib/supabaseClient"
+import { companyService } from "./companyService"
 
 export interface KSTestResult {
   groupName: string
@@ -146,59 +146,85 @@ const DEFAULT_ROBUSTNESS: RobustnessDisparity[] = [
   },
 ]
 
+const DEFAULT_STATE: AntiFairwashingState = {
+  ksTests: DEFAULT_KS_TESTS,
+  klDivergences: DEFAULT_KL_DIVERGENCES,
+  alerts: DEFAULT_ALERTS,
+  robustness: DEFAULT_ROBUSTNESS,
+}
+
 export class AntiFairwashingService {
   private state: AntiFairwashingState
+  private isLoaded = false
 
   constructor() {
-    this.state = this.loadFromStorage()
+    this.state = JSON.parse(JSON.stringify(DEFAULT_STATE))
+    this.initFromSupabase()
   }
 
-  private loadFromStorage(): AntiFairwashingState {
-    if (typeof window === "undefined") {
-      return {
-        ksTests: DEFAULT_KS_TESTS,
-        klDivergences: DEFAULT_KL_DIVERGENCES,
-        alerts: DEFAULT_ALERTS,
-        robustness: DEFAULT_ROBUSTNESS,
-      }
-    }
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch {
-        // Fallback
-      }
-    }
-    return {
-      ksTests: DEFAULT_KS_TESTS,
-      klDivergences: DEFAULT_KL_DIVERGENCES,
-      alerts: DEFAULT_ALERTS,
-      robustness: DEFAULT_ROBUSTNESS,
-    }
-  }
-
-  private saveToStorage() {
+  private async initFromSupabase() {
     if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state))
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) {
+      this.isLoaded = true
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("tenant_settings")
+        .select("anti_fairwashing_state")
+        .eq("company_id", companyId)
+        .single()
+
+      if (data && !error && Object.keys(data.anti_fairwashing_state).length > 0) {
+        this.state = data.anti_fairwashing_state as AntiFairwashingState
+      } else {
+        this.state = JSON.parse(JSON.stringify(DEFAULT_STATE))
+      }
+    } catch (err) {
+      console.error("Failed to load anti fairwashing state from Supabase", err)
+    } finally {
+      this.isLoaded = true
+      emit("antiFairwashing")
+    }
+  }
+
+  private async saveToSupabase() {
+    if (typeof window === "undefined") return
     emit("antiFairwashing")
+    
+    const companyId = companyService.getActiveCompanyId()
+    if (!companyId) return
+
+    try {
+      const { error } = await supabase
+        .from("tenant_settings")
+        .upsert({
+          company_id: companyId,
+          anti_fairwashing_state: this.state
+        }, { onConflict: "company_id" })
+        
+      if (error) throw error
+    } catch (err) {
+      console.error("Failed to save anti fairwashing state to Supabase", err)
+    }
   }
 
   getState(): AntiFairwashingState {
-    this.state = this.loadFromStorage()
     return { ...this.state }
   }
 
-  resolveAlert(id: string) {
+  async resolveAlert(id: string) {
     const alert = this.state.alerts.find(a => a.id === id)
     if (alert) {
       alert.resolved = true
-      this.saveToStorage()
+      await this.saveToSupabase()
     }
     return this.getState()
   }
 
-  runAdversarialAudit() {
+  async runAdversarialAudit() {
     // Simulate auditing process, slightly adjust metrics to show progress
     this.state.ksTests = this.state.ksTests.map(t => {
       if (t.groupName.includes("Black")) {
@@ -222,18 +248,13 @@ export class AntiFairwashingService {
       return a
     })
 
-    this.saveToStorage()
+    await this.saveToSupabase()
     return this.getState()
   }
 
-  reset() {
-    this.state = {
-      ksTests: JSON.parse(JSON.stringify(DEFAULT_KS_TESTS)),
-      klDivergences: JSON.parse(JSON.stringify(DEFAULT_KL_DIVERGENCES)),
-      alerts: JSON.parse(JSON.stringify(DEFAULT_ALERTS)),
-      robustness: JSON.parse(JSON.stringify(DEFAULT_ROBUSTNESS)),
-    }
-    this.saveToStorage()
+  async reset() {
+    this.state = JSON.parse(JSON.stringify(DEFAULT_STATE))
+    await this.saveToSupabase()
     return this.getState()
   }
 }

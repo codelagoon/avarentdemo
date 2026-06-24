@@ -111,8 +111,8 @@ export function ThreatAnalysisPage() {
 
   const maxHeat = Math.max(...HEATMAP_DATA.flatMap(r => DAY_KEYS.map(d => r[d])))
 
-  const handleResolveAlert = (id: string) => {
-    antiFairwashingService.resolveAlert(id)
+  const handleResolveAlert = async (id: string) => {
+    await antiFairwashingService.resolveAlert(id)
     toast.success("Regulatory alert resolved. Mitigation recorded in blockchain evidence ledger.")
   }
 
@@ -120,8 +120,8 @@ export function ThreatAnalysisPage() {
     setIsAuditing(true)
     toast.loading("Running Kolomogorov-Smirnov two-sample testing & robustness metrics...")
 
-    setTimeout(() => {
-      antiFairwashingService.runAdversarialAudit()
+    setTimeout(async () => {
+      await antiFairwashingService.runAdversarialAudit()
       setIsAuditing(false)
       toast.dismiss()
       toast.success("Adversarial regulatory audit completed. KS & KL metrics updated.")

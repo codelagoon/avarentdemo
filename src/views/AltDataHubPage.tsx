@@ -23,20 +23,20 @@ export function AltDataHubPage() {
   const [screeningProgress, setScreeningProgress] = useState(0)
   const [recentScreened, setRecentScreened] = useState<AltFeature | null>(null)
 
-  const handleToggleConnector = (id: string) => {
-    altDataService.toggleConnectorStatus(id)
+  const handleToggleConnector = async (id: string) => {
+    await altDataService.toggleConnectorStatus(id)
     const conn = state.connectors.find(c => c.id === id)
     if (conn) {
       toast.success(`${conn.name} is now ${conn.status === "connected" ? "disconnected" : "connected"}`)
     }
   }
 
-  const handleToggleQuarantine = (id: string, status: "approved" | "quarantined") => {
-    altDataService.toggleFeatureQuarantine(id, status)
+  const handleToggleQuarantine = async (id: string, status: "approved" | "quarantined") => {
+    await altDataService.toggleFeatureQuarantine(id, status)
     toast.success(`Variable successfully ${status === "quarantined" ? "quarantined" : "approved"}`)
   }
 
-  const handleScreenVariable = (e: React.FormEvent) => {
+  const handleScreenVariable = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newVarName.trim()) {
       toast.error("Please enter a variable name")
@@ -46,32 +46,28 @@ export function AltDataHubPage() {
     setIsScreening(true)
     setScreeningProgress(0)
 
-    const interval = setInterval(() => {
-      setScreeningProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          const corr = parseFloat(newVarCorrelation)
-          const iv = parseFloat(newVarIV)
-          const { feature } = altDataService.screenNewFeature(
-            newVarName.trim(),
-            newVarSource,
-            corr,
-            iv
-          )
-          setRecentScreened(feature)
-          setIsScreening(false)
-          setNewVarName("")
-          
-          if (feature.status === "quarantined") {
-            toast.error(`ALERT: Proxy variable detected! ${feature.name} quarantined due to high disparate impact risk (${feature.proxyRiskScore}/100).`)
-          } else {
-            toast.success(`Success: Variable ${feature.name} screened, cleared, and added to features library.`)
-          }
-          return 100
-        }
-        return prev + 20
-      })
-    }, 150)
+    for (let i = 20; i <= 100; i += 20) {
+      await new Promise(r => setTimeout(r, 150))
+      setScreeningProgress(i)
+    }
+
+    const corr = parseFloat(newVarCorrelation)
+    const iv = parseFloat(newVarIV)
+    const { feature } = await altDataService.screenNewFeature(
+      newVarName.trim(),
+      newVarSource,
+      corr,
+      iv
+    )
+    setRecentScreened(feature)
+    setIsScreening(false)
+    setNewVarName("")
+    
+    if (feature.status === "quarantined") {
+      toast.error(`ALERT: Proxy variable detected! ${feature.name} quarantined due to high disparate impact risk (${feature.proxyRiskScore}/100).`)
+    } else {
+      toast.success(`Success: Variable ${feature.name} screened, cleared, and added to features library.`)
+    }
   }
 
   return (

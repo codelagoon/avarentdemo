@@ -102,14 +102,14 @@ export function DataImportDialog() {
     setIsParsing(false)
   }
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!parsedApps || parsedApps.length === 0) {
       toast.error("No applications to import")
       return
     }
 
     setIsImporting(true)
-    const result = importApplications(parsedApps)
+    const result = await importApplications(parsedApps)
     setImportResult(result)
     setIsImporting(false)
 

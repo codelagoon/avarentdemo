@@ -71,7 +71,7 @@ export class ScenarioService {
         : aiDecision.decision
 
     // Create ledger entry with AI model info
-    const ledgerEntry = ledgerService.add({
+    const ledgerEntry = await ledgerService.add({
       eventType: scenario.proxiesDetected > 0 ? "intervention" : "proof_signed",
       applicantId: scenario.applicantId,
       applicantName: scenario.applicantName,

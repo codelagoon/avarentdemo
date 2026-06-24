@@ -147,8 +147,8 @@ export function FairnessDriftPanel() {
     setIsMonitoring(!isMonitoring)
   }
 
-  const handleAcknowledge = (id: string) => {
-    fairnessDriftService.acknowledgeAlert(id)
+  const handleAcknowledge = async (id: string) => {
+    await fairnessDriftService.acknowledgeAlert(id)
   }
 
   const exportReport = () => {
