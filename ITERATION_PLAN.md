@@ -568,3 +568,22 @@ Launch **A + B** in parallel. Merge, then **C**, then **D**.
 
 NO UNRESOLVED DECISIONS
 
+---
+
+## Platform roadmap (Phases 4.5–9)
+
+**Doc:** `ROADMAP.md` (2026-06-23)
+
+**CEO review decision:** Approach B — tenant-complete core before self-serve. Phase 4.5 is the immediate execution target; Phases 5–9 define platform evolution (ingest → ADT → stream → govern → enterprise).
+
+| Phase | Focus | Status |
+|-------|-------|--------|
+| 4.5 | Tenant foundation (kill localStorage split-brain) | **In progress** — T1–T8 landed; full service migration open |
+| 5 | Universal decision ingestion API + webhooks + CSV + SDKs | Not started |
+| 6 | Event streaming (Kafka, EventBridge, replay) | Not started |
+| 7 | ADT (Decision Telemetry Standard) | Not started |
+| 8 | Automated governance engine | UI partial; needs Phase 5 events |
+| 9 | Enterprise governance platform | Not started |
+
+**Next action after 4.5:** ADT v0.1 schema + `decision_events` table + `POST /api/v1/decisions`.
+
