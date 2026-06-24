@@ -19,7 +19,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { type LedgerEntry } from "@/services/ledgerService"
 import { type LedgerEventType } from "@/data/mockData" // Temporarily retained for type only, will remove later
-const DAILY_STATS: any = { appsToday: 0, modelsActive: 0, modelVersion: "v1.0", fairnessScore: 0.92 }
+const DAILY_STATS: any = { appsToday: 0, modelsActive: 0, modelVersion: "v1.0", fairnessScore: 0.92, modelsInProduction: 3, auditsLast24h: 47, openIncidents: 0 }
 const DATA_VOLUME: any[] = []
 import { ledgerService } from "@/services/ledgerService"
 import { scenarioService, DEMO_SCENARIOS, type ScenarioConfig } from "@/services/scenarioService"

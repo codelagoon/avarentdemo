@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 const FAIRNESS_METRICS: any[] = []
 const APPROVAL_LIFT_DATA: any[] = []
 const PROXY_DETECTION_DATA: any[] = []
-const DATA_VOLUME: any[] = []
+const DATA_VOLUME: any = { featuresPerDecision: 12, featuresRange: { min: 8, max: 16 }, trainingRecords: 2500000 }
 
 // Data Volume vs Accuracy & Fairness chart data
 const DATA_VOLUME_CHART = [
