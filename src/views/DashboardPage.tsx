@@ -19,7 +19,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { type LedgerEntry } from "@/services/ledgerService"
 import { type LedgerEventType } from "@/data/mockData" // Temporarily retained for type only, will remove later
-const DAILY_STATS: any = { appsToday: 0, modelsActive: 0, modelVersion: "v1.0" }
+const DAILY_STATS: any = { appsToday: 0, modelsActive: 0, modelVersion: "v1.0", fairnessScore: 0.92 }
 const DATA_VOLUME: any[] = []
 import { ledgerService } from "@/services/ledgerService"
 import { scenarioService, DEMO_SCENARIOS, type ScenarioConfig } from "@/services/scenarioService"
@@ -699,10 +699,10 @@ function EvidenceFeed({ entries }: { entries: LedgerEntry[] }) {
               <div className="flex items-center gap-1">
                 <div className={cn(
                   "h-1.5 w-1.5 rounded-full",
-                  entry.fairnessScore >= 0.8 ? "bg-emerald-500" : "bg-rose-500"
+                  (entry.fairnessScore ?? 0) >= 0.8 ? "bg-emerald-500" : "bg-rose-500"
                 )} />
                 <span className="font-mono text-[0.62rem] font-bold text-slate-600 dark:text-slate-300">
-                  AIR: {entry.fairnessScore.toFixed(2)} · SPD: {Math.max(0, 1 - entry.fairnessScore).toFixed(2)}
+                  AIR: {(entry.fairnessScore ?? 0).toFixed(2)} · SPD: {Math.max(0, 1 - (entry.fairnessScore ?? 0)).toFixed(2)}
                 </span>
               </div>
             </div>
