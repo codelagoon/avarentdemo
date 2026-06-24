@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -12,6 +13,7 @@ import {
   EMPTY_APPLICATION_CONTEXT,
   type ApplicationContext,
 } from "@/lib/identity/types"
+import { hydrateWorkflowCacheFromApi, clearWorkflowCache } from "@/lib/workflows/client-store"
 
 export interface IdentityContextValue extends ApplicationContext {
   refresh: () => Promise<void>
@@ -36,15 +38,25 @@ export function IdentityProvider({
     try {
       const response = await fetch("/api/identity/context")
       if (!response.ok) {
+        clearWorkflowCache()
         setContext({ ...EMPTY_APPLICATION_CONTEXT, is_loading: false })
         return
       }
       const data = (await response.json()) as ApplicationContext
       setContext({ ...data, is_loading: false })
     } catch {
+      clearWorkflowCache()
       setContext({ ...EMPTY_APPLICATION_CONTEXT, is_loading: false })
     }
   }, [])
+
+  useEffect(() => {
+    if (context.organization_id && context.user_id) {
+      void hydrateWorkflowCacheFromApi()
+    } else {
+      clearWorkflowCache()
+    }
+  }, [context.organization_id, context.user_id])
 
   const value = useMemo<IdentityContextValue>(
     () => ({

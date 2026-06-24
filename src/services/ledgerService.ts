@@ -1,8 +1,26 @@
-import type { LedgerEntry } from "@/data/mockData"
+import type { LedgerEntry } from "@/domains/shared/types"
 import { LEDGER_ENTRIES, generateHash } from "@/data/mockData"
 import { emit } from "@/lib/sync"
+import {
+  getCachedLedger,
+  getCachedOrganizationId,
+} from "@/lib/workflows/client-store"
 
 const STORAGE_KEY = "avarent_ledger_entries"
+
+async function persistLedgerToApi(entry: LedgerEntry): Promise<void> {
+  if (typeof window === "undefined" || !getCachedOrganizationId()) return
+  try {
+    await fetch("/api/workflows/ledger", {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entry }),
+    })
+  } catch {
+    // localStorage fallback
+  }
+}
 
 export class LedgerService {
   private entries: LedgerEntry[]
@@ -31,6 +49,9 @@ export class LedgerService {
   }
 
   getAll(): LedgerEntry[] {
+    const cached = getCachedLedger()
+    if (cached) return [...cached]
+
     this.entries = this.loadFromStorage()
     return [...this.entries].sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -60,6 +81,7 @@ export class LedgerService {
 
     this.entries.unshift(newEntry)
     this.saveToStorage()
+    void persistLedgerToApi(newEntry)
     return newEntry
   }
 

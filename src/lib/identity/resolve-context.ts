@@ -1,24 +1,55 @@
-import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
 import { withAuth } from "@workos-inc/authkit-nextjs"
 import {
   type ApplicationContext,
   normalizeMembershipRole,
 } from "@/lib/identity/types"
-import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env"
 import { isWorkOSConfigured } from "@/lib/workos/env"
 import { getMembershipForUser } from "@/domains/identity/membershipDomain"
+import { syncWorkOSUserToSupabase } from "@/lib/identity/workos-supabase-sync"
+import {
+  createUserServerClient,
+  hasSupabaseAuthCookie,
+} from "@/lib/supabase/server"
+import { cookies } from "next/headers"
+
+async function buildContextFromSupabaseUser(
+  supabaseUser: {
+    id: string
+    email?: string
+    user_metadata?: Record<string, unknown>
+  },
+  workosUserId: string | null,
+  workosEmail: string | null
+): Promise<ApplicationContext> {
+  const membership = await getMembershipForUser(supabaseUser.id)
+
+  return {
+    user_id: supabaseUser.id,
+    workos_user_id:
+      workosUserId ??
+      (supabaseUser.user_metadata?.workos_user_id as string | undefined) ??
+      null,
+    email: workosEmail ?? supabaseUser.email ?? null,
+    organization_id: membership?.organization_id ?? null,
+    organization_name: membership?.organization_name ?? null,
+    role: membership ? normalizeMembershipRole(membership.role) : null,
+    needs_onboarding: !membership,
+    is_loading: false,
+  }
+}
 
 export async function resolveApplicationContext(): Promise<ApplicationContext> {
   let workosUserId: string | null = null
   let workosEmail: string | null = null
+  let workosUser: Awaited<ReturnType<typeof withAuth>>["user"] | null = null
 
   if (isWorkOSConfigured()) {
     try {
-      const { user } = await withAuth()
-      if (user) {
-        workosUserId = user.id
-        workosEmail = user.email
+      const auth = await withAuth()
+      workosUser = auth.user
+      if (auth.user) {
+        workosUserId = auth.user.id
+        workosEmail = auth.user.email
       }
     } catch {
       // AuthKit middleware headers may be absent on direct API calls
@@ -26,16 +57,8 @@ export async function resolveApplicationContext(): Promise<ApplicationContext> {
   }
 
   const cookieStore = await cookies()
-  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll() {
-        // read-only
-      },
-    },
-  })
+  const cookieList = cookieStore.getAll()
+  const supabase = await createUserServerClient({ writable: false })
 
   const {
     data: { user: supabaseUser },
@@ -54,6 +77,35 @@ export async function resolveApplicationContext(): Promise<ApplicationContext> {
     }
   }
 
+  if (!supabaseUser && workosUserId && workosUser) {
+    const authCookiePresent = hasSupabaseAuthCookie(cookieList)
+    if (!authCookiePresent) {
+      await syncWorkOSUserToSupabase(workosUser)
+      const linkedClient = await createUserServerClient({ writable: false })
+      const {
+        data: { user: linkedUser },
+      } = await linkedClient.auth.getUser()
+      if (linkedUser) {
+        return buildContextFromSupabaseUser(
+          linkedUser,
+          workosUserId,
+          workosEmail
+        )
+      }
+    }
+
+    return {
+      user_id: "",
+      workos_user_id: workosUserId,
+      email: workosEmail,
+      organization_id: null,
+      organization_name: null,
+      role: null,
+      needs_onboarding: true,
+      is_loading: false,
+    }
+  }
+
   if (!supabaseUser) {
     return {
       user_id: "",
@@ -67,16 +119,22 @@ export async function resolveApplicationContext(): Promise<ApplicationContext> {
     }
   }
 
-  const membership = await getMembershipForUser(supabaseUser.id)
+  return buildContextFromSupabaseUser(supabaseUser, workosUserId, workosEmail)
+}
 
-  return {
-    user_id: supabaseUser.id,
-    workos_user_id: workosUserId ?? (supabaseUser.user_metadata?.workos_user_id as string | undefined) ?? null,
-    email: workosEmail ?? supabaseUser.email ?? null,
-    organization_id: membership?.organization_id ?? null,
-    organization_name: membership?.organization_name ?? null,
-    role: membership ? normalizeMembershipRole(membership.role) : null,
-    needs_onboarding: !membership,
-    is_loading: false,
+/** Ensures WorkOS-authenticated users have a linked Supabase session before mutations. */
+export async function ensureSupabaseUserLinked(): Promise<ApplicationContext> {
+  const context = await resolveApplicationContext()
+
+  if (context.user_id || !context.workos_user_id || !isWorkOSConfigured()) {
+    return context
   }
+
+  const { user } = await withAuth()
+  if (!user) {
+    return context
+  }
+
+  await syncWorkOSUserToSupabase(user)
+  return resolveApplicationContext()
 }

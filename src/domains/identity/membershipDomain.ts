@@ -1,6 +1,7 @@
 import type { Membership, MembershipRole, Organization } from "@/lib/identity/types"
 import { normalizeMembershipRole } from "@/lib/identity/types"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { createUserServerClient } from "@/lib/supabase/server"
 
 export interface CreateOrganizationInput {
   name: string
@@ -40,9 +41,9 @@ function mapCompanyRow(row: Record<string, unknown>): Organization {
 export async function createOrganization(
   input: CreateOrganizationInput
 ): Promise<Organization> {
-  const admin = createAdminClient()
+  const supabase = await createUserServerClient()
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from("companies")
     .insert({
       name: input.name,
@@ -72,8 +73,8 @@ export async function createOrganization(
 export async function getOrganizationById(
   organizationId: string
 ): Promise<Organization | null> {
-  const admin = createAdminClient()
-  const { data, error } = await admin
+  const supabase = await createUserServerClient()
+  const { data, error } = await supabase
     .from("companies")
     .select("*")
     .eq("id", organizationId)
@@ -88,9 +89,9 @@ export async function getOrganizationById(
 export async function createMembership(
   input: CreateMembershipInput
 ): Promise<Membership> {
-  const admin = createAdminClient()
+  const supabase = await createUserServerClient()
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from("company_members")
     .insert({
       user_id: input.user_id,
@@ -115,9 +116,9 @@ export async function createMembership(
 export async function getMembershipForUser(
   userId: string
 ): Promise<(Membership & { organization_name: string; organization_status: string }) | null> {
-  const admin = createAdminClient()
+  const supabase = await createUserServerClient()
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from("company_members")
     .select("user_id, company_id, role, created_at, companies(name, status)")
     .eq("user_id", userId)
@@ -147,9 +148,9 @@ export async function updateMembershipRole(
   organizationId: string,
   role: MembershipRole
 ): Promise<Membership> {
-  const admin = createAdminClient()
+  const supabase = await createUserServerClient()
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from("company_members")
     .update({ role })
     .eq("user_id", userId)
@@ -173,8 +174,8 @@ export async function validateMembership(
   userId: string,
   organizationId: string
 ): Promise<boolean> {
-  const admin = createAdminClient()
-  const { data, error } = await admin
+  const supabase = await createUserServerClient()
+  const { data, error } = await supabase
     .from("company_members")
     .select("id")
     .eq("user_id", userId)
@@ -185,4 +186,9 @@ export async function validateMembership(
     throw new Error(`Membership validation failed: ${error.message}`)
   }
   return Boolean(data)
+}
+
+/** Admin-only bootstrap (WorkOS sync). Not for routine domain reads/writes. */
+export function createMembershipAdminClient() {
+  return createAdminClient()
 }

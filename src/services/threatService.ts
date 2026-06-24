@@ -1,8 +1,26 @@
-import type { ThreatEvent } from "@/data/mockData"
+import type { ThreatEvent } from "@/domains/shared/types"
 import { THREAT_EVENTS } from "@/data/mockData"
 import { emit } from "@/lib/sync"
+import {
+  getCachedOrganizationId,
+  getCachedThreats,
+} from "@/lib/workflows/client-store"
 
 const STORAGE_KEY = "avarent_threat_events"
+
+async function persistThreatToApi(event: ThreatEvent): Promise<void> {
+  if (typeof window === "undefined" || !getCachedOrganizationId()) return
+  try {
+    await fetch("/api/workflows/investigations", {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event }),
+    })
+  } catch {
+    // localStorage remains source of truth until API succeeds
+  }
+}
 
 export class ThreatService {
   private events: ThreatEvent[]
@@ -31,6 +49,9 @@ export class ThreatService {
   }
 
   getAll(): ThreatEvent[] {
+    const cached = getCachedThreats()
+    if (cached) return [...cached]
+
     this.events = this.loadFromStorage()
     return [...this.events].sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -57,6 +78,7 @@ export class ThreatService {
 
     this.events.unshift(newEvent)
     this.saveToStorage()
+    void persistThreatToApi(newEvent)
     return newEvent
   }
 
@@ -66,6 +88,7 @@ export class ThreatService {
 
     this.events[index] = { ...this.events[index], ...updates }
     this.saveToStorage()
+    void persistThreatToApi(this.events[index])
     return this.events[index]
   }
 

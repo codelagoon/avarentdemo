@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server"
-import { resolveApplicationContext } from "@/lib/identity/resolve-context"
+import { ensureSupabaseUserLinked } from "@/lib/identity/resolve-context"
 import {
   createMembership,
   createOrganization,
 } from "@/domains/identity/membershipDomain"
+import { THREAT_EVENTS, LEDGER_ENTRIES } from "@/data/mockData"
+import { seedWorkflowDataIfEmpty } from "@/domains/workflows/supabaseWorkflowRepository"
 import type { Company } from "@/services/companyService"
 
 export interface OnboardingRequestBody {
@@ -21,7 +23,7 @@ export interface OnboardingRequestBody {
 }
 
 export async function POST(request: Request) {
-  const context = await resolveApplicationContext()
+  const context = await ensureSupabaseUserLinked()
 
   if (!context.user_id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -65,6 +67,12 @@ export async function POST(request: Request) {
     organization_id: organization.organization_id,
     role: "ADMIN",
   })
+
+  await seedWorkflowDataIfEmpty(
+    organization.organization_id,
+    THREAT_EVENTS.slice(0, 12),
+    LEDGER_ENTRIES.slice(0, 12)
+  )
 
   return NextResponse.json({
     organization,

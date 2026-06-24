@@ -1,4 +1,4 @@
-import type { LedgerEntry } from "@/data/mockData"
+import type { LedgerEntry } from "@/domains/shared/types"
 import { ledgerService } from "@/services/ledgerService"
 import type { LedgerRepository } from "@/domains/shared/repositories"
 

@@ -1,4 +1,4 @@
-import type { LedgerEntry } from "@/data/mockData"
+import type { LedgerEntry, ThreatEvent } from "@/domains/shared/types"
 import type { AuditPacket } from "@/services/auditPacketService"
 import type { DriftAlert, FairnessDriftMetrics } from "@/services/fairnessDriftService"
 import type { MembershipRole } from "@/lib/identity/types"
@@ -45,11 +45,11 @@ export interface OrganizationScopedMonitoringRepository {
 }
 
 export interface OrganizationScopedThreatRepository {
-  getAll(scope: TenantScope): Promise<import("@/data/mockData").ThreatEvent[]>
+  getAll(scope: TenantScope): Promise<import("@/domains/shared/types").ThreatEvent[]>
   getById(
     scope: TenantScope,
     id: string
-  ): Promise<import("@/data/mockData").ThreatEvent | undefined>
+  ): Promise<import("@/domains/shared/types").ThreatEvent | undefined>
 }
 
 export interface MembershipRepository {

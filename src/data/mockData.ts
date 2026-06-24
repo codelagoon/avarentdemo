@@ -1,45 +1,14 @@
 export const BANK_NAME = "First National Bank"
 export const BANK_SHORT = "FNB"
 
-export type ThreatSeverity = "critical" | "high" | "medium" | "low"
+export type {
+  LedgerEntry,
+  LedgerEventType,
+  ThreatEvent,
+  ThreatSeverity,
+} from "@/domains/shared/types"
+
 export type DecisionStatus = "approved" | "denied" | "under_review" | "escalated"
-export type LedgerEventType = "decision" | "intervention" | "proof_signed" | "alert" | "audit"
-
-export interface LedgerEntry {
-  id: string
-  timestamp: string
-  eventType: LedgerEventType
-  applicantId: string
-  applicantName: string
-  hash: string
-  prevHash: string
-  decision?: DecisionStatus
-  interventionType?: string
-  severity?: ThreatSeverity
-  modelVersion: string
-  fairnessScore: number
-  message: string
-  nodeCount?: number
-}
-
-export interface ThreatEvent {
-  id: string
-  timestamp: string
-  applicantId: string
-  applicantName: string
-  severity: ThreatSeverity
-  attackVector: string
-  proxyVariables: string[]
-  confidence: number
-  blocked: boolean
-  modelScore: number
-  zipCode?: string
-  description: string
-  /** Linked Command Center finding (e.g. FN-204) for deep-link navigation */
-  findingId?: string
-  /** Feature-level label for aggregate monitoring surfaces (no PII) */
-  signalLabel?: string
-}
 
 export interface EmergingRiskSignal {
   id: string
@@ -531,7 +500,7 @@ export const THREAT_EVENTS: ThreatEvent[] = [
     timestamp: "2026-06-20T10:15:00Z",
     applicantId: "APP-2026-084723",
     applicantName: "Priya K. Sharma",
-    findingId: "FN-200",
+    findingId: "FN-199",
     severity: "critical",
     attackVector: "Sequential Proxy Correlation Attack",
     proxyVariables: ["zip_code_95123", "neighborhood_score", "school_district_rating"],

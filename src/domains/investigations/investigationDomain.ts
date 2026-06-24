@@ -1,4 +1,4 @@
-import type { LedgerEntry, ThreatEvent } from "@/data/mockData"
+import type { LedgerEntry, ThreatEvent } from "@/domains/shared/types"
 import { ledgerService } from "@/services/ledgerService"
 import { threatService } from "@/services/threatService"
 import { SYNC } from "@/domains/shared/sync-channels"

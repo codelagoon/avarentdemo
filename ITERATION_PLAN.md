@@ -261,7 +261,7 @@ Based on comprehensive Playwright testing, the application is functional but nee
 
 ---
 
-## GSTACK REVIEW REPORT (/autoplan — 2026-06-23)
+## Autoplan Review Archive (/autoplan — 2026-06-23)
 
 > **Critical finding:** This plan predates the Meridian refactor. It references `App.tsx`, `/adverse-action-review` routes, 6-page shortcuts, and Playwright tests that no longer exist. Current codebase is Next.js 16 + `AppShell` + 9 workflow views + WorkOS identity (AVA-19, uncommitted). Treat sections below as historical intent; execution must follow current architecture.
 
@@ -407,3 +407,164 @@ Scope: one vertical end-to-end, not full `SERVICE_TENANT_REQUIREMENTS` migration
 ## /autoplan Review Complete — **APPROVED** (2026-06-23)
 
 Gate: A — UI polish then minimal AVA-17. Next step when ready: `/ship` after Phase A commits, or start Phase A implementation.
+
+---
+
+## Plan Eng Review — main branch (2026-06-23)
+
+**Target:** Current branch diff on `main` (4 commits, ~93 files) + uncommitted identity fix.
+
+**Step 0 — Scope:** Retrospective review of landed WorkOS/Supabase identity + AppShell. No scope reduction on shipped work. **Execution order revised** by user decisions below (AVA-17 pulled forward, supersedes autoplan Phase A-first order).
+
+### Architecture decisions
+
+| # | Issue | Decision |
+|---|-------|----------|
+| 1 | `listUsers(1000)` email scan | **A** — targeted `getUserByEmail` lookup |
+| 2 | WorkOS→Supabase sync timing | **A** — eager sync once per session (skip if Supabase cookie present) |
+| 3 | localStorage vs Supabase mismatch | **B** — pull AVA-17 forward before UI polish |
+| 4 | Admin client bypasses RLS | **A** — user-scoped client for domain ops; admin only sync/bootstrap |
+| 5 | Uncommitted `ensureSupabaseUserLinked` | **A** — commit WIP now, refactor to eager sync next |
+
+### Code quality decisions
+
+| # | Issue | Decision |
+|---|-------|----------|
+| 6 | Duplicate `FN-200` React keys | **A** — fix mock data + cross-refs |
+| 7 | Inngest hardcoded mock results | **A** — throw clear errors when backends unavailable |
+| 8 | Domain imports from `mockData.ts` | **A** — extract types to `src/domains/shared/types.ts` |
+
+### Test decisions
+
+| # | Issue | Decision |
+|---|-------|----------|
+| 9 | Test framework | **A** — Vitest + Playwright on localhost:5173 |
+| 10 | Identity coverage before AVA-17 | **A** — full identity matrix + mandatory onboarding regression |
+
+**Test coverage (identity):** 0/18 paths tested. Diagram in session; artifact at `~/.gstack/projects/codelagoon-avarentdemo/george-main-eng-review-test-plan-20260623-231215.md`.
+
+### Performance decisions
+
+| # | Issue | Decision |
+|---|-------|----------|
+| 11 | Sync deduplication | **A** — once per session if Supabase cookie present |
+| 12 | AVA-17 data loading | **A** — Server Components + paginated Supabase queries |
+
+### Cross-model tensions (outside voice)
+
+| Topic | Resolution |
+|-------|------------|
+| Split-brain partial AVA-17 | **A** — bundle investigations + ledger + Command Center KPIs/findings in one slice |
+| PII in `threat_log`/`ledger_events` | **A** — aggregate only; hashed/opaque applicant refs, no names in Supabase |
+
+**Outside voice highlights absorbed:** schema adapter design required before AVA-17; identity admin-client split must ship with AVA-17; Inngest jobs need tenant validation; pick RSC fetch pattern before building AVA-17 repos (avoid double implementation).
+
+### NOT in scope (this eng review iteration)
+
+- Phase A UI polish (deferred until AVA-17 bundle lands)
+- Full `SERVICE_TENANT_REQUIREMENTS` migration for all services
+- WebSocket/SSE, mobile responsive, legacy Playwright restoration
+- DESIGN.md rewrite (separate `/design-consultation` track)
+- Codex outside voice (CLI not installed)
+
+### What already exists
+
+- WorkOS AuthKit middleware + `/api/auth/*` routes
+- `resolveApplicationContext`, onboarding API, `membershipDomain`
+- `OrganizationScoped*` repository contracts (interfaces only)
+- RLS migrations applied on remote Supabase
+- AppShell + 9 workflows on localStorage via `useLiveData`
+
+### Failure modes (critical gaps)
+
+| Path | Failure | Test | Error handling | Silent? |
+|------|---------|------|----------------|---------|
+| WorkOS-only → onboarding POST | 401 before sync | **GAP — CRITICAL regression test** | ensureSupabaseUserLinked | User sees form, submit fails |
+| listUsers miss at scale | Wrong user created | GAP | None | Duplicate users |
+| Admin client cross-tenant | Wrong org data | GAP | None | Possible leak |
+| Inngest `searchLDAFn` | Unauthenticated insert | GAP | Mock success | False positive |
+
+### Parallelization
+
+| Lane | Work | Depends on |
+|------|------|------------|
+| A | Identity: commit WIP, eager sync, getUserByEmail, Vitest harness | — |
+| B | Types extract + mock data FN-200 fix | — |
+| C | AVA-17 schema adapter + RSC repos + PII redaction | A (identity stable) |
+| D | Command Center cutover (KPIs/findings) | C |
+
+Launch **A + B** in parallel. Merge, then **C**, then **D**.
+
+### Implementation Tasks
+
+- [ ] **T1 (P1, human: ~1h / CC: ~20min)** — identity — Commit `ensureSupabaseUserLinked` + onboarding route fix
+  - Surfaced by: Architecture — uncommitted WIP fix
+  - Files: `src/lib/identity/resolve-context.ts`, `src/app/api/identity/onboarding/route.ts`
+  - Verify: Manual onboarding POST 200; then `npm test` once harness exists
+
+- [ ] **T2 (P1, human: ~2h / CC: ~30min)** — identity — Eager sync once per session in `resolveApplicationContext`
+  - Surfaced by: Architecture #2 + Performance #11
+  - Files: `src/lib/identity/resolve-context.ts`, possibly `src/middleware.ts`
+  - Verify: Vitest matrix; WorkOS-only regression test
+
+- [ ] **T3 (P1, human: ~1h / CC: ~15min)** — identity — Replace `listUsers` with `getUserByEmail`
+  - Surfaced by: Architecture #1
+  - Files: `src/lib/identity/workos-supabase-sync.ts`
+  - Verify: Unit test existing + new user paths
+
+- [ ] **T4 (P1, human: ~3h / CC: ~45min)** — testing — Vitest + Playwright harness + full identity test matrix
+  - Surfaced by: Tests #9, #10
+  - Files: `package.json`, `vitest.config.ts`, `tests/identity/*.test.ts`, `tests/e2e/onboarding.spec.ts`
+  - Verify: `npm test` green; mandatory regression test present
+
+- [ ] **T5 (P1, human: ~2d / CC: ~3h)** — AVA-17 — Schema adapter + user-scoped repos + PII-safe columns
+  - Surfaced by: Architecture #3, #4; Cross-model PII + split-brain
+  - Files: `src/domains/shared/types.ts`, `src/domains/shared/repositories.ts`, Supabase migrations, investigation/ledger domains, Command Center data sources
+  - Verify: Two users same org see same data; no `applicant_name` in DB
+
+- [ ] **T6 (P2, human: ~30min / CC: ~10min)** — mock data — Fix duplicate `FN-200` keys
+  - Surfaced by: Code Quality #6
+  - Files: `src/data/mockData.ts`
+  - Verify: No React key warnings in console
+
+- [ ] **T7 (P2, human: ~1h / CC: ~20min)** — inngest — Remove hardcoded results; add tenant validation
+  - Surfaced by: Code Quality #7; Outside voice #8
+  - Files: `src/app/api/inngest/route.ts`
+  - Verify: Functions throw when `MODAL_ML_COMPUTE_URL` missing
+
+- [ ] **T8 (P2, human: ~1h / CC: ~15min)** — domains — Extract shared types from mockData
+  - Surfaced by: Code Quality #8
+  - Files: `src/domains/shared/types.ts`, domain imports
+  - Verify: `tsc --noEmit`
+
+### Completion summary
+
+- Step 0: Scope accepted (retrospective + revised execution order)
+- Architecture: 5 issues → 5 decisions
+- Code Quality: 3 issues → 3 decisions
+- Tests: diagram produced, 18 gaps; framework + scope decided
+- Performance: 2 issues → 2 decisions
+- Outside voice: Claude subagent (Codex not installed); 2 cross-model tensions resolved
+- Lake Score: 12/12 complete options chosen
+- NOT in scope: written
+- What already exists: written
+- Failure modes: 4 critical gaps flagged (1 regression mandatory)
+
+---
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | issues_open | autoplan 2026-06-23; superseded by eng reorder |
+| Codex Review | `/codex review` | Independent 2nd opinion | 0 | — | CLI not installed |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | issues_open | 13 issues, 4 critical gaps |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | pending restart |
+| DX Review | `/plan-devex-review` | Developer experience | 0 | — | skipped |
+
+**CROSS-MODEL:** Outside voice agreed on admin-client split and test harness scope; flagged PII and split-brain — both resolved (bundle cutover + aggregate-only PII).
+
+**VERDICT:** ENG REVIEW COMPLETE — 12 decisions locked; implementation blocked on T1–T5 before ship. Re-run `/ship` after T1–T4 land.
+
+NO UNRESOLVED DECISIONS
+

@@ -1,8 +1,6 @@
 import type { User as WorkOSUser } from "@workos-inc/node"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { createServerClient } from "@supabase/ssr"
-import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env"
-import { cookies } from "next/headers"
+import { createUserServerClient } from "@/lib/supabase/server"
 
 export interface SupabaseSyncResult {
   supabaseUserId: string
@@ -28,18 +26,14 @@ export async function syncWorkOSUserToSupabase(
   let supabaseUserId: string
   let created = false
 
-  const { data: listData, error: listError } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  })
+  const { data: existingUserData, error: lookupError } =
+    await admin.auth.admin.getUserByEmail(email)
 
-  if (listError) {
-    throw new Error(`Failed to list Supabase users: ${listError.message}`)
+  if (lookupError) {
+    throw new Error(`Failed to look up Supabase user: ${lookupError.message}`)
   }
 
-  const existing = listData.users.find(
-    (u) => u.email?.toLowerCase() === email
-  )
+  const existing = existingUserData.user
 
   if (existing) {
     supabaseUserId = existing.id
@@ -84,19 +78,7 @@ export async function syncWorkOSUserToSupabase(
     )
   }
 
-  const cookieStore = await cookies()
-  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options)
-        })
-      },
-    },
-  })
+  const supabase = await createUserServerClient({ writable: true })
 
   const { error: verifyError } = await supabase.auth.verifyOtp({
     token_hash: linkData.properties.hashed_token,

@@ -4,28 +4,63 @@ import { serve } from "inngest/next";
 import { inngest } from "@/lib/inngest";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value?.trim()) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+async function assertTenantAccess(companyId: string, userId: string): Promise<void> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("company_members")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(`Unauthorized tenant access for company ${companyId}`);
+  }
+}
+
 const sealLedgerFn = inngest.createFunction(
   { id: "seal-ledger", name: "SHA-256 Ledger Sealing" },
   { event: "ledger/seal" },
-  async ({ event, step }) => {
-    const { applicantId, decisionEvent } = event.data;
+  async ({ event }) => {
+    const endpoint = process.env.LEDGER_SEAL_SERVICE_URL;
+    if (!endpoint) {
+      throw new Error(
+        "Ledger sealing is not configured. Set LEDGER_SEAL_SERVICE_URL to a backend that computes hash chains."
+      );
+    }
 
-    const sealResult = await step.run("calculate-hash-chain", async () => {
-      await new Promise((resolve) => setTimeout(resolve, 80));
+    const { applicantId, decisionEvent, companyId, userId } = event.data as {
+      applicantId: string;
+      decisionEvent: string;
+      companyId: string;
+      userId: string;
+    };
 
-      const prevHash = "0000000000000000000000000000000000000000000000000000000000000000";
-      const currentHash = "a7f5d6f3e2b1c098d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4";
+    if (!companyId || !userId) {
+      throw new Error("ledger/seal requires companyId and userId for tenant validation");
+    }
 
-      return {
-        applicantId,
-        previousHash: prevHash,
-        currentHash,
-        sealSignature: `meridian:sha256:${currentHash}`,
-        timestamp: new Date().toISOString()
-      };
+    await assertTenantAccess(companyId, userId);
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ applicantId, decisionEvent, companyId }),
     });
 
-    return { success: true, result: sealResult };
+    if (!res.ok) {
+      throw new Error(`Ledger seal service failed: ${res.status}`);
+    }
+
+    return { success: true, result: await res.json() };
   }
 );
 
@@ -35,10 +70,7 @@ const trainGANFn = inngest.createFunction(
   async ({ event, step }) => {
     const { epochs, privacyBudget, quality } = event.data;
 
-    const modalEndpoint = process.env.MODAL_ML_COMPUTE_URL;
-    if (!modalEndpoint) {
-      throw new Error("Missing required environment variable: MODAL_ML_COMPUTE_URL");
-    }
+    const modalEndpoint = requireEnv("MODAL_ML_COMPUTE_URL");
 
     const modalResponse = await step.run("invoke-modal-container", async () => {
       const token = process.env.MODAL_API_TOKEN ?? "";
@@ -64,66 +96,80 @@ const trainGANFn = inngest.createFunction(
 const scanAdversarialFn = inngest.createFunction(
   { id: "scan-adversarial-proxy", name: "Adversarial Proxy Scanner" },
   { event: "adversarial/scan" },
-  async ({ event, step }) => {
-    const { featureName, correlation, informationValue } = event.data;
+  async ({ event }) => {
+    const endpoint = process.env.ADVERSARIAL_SCAN_SERVICE_URL;
+    if (!endpoint) {
+      throw new Error(
+        "Adversarial proxy scan is not configured. Set ADVERSARIAL_SCAN_SERVICE_URL."
+      );
+    }
 
-    const auditReport = await step.run("run-proxy-calculations", async () => {
-      await new Promise((resolve) => setTimeout(resolve, 120));
-
-      const riskScore = Math.round(correlation * 120);
-      const isQuarantined = correlation > 0.45;
-
-      return {
-        featureName,
-        informationValue,
-        proxyRiskScore: Math.min(riskScore, 100),
-        status: isQuarantined ? "quarantined" : "approved",
-        proxyFor: isQuarantined ? "Protected Class Proxy (Race/Income)" : "None"
-      };
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event.data),
     });
 
-    return { success: true, auditReport };
+    if (!res.ok) {
+      throw new Error(`Adversarial scan service failed: ${res.status}`);
+    }
+
+    return { success: true, auditReport: await res.json() };
   }
 );
 
 const searchLDAFn = inngest.createFunction(
   { id: "search-lda-alternative", name: "Less Discriminatory Alternative Search" },
   { event: "lda/search" },
-  async ({ event, step }) => {
-    const { companyId, currentAir } = event.data;
+  async ({ event }) => {
+    const endpoint = process.env.LDA_SEARCH_SERVICE_URL;
+    if (!endpoint) {
+      throw new Error(
+        "LDA search is not configured. Set LDA_SEARCH_SERVICE_URL to a statistical analysis backend."
+      );
+    }
 
-    const ldaResult = await step.run("pareto-optimal-rashomon-search", async () => {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+    const { companyId, currentAir, userId } = event.data as {
+      companyId: string;
+      currentAir: number;
+      userId: string;
+    };
 
-      const alternativeModel = {
-        id: "model-meridian-b",
-        name: "Meridian Model B (Fairness Optimized)",
-        accuracy: 0.812,
-        air: 0.82,
-        spd: 0.03
-      };
+    if (!companyId || !userId) {
+      throw new Error("lda/search requires companyId and userId for tenant validation");
+    }
 
-      const message = `Less Discriminatory Alternative found — Model B raises AIR to 0.82 with 0.3% accuracy delta.`;
+    await assertTenantAccess(companyId, userId);
 
-      const supabase = createAdminClient();
-      await supabase.from("threat_log").insert({
-        company_id: companyId,
-        applicant_name: "System",
-        applicant_id: "lda-search",
-        attack_vector: "LDA Search Completed",
-        risk_score: 0,
-        severity: "nominal",
-        status: "resolved",
-      });
-
-      return {
-        exists: true,
-        alternativeModel,
-        accuracyDelta: 0.003,
-        fairnessGain: alternativeModel.air - currentAir,
-        message
-      };
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, currentAir }),
     });
+
+    if (!res.ok) {
+      throw new Error(`LDA search service failed: ${res.status}`);
+    }
+
+    const ldaResult = await res.json();
+
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("threat_log").insert({
+      company_id: companyId,
+      applicant_name: "System",
+      applicant_id: "lda-search",
+      applicant_ref: "REF-LDA-SYSTEM",
+      attack_vector: "LDA Search Completed",
+      risk_score: 0,
+      severity: "nominal",
+      status: "resolved",
+      signal_label: "LDA search completed",
+      description: "Less discriminatory alternative search completed",
+    });
+
+    if (error) {
+      throw new Error(`Failed to record LDA search in threat_log: ${error.message}`);
+    }
 
     return { success: true, ldaResult };
   }
